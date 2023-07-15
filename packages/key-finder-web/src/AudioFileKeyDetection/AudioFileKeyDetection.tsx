@@ -1,17 +1,21 @@
-import { createRef, h, Fragment, Component } from 'preact';
+import { h, Component, createRef, RefObject } from 'preact';
 import { Link } from 'preact-router';
-import AudioFileItem, { FileItem } from './AudioFileItem';
+import AudioFileItem from './AudioFileItem';
 import { v4 as uuidv4 } from 'uuid';
 import { numberOfThreads } from '../defaults';
+import { FileItem } from './AudioFileItem'; // Import the FileItem interface
 
 import './AudioFileKeyDetection.css';
+
+interface Props {}
 
 interface State {
   files: Array<FileItem>;
 }
 
-class AudioFileKeyDetection extends Component<{}, State> {
-  ref = createRef();
+class AudioFileKeyDetection extends Component<Props, State> {
+  ref = createRef<HTMLInputElement>();
+
   state: State = {
     files: [],
   };
@@ -27,6 +31,7 @@ class AudioFileKeyDetection extends Component<{}, State> {
   }
 
   handleFileInput = ({ target }: Event): void => {
+    console.log('AudioFileKeyDetection - handleFileInput');
     const fileList = (target as HTMLInputElement).files;
     this.setState(({ files }) => {
       let availableThreads = files.reduce((acc, cur) => {
@@ -46,6 +51,8 @@ class AudioFileKeyDetection extends Component<{}, State> {
           file: fileList[fileIdx],
           result: null,
           digest: null,
+          keySignatureNumericValue: null,
+          scale: null,
         });
       }
       this.ref.current.value = null;
@@ -54,6 +61,7 @@ class AudioFileKeyDetection extends Component<{}, State> {
   };
 
   updateDigest = (uuid: string, digest: string): void => {
+    console.log('AudioFileKeyDetection - updateDigest');
     this.setState(({ files }) => {
       const newFiles = files.map((file) => {
         if (file.id === uuid) return { ...file, uuid };
@@ -64,6 +72,7 @@ class AudioFileKeyDetection extends Component<{}, State> {
   };
 
   updateResult = (uuid: string, result: string): void => {
+    console.log('AudioFileKeyDetection - updateResult');
     this.setState(({ files }) => {
       let availableThreads = 1;
       const newFiles = files.map((file) => {
@@ -78,42 +87,41 @@ class AudioFileKeyDetection extends Component<{}, State> {
     });
   };
 
-  render({}, { files }) {
+  render(props) {
+    console.log('AudioFileKeyDetection - render');
+    const { files } = this.state;
+
     return (
-      <main class="audio-file-key-detection-page">
-        <header>
-          <h1>Audio File Key Detection</h1>
-        </header>
-        <div style={{ paddingTop: '1rem' }}>
-          <p style={{ fontSize: '0.6rem' }}>
-            {numberOfThreads === 1
-              ? 'No parallel processes. '
-              : `Using ${numberOfThreads} parallel processes. `}
-            <Link href="/settings">[settings]</Link>
-          </p>
-          <div style={{ marginBottom: '2rem' }}>
-            <label for="load-a-track" style={{ paddingRight: '1rem' }}>
-              Load a track:{' '}
-            </label>
-            <input
-              ref={this.ref}
-              id="load-a-track"
-              type="file"
-              accept="audio/*"
-              multiple={true}
-              onChange={this.handleFileInput}
-            />
+      <>
+        <main class="audio-file-key-detection-page">
+          <header>
+            <h1>Audio File Key Detection</h1>
+          </header>
+          <div style={{ paddingTop: '1rem' }}>
+            <div style={{ marginBottom: '2rem' }}>
+              <label for="load-a-track" style={{ paddingRight: '1rem' }}>
+                Load a track:
+              </label>
+              <input
+                ref={this.ref}
+                id="load-a-track"
+                type="file"
+                accept="audio/*"
+                multiple={true}
+                onChange={this.handleFileInput}
+              />
+            </div>
           </div>
-          {files.map((fileItem) => (
-            <AudioFileItem
-              key={fileItem.id}
-              fileItem={fileItem}
-              updateDigest={this.updateDigest}
-              updateResult={this.updateResult}
-            />
-          ))}
-        </div>
-      </main>
+        </main>
+        {files.map((fileItem) => (
+          <AudioFileItem
+            key={fileItem.id}
+            fileItem={fileItem}
+            updateDigest={this.updateDigest}
+            updateResult={this.updateResult}
+          />
+        ))}
+      </>
     );
   }
 }

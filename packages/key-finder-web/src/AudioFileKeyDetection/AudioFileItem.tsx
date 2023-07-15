@@ -1,7 +1,6 @@
-import { h, Fragment, Component } from 'preact';
+import { h, Component } from 'preact';
 import { keyFinderUtils, audioUtils } from '../Utils';
-import { keysNotation } from '../defaults';
-import CircleOfFifths from '../CircleOfFifths';
+import * as fretboards from 'fretboards';
 
 import './AudioFileItem.css';
 
@@ -11,6 +10,8 @@ export interface FileItem {
   file: File;
   result: string | null;
   digest: string | null;
+  keySignatureNumericValue: number | null;
+  scale: { [key: string]: number[] } | null;
 }
 
 interface Props {
@@ -26,9 +27,12 @@ interface State {
   maxSegments: number;
   analyzing: boolean;
   result: string;
+  keySignatureNumericValue: number | null;
+  fileItem: FileItem;
+  scale: { [key: string]: number[] } | null;
 }
 
-class AudioFileKeyDetection extends Component<Props, State> {
+class AudioFileItem extends Component<Props, State> {
   worker: Worker | null = null;
   terminated: boolean = false;
 
@@ -39,6 +43,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
     maxSegments: null,
     analyzing: false,
     result: null,
+    keySignatureNumericValue: null,
+    fileItem: this.props.fileItem,
+    scale: null,
   };
 
   componentDidMount() {
@@ -49,7 +56,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (
       prevProps.fileItem.canProcess === false &&
       this.props.fileItem.canProcess === true
@@ -61,78 +68,57 @@ class AudioFileKeyDetection extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    this.terminated = true;
-    this.worker && this.worker.terminate();
+    this.worker?.terminate();
   }
 
-  advanceSegmentCount = () => {
-    this.setState(({ currentSegment }) => ({
-      currentSegment: currentSegment + 1,
-    }));
-  };
-
-  postAudioSegmentAtOffset = (
-    worker,
-    channelData,
-    sampleRate,
-    numberOfChannels,
-    offset
-  ) => {
-    const segment = keyFinderUtils.zipChannelsAtOffset(
-      channelData,
-      offset,
-      sampleRate,
-      numberOfChannels
-    );
-    worker.postMessage({ funcName: 'feedAudioData', data: [segment] });
-  };
-
-  handleAudioFile = (buffer: AudioBuffer) => {
-    if (this.terminated) return;
+  handleAudioFile = async (buffer: AudioBuffer) => {
+    console.log('AudioFileItem - handleAudioFile');
     const sampleRate = buffer.sampleRate;
     const numberOfChannels = buffer.numberOfChannels;
-    const channelData = [];
+    const channelData: Float32Array[] = [];
     for (let i = 0; i < numberOfChannels; i += 1) {
       channelData.push(buffer.getChannelData(i));
     }
 
-    this.setState({
-      analyzing: true,
-      analysisStart: performance.now(),
-      analysisDuration: null,
-    });
-    this.worker = keyFinderUtils.initializeKeyFinder({
+    this.setState({ analyzing: true });
+
+    const worker = keyFinderUtils.initializeKeyFinder({
       sampleRate,
       numberOfChannels,
     });
-    const segmentCounts = Math.floor(channelData[0].length / sampleRate);
-    this.setState({ maxSegments: segmentCounts, currentSegment: 0 });
 
-    this.worker.addEventListener('message', (event) => {
+    const segmentCounts = Math.floor(channelData[0].length / sampleRate);
+
+    worker.addEventListener('message', (event) => {
       if (event.data.finalResponse) {
         const result = keyFinderUtils.extractResultFromByteArray(
           event.data.data
         );
-        this.setState((oldState) => ({
-          result,
-          analysisDuration: performance.now() - oldState.analysisStart,
-          analyzing: false,
-        }));
-        this.props.updateResult(this.props.fileItem.id, result);
-        this.worker.terminate();
-        this.worker = null;
+        console.log(result);
+        const normalizedResult = this.getKeySignatureNumericValue(result);
+        console.log(normalizedResult);
+        this.setState(
+          {
+            result,
+            analyzing: false,
+          },
+          () => {
+            this.props.updateResult(this.props.fileItem.id, result);
+            worker.terminate();
+            this.renderFretboardScale(normalizedResult); // Render the fretboard scale
+          }
+        );
       } else {
         // Not final response
         if (event.data.data === 0) {
           // very first response
-          this.postAudioSegmentAtOffset(
-            this.worker,
+          this.advanceSegmentCount(
+            worker,
             channelData,
             sampleRate,
             numberOfChannels,
             0
           );
-          this.advanceSegmentCount();
         } else {
           // not first response
           const result = keyFinderUtils.extractResultFromByteArray(
@@ -142,25 +128,69 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
           if (this.state.currentSegment < segmentCounts) {
             const offset = this.state.currentSegment * sampleRate;
-            this.postAudioSegmentAtOffset(
-              this.worker,
+            this.advanceSegmentCount(
+              worker,
               channelData,
               sampleRate,
               numberOfChannels,
               offset
             );
-            this.advanceSegmentCount();
           } else {
             // no more segments
-            this.worker.postMessage({ funcName: 'finalDetection' });
+            worker.postMessage({ funcName: 'finalDetection' });
           }
         }
       }
     });
+
+    this.advanceSegmentCount(
+      worker,
+      channelData,
+      sampleRate,
+      numberOfChannels,
+      0
+    );
   };
+
+  advanceSegmentCount = (
+    worker: Worker,
+    channelData: Float32Array[],
+    sampleRate: number,
+    numberOfChannels: number,
+    offset: number
+  ) => {
+    const segment = keyFinderUtils.zipChannelsAtOffset(
+      channelData,
+      offset,
+      sampleRate,
+      numberOfChannels
+    );
+    worker.postMessage({ funcName: 'feedAudioData', data: [segment] });
+
+    this.setState(({ currentSegment }) => ({
+      currentSegment: currentSegment + 1,
+    }));
+  };
+
+  getKeySignatureNumericValue(result: string | null) {
+    console.log('AudioFileItem - getKeySignatureNumericValue');
+    if (!result) {
+      return null;
+    }
+
+    const normalizedResult = result.toLowerCase();
+
+    return normalizedResult;
+  }
 
   handleFileLoad = async (event: ProgressEvent<FileReader>): Promise<void> => {
     const context = audioUtils.createAudioContext();
+    if (!crypto?.subtle?.digest) {
+      console.error(
+        'Web Cryptography API is not supported in this environment.'
+      );
+      return;
+    }
     const digest = await crypto.subtle.digest(
       'SHA-256',
       event.target.result as ArrayBuffer
@@ -170,36 +200,47 @@ class AudioFileKeyDetection extends Component<Props, State> {
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
     this.props.updateDigest(this.props.fileItem.id, hashHex);
-    context.decodeAudioData(
-      event.target.result as ArrayBuffer,
-      this.handleAudioFile
-    );
+    console.log('AudioFileItem - handleFileLoad');
+    context.decodeAudioData(event.target.result as ArrayBuffer, (buffer) => {
+      this.handleAudioFile(buffer);
+    });
   };
 
-  render(
-    { fileItem },
-    { currentSegment, maxSegments, analyzing, result, analysisDuration }
-  ) {
+  renderFretboardScale(normalizedResult: string | null) {
+    if (!normalizedResult) {
+      return;
+    }
+
+    const container = document.getElementById('fretboard-container');
+
+    // Clear the container before rendering the fretboard to avoid duplicates
+    container.innerHTML = '';
+
+    const fb = fretboards.Fretboard();
+    fb.add(normalizedResult).paint(container);
+  }
+
+  render() {
+    console.log('AudioFileItem - render');
+    const { fileItem } = this.props;
+    const { analyzing, result } = this.state;
+
     return (
       <div class="file-item__container">
-        <div class="file-item__song-name">{fileItem.file.name}</div>
-        <div class="file-item__result-container">
-          <div class="file-item__result-text">
-            {result && keysNotation[result] && `${keysNotation[result]}`}
-          </div>
-          <div class="file-item__circle">
-            <CircleOfFifths mini={true} result={result} />
-          </div>
-        </div>
-        <div class="file-item__progress-indicator">
-          <progress value={currentSegment} max={maxSegments}></progress>
-          {result &&
-            analysisDuration &&
-            `${(analysisDuration / 1000).toFixed(1)} s`}
+        <div class="file-item__info">{/* Render file item information */}</div>
+        <div class="file-item__rendered-fretboard">
+          {analyzing && <div>Analyzing...</div>}
+          {result && (
+            <div>
+              Result: {result}
+              {/* Render the fretboard scale here */}
+              <div id="fretboard-container"></div>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 }
 
-export default AudioFileKeyDetection;
+export default AudioFileItem;

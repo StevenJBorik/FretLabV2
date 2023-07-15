@@ -1,7 +1,6 @@
-import { h, Fragment, Component } from 'preact';
+import { h, Fragment, Component, createRef } from 'preact';
 import { Router, Link } from 'preact-router';
 import Navigation from './Navigation';
-import LiveDetection from './LiveDetection';
 import AudioFileKeyDetection from './AudioFileKeyDetection';
 import Settings from './Settings';
 import About from './About';
@@ -10,6 +9,7 @@ import './App.css';
 
 class App extends Component {
   render() {
+    console.log('App - render');
     return (
       <>
         <div class="top-bar">
@@ -20,7 +20,6 @@ class App extends Component {
         </div>
         <div class="app-wrapper">
           <Router>
-            <LiveDetection default />
             <AudioFileKeyDetection path="/file" />
             <Settings path="/settings" />
             <About path="/about" />

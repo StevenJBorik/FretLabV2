@@ -1,27 +1,36 @@
 {
   "name": "key-finder-web",
   "scripts": {
-    "clean": "rm -rf ./dist",
+    "clean": "del /S /Q dist",
     "build": "rollup -c",
-    "copy:html": "cp src/index.html dist/index.html",
-    "copy:favicon": "cp src/favicon.ico dist/favicon.ico",
+    "copy:html": "robocopy src dist index.html",
+    "copy:favicon": "robocopy src dist favicon.ico /NFL",
     "build:release": "yarn clean && yarn build && yarn copy:html && yarn copy:favicon",
     "serve": "serve ./dist -l 3000 -s"
   },
   "dependencies": {
+    "fretboards": "^0.5.0",
     "@rollup/plugin-node-resolve": "15.0.1",
     "@rollup/plugin-typescript": "11.0.0",
     "@surma/rollup-plugin-off-main-thread": "2.2.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
     "key-finder-wasm": "workspace:*",
     "normalize.css": "8.0.1",
-    "preact": "10.16.0",
-    "preact-router": "4.1.0",
+    "preact": "^10.16.0",
+    "preact-router": "^4.1.1",
     "rollup": "2.79.1",
     "rollup-plugin-css-only": "4.3.0",
     "serve": "13.0.4",
+    "server-static": "^ 2.0.5",
     "tslib": "2.5.0",
     "typescript": "4.9.5",
-    "uuid": "9.0.0"
+    "uuid": "^9.0.0"
   },
-  "packageManager": "yarn@3.5.0"
+  "packageManager": "yarn@3.5.0",
+  "headers": {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept"
+  }
 }
