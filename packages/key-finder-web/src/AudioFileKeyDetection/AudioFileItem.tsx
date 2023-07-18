@@ -95,6 +95,12 @@ class AudioFileItem extends Component<Props, State> {
     );
     this.audioElement.removeEventListener('error', () => {});
 
+    // Stop and disconnect the playingSource if it exists
+    if (this.state.playingSource) {
+      this.state.playingSource.stop();
+      this.state.playingSource.disconnect();
+    }
+
     // Close the audio context when the component is unmounted
     if (this.audioContext) {
       this.audioContext.close();
@@ -103,9 +109,9 @@ class AudioFileItem extends Component<Props, State> {
   }
 
   handleAudioPlayPause = () => {
-    if (!this.audioContext || !this.state.source) return;
+    if (!this.audioContext) return;
 
-    const { source, playingSource, isPlaying, currentTime } = this.state;
+    const { source, isPlaying, currentTime } = this.state;
 
     if (isPlaying) {
       this.audioContext.suspend().then(() => {
@@ -114,9 +120,9 @@ class AudioFileItem extends Component<Props, State> {
       });
     } else {
       this.audioContext.resume().then(() => {
-        if (playingSource) {
+        if (this.state.playingSource) {
           // Stop the currently playing source if it exists
-          playingSource.stop();
+          this.state.playingSource.stop();
         }
         this.setState({ isPlaying: true });
         const newSource = this.audioContext.createBufferSource();
