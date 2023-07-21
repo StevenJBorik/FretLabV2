@@ -20,6 +20,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
     files: [],
   };
 
+  audioElement: HTMLAudioElement | null = null;
+
   componentDidMount() {
     document.title = 'keyfinder | Key Finder for Audio Files';
     document
@@ -30,14 +32,26 @@ class AudioFileKeyDetection extends Component<Props, State> {
       );
   }
 
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
+    // Check if any changes in state or props that would trigger a re-render
+    if (
+      this.state.files !== nextState.files
+      // Add more checks here if needed for other props or state properties
+    ) {
+      return true; // Allow re-render
+    }
+    return false; // Prevent re-render
+  }
+
   handleFileInput = ({ target }: Event): void => {
     console.log('AudioFileKeyDetection - handleFileInput');
     const fileList = (target as HTMLInputElement).files;
-    this.setState(({ files }) => {
-      let availableThreads = files.reduce((acc, cur) => {
+    this.setState((prevState) => {
+      let availableThreads = prevState.files.reduce((acc, cur) => {
         if (cur.canProcess && !cur.result) return acc - 1;
         return acc;
       }, numberOfThreads);
+      const newFiles = prevState.files.slice(); // Create a shallow copy of the files array
       for (let fileIdx = 0; fileIdx < fileList.length; fileIdx += 1) {
         let canProcess = false;
         if (availableThreads > 0) {
@@ -45,7 +59,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
           availableThreads -= 1;
         }
         const id = uuidv4();
-        files.push({
+        newFiles.push({
           id,
           canProcess,
           file: fileList[fileIdx],
@@ -56,7 +70,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
         });
       }
       this.ref.current.value = null;
-      return { files };
+      return { files: newFiles };
     });
   };
 
@@ -119,6 +133,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
             fileItem={fileItem}
             updateDigest={this.updateDigest}
             updateResult={this.updateResult}
+            audioElement={this.audioElement}
           />
         ))}
       </>
