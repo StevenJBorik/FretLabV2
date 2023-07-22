@@ -1,4 +1,5 @@
 import { h, Component, createRef, RefObject } from 'preact';
+import axios from 'axios';
 import { Link } from 'preact-router';
 import AudioFileItem from './AudioFileItem';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,6 +12,7 @@ interface Props {}
 
 interface State {
   files: Array<FileItem>;
+  sectionBoundaries: number[];
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -18,6 +20,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
   state: State = {
     files: [],
+    sectionBoundaries: [],
   };
 
   audioElement: HTMLAudioElement | null = null;
@@ -43,9 +46,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
     return false; // Prevent re-render
   }
 
-  handleFileInput = ({ target }: Event): void => {
+  handleFileInput = (event: Event): void => {
     console.log('AudioFileKeyDetection - handleFileInput');
-    const fileList = (target as HTMLInputElement).files;
+    const fileList = (event.target as HTMLInputElement).files;
+    console.log('Selected files:', fileList);
     this.setState((prevState) => {
       let availableThreads = prevState.files.reduce((acc, cur) => {
         if (cur.canProcess && !cur.result) return acc - 1;
@@ -68,6 +72,33 @@ class AudioFileKeyDetection extends Component<Props, State> {
           keySignatureNumericValue: null,
           scale: null,
         });
+
+        // Call the API for each selected file
+        if (canProcess) {
+          (async () => {
+            try {
+              const formData = new FormData();
+              formData.append('file', fileList[fileIdx]);
+
+              const response = await axios.post(
+                'http://localhost:5000/api/process-audio',
+                formData,
+                {
+                  headers: {
+                    'Content-Type': 'audio/mpeg',
+                  },
+                }
+              );
+
+              // Process the response from the MSAF API and update the state with section boundaries
+              const sectionBoundaries = response.data.sections;
+              console.log('Section Boundaries', sectionBoundaries);
+              this.setState({ sectionBoundaries });
+            } catch (error) {
+              console.error('Error processing file with MSAF:', error);
+            }
+          })();
+        }
       }
       this.ref.current.value = null;
       return { files: newFiles };
@@ -122,7 +153,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 type="file"
                 accept="audio/*"
                 multiple={true}
-                onChange={this.handleFileInput}
+                onChange={async (event) => await this.handleFileInput(event)}
               />
             </div>
           </div>
