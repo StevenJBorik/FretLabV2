@@ -12,6 +12,9 @@ export interface FileItem {
   digest: string | null;
   keySignatureNumericValue: number | null;
   scale: { [key: string]: number[] } | null;
+  frets: number; // Add frets property to store user-defined frets value
+  startFret: number; // Add startFret property to store user-defined startFret value
+  order: 'ascending' | 'descending' | 'random'; // Add order property to store user-defined order value
 }
 
 interface Props {
@@ -19,6 +22,9 @@ interface Props {
   updateDigest: (uuid: string, digest: string) => void;
   updateResult: (uuid: string, result: string) => void;
   audioElement: HTMLAudioElement | null; // Pass the audio element from the parent component
+  frets: number; // Add frets property to store user-defined frets value
+  startFret: number; // Add startFret property to store user-defined startFret value
+  order: 'ascending' | 'descending' | 'random'; // Add order property to store user-defined order value
 }
 
 interface State {
@@ -220,15 +226,33 @@ class AudioFileItem extends Component<Props, State> {
       return;
     }
 
+    const { frets, startFret, order } = this.props; // Get the user-defined frets, startFret, and order from props
     const container = this.fretboardContainerRef.current;
 
     if (container) {
       container.innerHTML = '';
 
       const fb = fretboards.Fretboard();
-      fb.add(normalizedResult).paint(container);
+      fb.add(normalizedResult);
+
+      if (order === 'ascending') {
+        fb.paint(container, { frets, startFret });
+        fb.add(normalizedResult).paint(container, {
+          frets: frets,
+          startFret: startFret,
+        });
+      } else if (order === 'descending') {
+        fb.paint(container, { frets, startFret, descending: true });
+      } else if (order === 'random') {
+        fb.paint(container, { frets, startFret, random: true });
+      }
     }
   }
+
+  // fb.add(normalizedResult).paint(container, {
+  //   frets: 12,
+  //   startFret: 0
+  // });
 
   advanceSegmentCount = (
     worker: Worker,

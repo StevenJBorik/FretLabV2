@@ -13,6 +13,9 @@ interface Props {}
 interface State {
   files: Array<FileItem>;
   sectionBoundaries: number[];
+  frets: number; // User input for frets
+  startFret: number; // User input for startFret
+  order: string; // User input for order
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -21,6 +24,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
   state: State = {
     files: [],
     sectionBoundaries: [],
+    frets: 12, // Default value for frets
+    startFret: 0, // Default value for startFret
+    order: 'ascending', // Default value for order
   };
 
   audioElement: HTMLAudioElement | null = null;
@@ -38,7 +44,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     // Check if any changes in state or props that would trigger a re-render
     if (
-      this.state.files !== nextState.files
+      this.state.files !== nextState.files ||
+      this.state.frets !== nextState.frets ||
+      this.state.startFret !== nextState.startFret ||
+      this.state.order !== nextState.order
       // Add more checks here if needed for other props or state properties
     ) {
       return true; // Allow re-render
@@ -71,6 +80,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
           digest: null,
           keySignatureNumericValue: null,
           scale: null,
+          frets: null,
+          startFret: null,
+          order: null,
         });
 
         // Call the API for each selected file
@@ -132,9 +144,27 @@ class AudioFileKeyDetection extends Component<Props, State> {
     });
   };
 
+  // Event handler for updating the frets value
+  handleFretsChange = (event: Event): void => {
+    const frets = Number((event.target as HTMLInputElement).value);
+    this.setState({ frets });
+  };
+
+  // Event handler for updating the startFret value
+  handleStartFretChange = (event: Event): void => {
+    const startFret = Number((event.target as HTMLInputElement).value);
+    this.setState({ startFret });
+  };
+
+  // Event handler for updating the order value
+  handleOrderChange = (event: Event): void => {
+    const order = (event.target as HTMLSelectElement).value;
+    this.setState({ order });
+  };
+
   render(props) {
     console.log('AudioFileKeyDetection - render');
-    const { files } = this.state;
+    const { files, frets, startFret, order } = this.state;
 
     return (
       <>
@@ -155,6 +185,36 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 multiple={true}
                 onChange={async (event) => await this.handleFileInput(event)}
               />
+              <label for="frets">Number of Frets:</label>
+              <input
+                id="frets"
+                type="number"
+                min="1"
+                max="24" // Set the maximum number of frets you want to support
+                value={frets}
+                onChange={this.handleFretsChange}
+              />
+              <br />
+              <label for="start-fret">Start Fret:</label>
+              <input
+                id="start-fret"
+                type="number"
+                min="0"
+                max="24" // Set the maximum number of frets you want to support
+                value={startFret}
+                onChange={this.handleStartFretChange}
+              />
+              <br />
+              <label for="order">Order:</label>
+              <select
+                id="order"
+                value={order}
+                onChange={this.handleOrderChange}
+              >
+                <option value="ascending">Ascending</option>
+                <option value="descending">Descending</option>
+                <option value="random">Random</option>
+              </select>
             </div>
           </div>
         </main>
@@ -162,6 +222,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
           <AudioFileItem
             key={fileItem.id}
             fileItem={fileItem}
+            frets={fileItem.frets} // Pass the user-defined frets value to the AudioFileItem component
+            startFret={fileItem.startFret} // Pass the user-defined startFret value to the AudioFileItem component
+            order={fileItem.order} // Pass the user-defined order value to the AudioFileItem component
             updateDigest={this.updateDigest}
             updateResult={this.updateResult}
             audioElement={this.audioElement}
