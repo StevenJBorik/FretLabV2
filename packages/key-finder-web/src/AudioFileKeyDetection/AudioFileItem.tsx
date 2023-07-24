@@ -237,10 +237,6 @@ class AudioFileItem extends Component<Props, State> {
 
       if (order === 'ascending') {
         fb.paint(container, { frets, startFret });
-        fb.add(normalizedResult).paint(container, {
-          frets: frets,
-          startFret: startFret,
-        });
       } else if (order === 'descending') {
         fb.paint(container, { frets, startFret, descending: true });
       } else if (order === 'random') {
@@ -248,7 +244,10 @@ class AudioFileItem extends Component<Props, State> {
       }
     }
   }
-
+  // fb.add(normalizedResult).paint(container, {
+  //   frets: frets,
+  //   startFret: startFret,
+  // })
   // fb.add(normalizedResult).paint(container, {
   //   frets: 12,
   //   startFret: 0
@@ -326,10 +325,41 @@ class AudioFileItem extends Component<Props, State> {
   };
 
   handleAudioTimeUpdate = () => {
-    const audioElement = this.props.audioElement; // Use the audioElement from props
+    const audioElement = this.props.audioElement;
     if (!audioElement) return;
 
     this.setState({ currentTime: audioElement.currentTime });
+
+    // Call the method to update the fretboard scale based on the current timestamp
+    this.updateFretboardScale(audioElement.currentTime);
+  };
+
+  // Inside AudioFileItem class
+  updateFretboardScale = (currentTimestamp: number) => {
+    const { sectionBoundaries, frets, startFret, order } = this.props;
+
+    for (let i = 0; i < sectionBoundaries.length; i++) {
+      if (sectionBoundaries[i] === currentTimestamp) {
+        // Calculate the next startFret based on the selected order
+        let nextStartFret = startFret;
+        if (order === 'ascending') {
+          nextStartFret = (nextStartFret + frets) % 12;
+        } else if (order === 'descending') {
+          nextStartFret = (nextStartFret - frets + 12) % 12;
+        } else if (order === 'random') {
+          nextStartFret = Math.floor(Math.random() * 12);
+        }
+
+        // Update the state with the new startFret and render the fretboard
+        this.setState({ startFret: nextStartFret }, () => {
+          const normalizedResult = this.getKeySignatureNumericValue(
+            this.state.result
+          );
+          this.renderFretboardScale(normalizedResult);
+        });
+        break;
+      }
+    }
   };
 
   render() {

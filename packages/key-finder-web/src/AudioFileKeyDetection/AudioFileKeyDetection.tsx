@@ -55,6 +55,13 @@ class AudioFileKeyDetection extends Component<Props, State> {
     return false; // Prevent re-render
   }
 
+  // Inside AudioFileKeyDetection class
+  getCurrentTimestamp = (): number => {
+    const audioElement = this.audioElement;
+    if (!audioElement) return 0;
+    return audioElement.currentTime;
+  };
+
   handleFileInput = (event: Event): void => {
     console.log('AudioFileKeyDetection - handleFileInput');
     const fileList = (event.target as HTMLInputElement).files;
