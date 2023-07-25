@@ -15,6 +15,8 @@ export interface FileItem {
   frets: number; // Add frets property to store user-defined frets value
   startFret: number; // Add startFret property to store user-defined startFret value
   order: 'ascending' | 'descending' | 'random'; // Add order property to store user-defined order value
+  getCurrentTimestamp: () => number; // Add this line
+  normalizedResult: string;
 }
 
 interface Props {
@@ -24,7 +26,10 @@ interface Props {
   audioElement: HTMLAudioElement | null; // Pass the audio element from the parent component
   frets: number; // Add frets property to store user-defined frets value
   startFret: number; // Add startFret property to store user-defined startFret value
-  order: 'ascending' | 'descending' | 'random'; // Add order property to store user-defined order value
+  order: string; // Add order property to store user-defined order value
+  sectionBoundaries: number[] | null;
+  getCurrentTimestamp: () => number; // Add this line
+  normalizedResult: string;
 }
 
 interface State {
@@ -41,6 +46,10 @@ interface State {
   currentTime: number;
   lastPlayedPosition: number | null;
   isReadyToPlay: boolean;
+  frets: number;
+  startFret: number | null;
+  normalizedResult: string | null; // Add this property
+  order: 'ascending' | 'descending' | 'random'; // Add order property to store user-defined order value
 }
 
 class AudioFileItem extends Component<Props, State> {
@@ -62,6 +71,10 @@ class AudioFileItem extends Component<Props, State> {
     currentTime: 0,
     isReadyToPlay: false,
     lastPlayedPosition: null,
+    frets: null,
+    startFret: null,
+    normalizedResult: null,
+    order: null, // Add order property to store user-defined order value
   };
 
   audioContext: AudioContext | null = null;
@@ -72,10 +85,15 @@ class AudioFileItem extends Component<Props, State> {
   isReadyToPlay: boolean = false;
   mounted = false;
   fretboardContainerRef = createRef<HTMLDivElement>();
+  getCurrentTimestamp: () => number; // Add this line
 
   componentDidMount() {
     this.mounted = true; // Set to true when the component is mounted
     this.initAudio(this.props.fileItem);
+    this.audioElement?.addEventListener(
+      'timeupdate',
+      this.handleAudioTimeUpdate
+    );
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -153,11 +171,11 @@ class AudioFileItem extends Component<Props, State> {
             {
               result,
               analyzing: false,
+              normalizedResult,
             },
             () => {
               this.props.updateResult(this.props.fileItem.id, result);
               worker.terminate();
-              this.renderFretboardScale(normalizedResult); // Render the fretboard scale
             }
           );
         }
@@ -233,14 +251,22 @@ class AudioFileItem extends Component<Props, State> {
       container.innerHTML = '';
 
       const fb = fretboards.Fretboard();
-      fb.add(normalizedResult);
+      // fb.add(normalizedResult);
 
       if (order === 'ascending') {
-        fb.paint(container, { frets, startFret });
+        fb.add(normalizedResult).paint(container, { frets, startFret });
       } else if (order === 'descending') {
-        fb.paint(container, { frets, startFret, descending: true });
+        fb.add(normalizedResult).paint(container, {
+          frets,
+          startFret,
+          descending: true,
+        });
       } else if (order === 'random') {
-        fb.paint(container, { frets, startFret, random: true });
+        fb.add(normalizedResult).paint(container, {
+          frets,
+          startFret,
+          random: true,
+        });
       }
     }
   }
@@ -331,12 +357,13 @@ class AudioFileItem extends Component<Props, State> {
     this.setState({ currentTime: audioElement.currentTime });
 
     // Call the method to update the fretboard scale based on the current timestamp
-    this.updateFretboardScale(audioElement.currentTime);
+    const currentTimestamp = this.getCurrentTimestamp(); // Get the current timestamp
+    this.updateFretboardScale(currentTimestamp); // Update the fretboard scale once
   };
 
-  // Inside AudioFileItem class
   updateFretboardScale = (currentTimestamp: number) => {
-    const { sectionBoundaries, frets, startFret, order } = this.props;
+    const { sectionBoundaries, frets, startFret, order, normalizedResult } =
+      this.props;
 
     for (let i = 0; i < sectionBoundaries.length; i++) {
       if (sectionBoundaries[i] === currentTimestamp) {
@@ -352,9 +379,6 @@ class AudioFileItem extends Component<Props, State> {
 
         // Update the state with the new startFret and render the fretboard
         this.setState({ startFret: nextStartFret }, () => {
-          const normalizedResult = this.getKeySignatureNumericValue(
-            this.state.result
-          );
           this.renderFretboardScale(normalizedResult);
         });
         break;

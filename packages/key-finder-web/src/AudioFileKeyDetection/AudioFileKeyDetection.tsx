@@ -90,6 +90,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
           frets: null,
           startFret: null,
           order: null,
+          getCurrentTimestamp: null,
+          normalizedResult: null,
         });
 
         // Call the API for each selected file
@@ -232,6 +234,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
             frets={fileItem.frets} // Pass the user-defined frets value to the AudioFileItem component
             startFret={fileItem.startFret} // Pass the user-defined startFret value to the AudioFileItem component
             order={fileItem.order} // Pass the user-defined order value to the AudioFileItem component
+            normalizedResult={fileItem.normalizedResult} // Pass the normalizedResult here
+            sectionBoundaries={this.state.sectionBoundaries}
+            getCurrentTimestamp={this.getCurrentTimestamp} // Pass the prop here
             updateDigest={this.updateDigest}
             updateResult={this.updateResult}
             audioElement={this.audioElement}
