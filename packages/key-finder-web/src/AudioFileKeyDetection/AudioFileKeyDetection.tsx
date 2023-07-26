@@ -15,7 +15,7 @@ interface State {
   sectionBoundaries: number[];
   frets: number; // User input for frets
   startFret: number; // User input for startFret
-  order: string; // User input for order
+  order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -87,10 +87,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
           digest: null,
           keySignatureNumericValue: null,
           scale: null,
-          frets: null,
-          startFret: null,
-          order: null,
-          getCurrentTimestamp: null,
+          frets: this.state.frets, // Set the correct frets value here
+          startFret: this.state.startFret, // Set the correct startFret value here
+          order: this.state.order, // Set the correct order value here
           normalizedResult: null,
         });
 
@@ -167,8 +166,16 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
   // Event handler for updating the order value
   handleOrderChange = (event: Event): void => {
-    const order = (event.target as HTMLSelectElement).value;
+    const order = (event.target as HTMLSelectElement).value as
+      | 'ascending'
+      | 'descending'
+      | 'random';
     this.setState({ order });
+  };
+
+  // New method to update the startFret state
+  updateStartFret = (startFret: number): void => {
+    this.setState({ startFret });
   };
 
   render(props) {
@@ -227,21 +234,24 @@ class AudioFileKeyDetection extends Component<Props, State> {
             </div>
           </div>
         </main>
-        {files.map((fileItem) => (
-          <AudioFileItem
-            key={fileItem.id}
-            fileItem={fileItem}
-            frets={fileItem.frets} // Pass the user-defined frets value to the AudioFileItem component
-            startFret={fileItem.startFret} // Pass the user-defined startFret value to the AudioFileItem component
-            order={fileItem.order} // Pass the user-defined order value to the AudioFileItem component
-            normalizedResult={fileItem.normalizedResult} // Pass the normalizedResult here
-            sectionBoundaries={this.state.sectionBoundaries}
-            getCurrentTimestamp={this.getCurrentTimestamp} // Pass the prop here
-            updateDigest={this.updateDigest}
-            updateResult={this.updateResult}
-            audioElement={this.audioElement}
-          />
-        ))}
+        {files
+          .filter((fileItem) => fileItem.normalizedResult !== null)
+          .map((fileItem) => (
+            <AudioFileItem
+              key={fileItem.id}
+              fileItem={fileItem}
+              frets={fileItem.frets} // Pass the user-defined frets value to the AudioFileItem component
+              startFret={fileItem.startFret} // Pass the user-defined startFret value to the AudioFileItem component
+              order={fileItem.order} // Pass the user-defined order value to the AudioFileItem component
+              normalizedResult={fileItem.normalizedResult} // Pass the normalizedResult here
+              sectionBoundaries={this.state.sectionBoundaries}
+              getCurrentTimestamp={this.getCurrentTimestamp} // Pass the prop here
+              updateDigest={this.updateDigest}
+              updateResult={this.updateResult}
+              audioElement={this.audioElement}
+              updateStartFret={this.updateStartFret} // Pass the updateStartFret method as a prop
+            />
+          ))}
       </>
     );
   }
