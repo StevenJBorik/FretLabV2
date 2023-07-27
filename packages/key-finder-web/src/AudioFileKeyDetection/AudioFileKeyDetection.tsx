@@ -16,6 +16,8 @@ interface State {
   frets: number; // User input for frets
   startFret: number; // User input for startFret
   order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
+  isReadyToPlay: boolean;
+  audioElement: HTMLAudioElement | null; // New property to store the audio element
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -27,6 +29,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
     frets: 12, // Default value for frets
     startFret: 0, // Default value for startFret
     order: 'ascending', // Default value for order
+    isReadyToPlay: false,
+    audioElement: null,
   };
 
   audioElement: HTMLAudioElement | null = null;
@@ -62,22 +66,33 @@ class AudioFileKeyDetection extends Component<Props, State> {
     return audioElement.currentTime;
   };
 
+  createAudioElement = (): HTMLAudioElement => {
+    const audioElement = new Audio();
+    // Add event listeners, if needed
+    return audioElement;
+  };
+
   handleFileInput = (event: Event): void => {
     console.log('AudioFileKeyDetection - handleFileInput');
     const fileList = (event.target as HTMLInputElement).files;
     console.log('Selected files:', fileList);
+
     this.setState((prevState) => {
       let availableThreads = prevState.files.reduce((acc, cur) => {
         if (cur.canProcess && !cur.result) return acc - 1;
         return acc;
       }, numberOfThreads);
+
       const newFiles = prevState.files.slice(); // Create a shallow copy of the files array
+      const promises = []; // Create an array to store promises for API calls
+
       for (let fileIdx = 0; fileIdx < fileList.length; fileIdx += 1) {
         let canProcess = false;
         if (availableThreads > 0) {
           canProcess = true;
           availableThreads -= 1;
         }
+
         const id = uuidv4();
         newFiles.push({
           id,
@@ -95,11 +110,18 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
         // Call the API for each selected file
         if (canProcess) {
-          (async () => {
-            try {
-              const formData = new FormData();
-              formData.append('file', fileList[fileIdx]);
+          const formData = new FormData();
+          formData.append('file', fileList[fileIdx]);
 
+          const audioElement = this.createAudioElement(); // Create the audio element here
+
+          this.setState({
+            audioElement: audioElement, // Set the audioElement in the state
+          });
+
+          const processFilePromise = (async () => {
+            try {
+              // Wait for the API response
               const response = await axios.post(
                 'http://localhost:5000/api/process-audio',
                 formData,
@@ -113,13 +135,25 @@ class AudioFileKeyDetection extends Component<Props, State> {
               // Process the response from the MSAF API and update the state with section boundaries
               const sectionBoundaries = response.data.sections;
               console.log('Section Boundaries', sectionBoundaries);
-              this.setState({ sectionBoundaries });
+
+              this.setState({ sectionBoundaries }); // Set sectionBoundaries in state
             } catch (error) {
               console.error('Error processing file with MSAF:', error);
             }
           })();
+
+          promises.push(processFilePromise);
+          audioElement.onloadedmetadata = () => {
+            this.setState({ isReadyToPlay: true });
+          };
         }
       }
+
+      // After all API calls are complete, set isReadyToPlay to true
+      Promise.all(promises).then(() => {
+        this.setState({ isReadyToPlay: true });
+      });
+
       this.ref.current.value = null;
       return { files: newFiles };
     });
@@ -248,7 +282,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
               getCurrentTimestamp={this.getCurrentTimestamp} // Pass the prop here
               updateDigest={this.updateDigest}
               updateResult={this.updateResult}
-              audioElement={this.audioElement}
+              audioElement={this.state.audioElement} // Pass the audioElement to the child component
+              isReadyToPlay={
+                this.audioElement ? fileItem.id === this.audioElement.id : false
+              }
               updateStartFret={this.updateStartFret} // Pass the updateStartFret method as a prop
             />
           ))}

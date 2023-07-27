@@ -30,6 +30,7 @@ interface Props {
   normalizedResult: string;
   getCurrentTimestamp: () => number; // Include the getCurrentTimestamp function in Props
   updateStartFret: (startFret: number) => void; // Add updateStartFret function to Props
+  isReadyToPlay: boolean; // Include the 'isReadyToPlay' prop
 }
 
 interface State {
@@ -84,6 +85,7 @@ class AudioFileItem extends Component<Props, State> {
   isReadyToPlay: boolean = false;
   mounted = false;
   fretboardContainerRef = createRef<HTMLDivElement>();
+  audioElement: HTMLAudioElement | null; // New property to store the audio element
   getCurrentTimestamp = () => {
     const audioElement = this.props.audioElement;
     if (!audioElement) return 0;
@@ -92,16 +94,9 @@ class AudioFileItem extends Component<Props, State> {
 
   componentDidMount() {
     console.log('in componentDidMount method');
-    this.mounted = true; // Set to true when the component is mounted
+    this.mounted = true;
+    this.audioElement = new Audio(); // Initialize the audioElement here
     this.initAudio(this.props.fileItem);
-    this.props.audioElement?.addEventListener(
-      'timeupdate',
-      this.handleAudioTimeUpdate
-    );
-    this.props.audioElement?.addEventListener(
-      'canplaythrough',
-      this.handleAudioCanPlay
-    );
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -120,7 +115,8 @@ class AudioFileItem extends Component<Props, State> {
     if (
       prevProps.frets !== this.props.frets ||
       prevProps.startFret !== this.props.startFret ||
-      prevProps.order !== this.props.order
+      prevProps.order !== this.props.order ||
+      prevProps.normalizedResult !== this.props.normalizedResult
     ) {
       this.setState(
         {
@@ -138,24 +134,14 @@ class AudioFileItem extends Component<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     // Check if any changes in state or props that would trigger a re-render
     if (
-      this.state.files !== nextState.files || // Check if the files array has changed
-      this.state.currentTime !== nextState.currentTime // Check if the current time has changed
+      this.state.files !== nextState.files ||
+      this.state.currentTime !== nextState.currentTime ||
+      this.props.isReadyToPlay !== nextProps.isReadyToPlay // Include isReadyToPlay prop
       // Add more checks here if needed for other props or state properties
     ) {
       return true; // Allow re-render
     }
-
-    // Additional checks for properties that should trigger re-render
-    if (
-      this.state.frets !== nextState.frets || // Check if frets have changed
-      this.state.startFret !== nextState.startFret || // Check if startFret has changed
-      this.state.order !== nextState.order // Check if order has changed
-      // Add more checks here if needed for other props or state properties
-    ) {
-      return true; // Allow re-render
-    }
-
-    return false; // Prevent re-render
+    return false;
   }
 
   componentWillUnmount() {
@@ -172,7 +158,11 @@ class AudioFileItem extends Component<Props, State> {
   }
 
   initAudio = (fileItem) => {
-    // Existing audio setup logic
+    const audioElement = this.props.audioElement; // Use the audioElement from props
+    audioElement.src = URL.createObjectURL(fileItem.file);
+    audioElement.addEventListener('timeupdate', this.handleAudioTimeUpdate);
+    audioElement.addEventListener('canplaythrough', this.handleAudioCanPlay);
+
     const reader = new FileReader();
     reader.onload = this.handleFileLoad;
     reader.readAsArrayBuffer(fileItem.file);
@@ -208,6 +198,14 @@ class AudioFileItem extends Component<Props, State> {
     this.setState({
       analyzing: true,
     });
+
+    const audioContext = new AudioContext();
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+
+    // Set the audioSource to the class instance
+    this.audioSource = source;
 
     const worker = keyFinderUtils.initializeKeyFinder({
       sampleRate: buffer.sampleRate,
@@ -375,26 +373,19 @@ class AudioFileItem extends Component<Props, State> {
     console.log('AudioFileItem - handleAudioCanPlay');
     this.setState({ analyzing: false });
 
-    const audioElement = this.props.audioElement; // Use the audioElement from props
-
-    if (!audioElement) return;
-
-    if (!audioElement.paused && !audioElement.ended) {
-      // Only play the audio if it's not already playing and not ended
-      return;
-    }
-
-    audioElement.currentTime = this.state.lastPlayedPosition || 0;
     if (this.state.isPlaying) {
-      audioElement.play();
+      this.audioSource.start(0, this.state.lastPlayedPosition || 0);
     }
+
+    // Render the fretboard once audio is ready
+    this.renderFretboardScale();
   };
 
   handleAudioPlayPause = () => {
-    const audioElement = this.props.audioElement; // Use the audioElement from props
+    const audioElement = this.props.audioElement;
     if (!audioElement) return;
 
-    if (audioElement.paused || audioElement.ended) {
+    if (audioElement.paused) {
       audioElement.play();
     } else {
       audioElement.pause();
@@ -427,10 +418,8 @@ class AudioFileItem extends Component<Props, State> {
     const audioElement = this.props.audioElement;
     if (!audioElement) return;
 
-    this.setState({ currentTime: audioElement.currentTime }, () => {
-      const currentTimestamp = this.getCurrentTimestamp(); // Get the current timestamp
-      this.updateFretboardScale(currentTimestamp); // Update the fretboard scale once
-    });
+    const currentTimestamp = this.getCurrentTimestamp();
+    this.updateFretboardScale(currentTimestamp); // Update the fretboard scale once
   };
 
   updateFretboardScale = (currentTimestamp: number) => {
