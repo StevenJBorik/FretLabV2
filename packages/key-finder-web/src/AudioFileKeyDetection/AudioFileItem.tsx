@@ -51,6 +51,7 @@ interface State {
   startFret: number | null;
   order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
   files: Array<FileItem>;
+  normalizedResult: string | null;
 }
 
 class AudioFileItem extends Component<Props, State> {
@@ -75,6 +76,7 @@ class AudioFileItem extends Component<Props, State> {
     startFret: this.props.startFret,
     order: this.props.order, // Add order property to store user-defined order value
     files: [],
+    normalizedResult: this.props.normalizedResult || '', // Initialize with an empty string if not provided
   };
 
   audioContext: AudioContext | null = null;
@@ -97,14 +99,13 @@ class AudioFileItem extends Component<Props, State> {
     this.mounted = true;
     this.audioElement = new Audio(); // Initialize the audioElement here
     this.initAudio(this.props.fileItem);
+    this.props.audioElement?.addEventListener(
+      'timeupdate',
+      this.handleAudioTimeUpdate
+    );
   }
 
   componentDidUpdate(prevProps: Props) {
-    // Check if the normalizedResult has changed before updating the state
-    if (prevProps.normalizedResult !== this.props.normalizedResult) {
-      this.renderFretboardScale();
-    }
-
     // Check if the fileItem.id has changed before initializing audio
     if (prevProps.fileItem.id !== this.props.fileItem.id) {
       console.log('AudioFileItem - componentDidUpdate');
@@ -123,6 +124,7 @@ class AudioFileItem extends Component<Props, State> {
           frets: this.props.frets,
           startFret: this.props.startFret,
           order: this.props.order,
+          normalizedResult: this.props.normalizedResult, // Add normalizedResult to the state
         },
         () => {
           this.renderFretboardScale();
@@ -226,19 +228,27 @@ class AudioFileItem extends Component<Props, State> {
         console.log(result);
         const normalizedResult = this.getKeySignatureNumericValue(result);
         console.log(normalizedResult);
+
+        // Check if the callback function exists and invoke it with the key
+        if (this.keyObtainedCallback) {
+          this.keyObtainedCallback(normalizedResult);
+          this.keyObtainedCallback = undefined; // Reset the callback
+        }
+
         if (this.mounted) {
           this.setState(
             {
               result,
               analyzing: false,
+              normalizedResult,
             },
             () => {
               this.props.updateResult(this.props.fileItem.id, result);
               worker.terminate();
+              this.renderFretboardScale();
             }
           );
         }
-        this.renderFretboardScale();
       } else {
         // Not final response
         if (event.data.data === 0) {
@@ -283,6 +293,20 @@ class AudioFileItem extends Component<Props, State> {
     );
   };
 
+  // Function to handle the key obtained callback
+  keyObtainedCallback: ((key: string) => void) | undefined;
+
+  // Method to set the key obtained callback
+  // Method to set the key obtained callback
+  setKeyObtainedCallback = (callback: (key: string) => void) => {
+    this.keyObtainedCallback = callback;
+
+    // Call the renderFretboardScale method if the key is already available
+    if (this.state.normalizedResult) {
+      this.renderFretboardScale();
+    }
+  };
+
   getKeySignatureNumericValue(result: string | null) {
     console.log('AudioFileItem - getKeySignatureNumericValue');
     if (!result) {
@@ -300,7 +324,7 @@ class AudioFileItem extends Component<Props, State> {
   }
 
   renderFretboardScale() {
-    const { normalizedResult } = this.props;
+    const { normalizedResult, frets, startFret, order } = this.state;
     console.log(
       'in renderFretboardScale method, passed key is: ',
       normalizedResult
@@ -309,15 +333,18 @@ class AudioFileItem extends Component<Props, State> {
       return;
     }
 
-    const { frets, startFret, order } = this.state; // Use the state values for rendering
+    // If the key is available, directly invoke the callback
+    if (this.keyObtainedCallback) {
+      this.keyObtainedCallback(normalizedResult);
+      this.keyObtainedCallback = undefined; // Reset the callback
+    }
+
     const container = this.fretboardContainerRef.current;
 
     if (container) {
       container.innerHTML = '';
 
       const fb = fretboards.Fretboard();
-      // fb.add(normalizedResult);
-
       console.log(
         'frets, startFret, and order variables',
         frets,
@@ -326,7 +353,10 @@ class AudioFileItem extends Component<Props, State> {
       );
 
       if (order === 'ascending') {
-        fb.add(normalizedResult).paint(container, { frets, startFret });
+        fb.add(normalizedResult).paint(container, {
+          frets,
+          startFret,
+        });
       } else if (order === 'descending') {
         fb.add(normalizedResult).paint(container, {
           frets,
@@ -340,14 +370,6 @@ class AudioFileItem extends Component<Props, State> {
       }
     }
   }
-  // fb.add(normalizedResult).paint(container, {
-  //   frets: frets,
-  //   startFret: startFret,
-  // })
-  // fb.add(normalizedResult).paint(container, {
-  //   frets: 12,
-  //   startFret: 0
-  // });
 
   advanceSegmentCount = (
     worker: Worker,
@@ -376,9 +398,6 @@ class AudioFileItem extends Component<Props, State> {
     if (this.state.isPlaying) {
       this.audioSource.start(0, this.state.lastPlayedPosition || 0);
     }
-
-    // Render the fretboard once audio is ready
-    this.renderFretboardScale();
   };
 
   handleAudioPlayPause = () => {
@@ -445,6 +464,7 @@ class AudioFileItem extends Component<Props, State> {
           this.props.updateStartFret(nextStartFret); // Add the function to update startFret in the parent component
           break;
         }
+        this.renderFretboardScale();
       }
     }
   };

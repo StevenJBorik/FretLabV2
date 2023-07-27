@@ -268,27 +268,25 @@ class AudioFileKeyDetection extends Component<Props, State> {
             </div>
           </div>
         </main>
-        {files
-          .filter((fileItem) => fileItem.normalizedResult !== null)
-          .map((fileItem) => (
-            <AudioFileItem
-              key={fileItem.id}
-              fileItem={fileItem}
-              frets={fileItem.frets} // Pass the user-defined frets value to the AudioFileItem component
-              startFret={fileItem.startFret} // Pass the user-defined startFret value to the AudioFileItem component
-              order={fileItem.order} // Pass the user-defined order value to the AudioFileItem component
-              normalizedResult={fileItem.normalizedResult} // Pass the normalizedResult here
-              sectionBoundaries={this.state.sectionBoundaries}
-              getCurrentTimestamp={this.getCurrentTimestamp} // Pass the prop here
-              updateDigest={this.updateDigest}
-              updateResult={this.updateResult}
-              audioElement={this.state.audioElement} // Pass the audioElement to the child component
-              isReadyToPlay={
-                this.audioElement ? fileItem.id === this.audioElement.id : false
-              }
-              updateStartFret={this.updateStartFret} // Pass the updateStartFret method as a prop
-            />
-          ))}
+        {files.map((fileItem) => (
+          <AudioFileItem
+            key={fileItem.id}
+            fileItem={fileItem}
+            frets={fileItem.frets} // Pass the user-defined frets value to the AudioFileItem component
+            startFret={fileItem.startFret} // Pass the user-defined startFret value to the AudioFileItem component
+            order={fileItem.order} // Pass the user-defined order value to the AudioFileItem component
+            normalizedResult={fileItem.normalizedResult} // Pass the normalizedResult here
+            sectionBoundaries={this.state.sectionBoundaries}
+            getCurrentTimestamp={this.getCurrentTimestamp} // Pass the prop here
+            updateDigest={this.updateDigest}
+            updateResult={this.updateResult}
+            audioElement={this.state.audioElement} // Pass the audioElement to the child component
+            isReadyToPlay={
+              this.audioElement ? fileItem.id === this.audioElement.id : false
+            }
+            updateStartFret={this.updateStartFret} // Pass the updateStartFret method as a prop
+          />
+        ))}
       </>
     );
   }
