@@ -314,6 +314,7 @@ class AudioFileItem extends Component<Props, State> {
     }
 
     const normalizedResult = result.toLowerCase();
+    // const normalizedResult = "\"" + rawResult + "\"";
 
     return normalizedResult;
   }
@@ -344,7 +345,7 @@ class AudioFileItem extends Component<Props, State> {
     if (container) {
       container.innerHTML = '';
 
-      const fb = fretboards.Fretboard();
+      const fb = fretboards.Fretboard({ frets: frets, startFret: startFret });
       console.log(
         'frets, startFret, and order variables',
         frets,
@@ -352,22 +353,7 @@ class AudioFileItem extends Component<Props, State> {
         order
       );
 
-      if (order === 'ascending') {
-        fb.add(normalizedResult).paint(container, {
-          frets,
-          startFret,
-        });
-      } else if (order === 'descending') {
-        fb.add(normalizedResult).paint(container, {
-          frets,
-          startFret,
-        });
-      } else if (order === 'random') {
-        fb.add(normalizedResult).paint(container, {
-          frets,
-          startFret,
-        });
-      }
+      fb.add(normalizedResult).paint();
     }
   }
 
