@@ -72,6 +72,15 @@ class AudioFileKeyDetection extends Component<Props, State> {
     return audioElement;
   };
 
+  secondsToTime = (totalSeconds) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(
+      2,
+      '0'
+    )}`;
+  };
+
   handleFileInput = (event: Event): void => {
     console.log('AudioFileKeyDetection - handleFileInput');
     const fileList = (event.target as HTMLInputElement).files;
@@ -119,28 +128,55 @@ class AudioFileKeyDetection extends Component<Props, State> {
             audioElement: audioElement, // Set the audioElement in the state
           });
 
-          const processFilePromise = (async () => {
-            try {
-              // Wait for the API response
-              const response = await axios.post(
-                'http://localhost:5000/api/process-audio',
-                formData,
-                {
-                  headers: {
-                    'Content-Type': 'audio/mpeg',
+          const processFilePromise = axios
+            .post('http://localhost:5000/api/process-audio', formData, {
+              headers: {
+                'Content-Type': 'audio/mpeg',
+              },
+            })
+            .then((response) => {
+              const rawSectionBoundaries = response.data.sections;
+              console.log('Raw Section Boundaries:', rawSectionBoundaries);
+
+              try {
+                const parsedSectionBoundaries = rawSectionBoundaries.map(
+                  (boundary) => {
+                    // Extract minute and second values from the boundary string
+                    const [minutes, seconds] = boundary
+                      .replace(/[\[\]'"]/g, '') // Remove brackets, single quotes, and double quotes
+                      .split(':')
+                      .map((value) => parseInt(value, 10));
+
+                    // Convert to seconds
+                    const totalSeconds = minutes * 60 + seconds;
+                    return totalSeconds;
+                  }
+                );
+
+                console.log(
+                  'Parsed Section Boundaries:',
+                  parsedSectionBoundaries
+                );
+                this.setState(
+                  {
+                    sectionBoundaries: parsedSectionBoundaries.map(
+                      this.secondsToTime
+                    ),
                   },
-                }
-              );
-
-              // Process the response from the MSAF API and update the state with section boundaries
-              const sectionBoundaries = response.data.sections;
-              console.log('Section Boundaries', sectionBoundaries);
-
-              this.setState({ sectionBoundaries }); // Set sectionBoundaries in state
-            } catch (error) {
+                  () => {
+                    console.log(
+                      'final boundaries state:',
+                      this.state.sectionBoundaries
+                    );
+                  }
+                );
+              } catch (error) {
+                console.error('Error parsing section boundaries:', error);
+              }
+            })
+            .catch((error) => {
               console.error('Error processing file with MSAF:', error);
-            }
-          })();
+            });
 
           promises.push(processFilePromise);
           audioElement.onloadedmetadata = () => {
@@ -150,9 +186,13 @@ class AudioFileKeyDetection extends Component<Props, State> {
       }
 
       // After all API calls are complete, set isReadyToPlay to true
-      Promise.all(promises).then(() => {
-        this.setState({ isReadyToPlay: true });
-      });
+      Promise.all(promises)
+        .then(() => {
+          this.setState({ isReadyToPlay: true });
+        })
+        .catch((error) => {
+          console.error('Error processing files with MSAF:', error);
+        });
 
       this.ref.current.value = null;
       return { files: newFiles };

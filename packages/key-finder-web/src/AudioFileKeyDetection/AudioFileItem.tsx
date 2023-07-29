@@ -424,12 +424,15 @@ class AudioFileItem extends Component<Props, State> {
     if (!audioElement) return;
 
     const currentTimestamp = this.getCurrentTimestamp();
+    console.log('current time stamp:', currentTimestamp);
     this.updateFretboardScale(currentTimestamp); // Update the fretboard scale once
   };
 
   updateFretboardScale = (currentTimestamp: number) => {
     console.log('in updateFretboardScale method');
-    const { sectionBoundaries, frets, order, normalizedResult } = this.props;
+    const { sectionBoundaries, frets, order } = this.props;
+
+    console.log(sectionBoundaries, frets, order, currentTimestamp);
 
     for (let i = 0; i < sectionBoundaries.length; i++) {
       if (sectionBoundaries[i] === currentTimestamp) {
@@ -445,7 +448,6 @@ class AudioFileItem extends Component<Props, State> {
 
         // Check if an update is required before calling setState
         if (nextStartFret !== this.props.startFret) {
-          console.log('key in updateFret', normalizedResult);
           // Since startFret is controlled by the parent component, we don't need to use setState here
           this.props.updateStartFret(nextStartFret); // Add the function to update startFret in the parent component
           break;
