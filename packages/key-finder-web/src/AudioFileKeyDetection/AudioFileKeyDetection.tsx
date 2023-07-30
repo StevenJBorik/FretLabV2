@@ -17,7 +17,6 @@ interface State {
   startFret: number; // User input for startFret
   order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
   isReadyToPlay: boolean;
-  audioElement: HTMLAudioElement | null; // New property to store the audio element
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -30,7 +29,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
     startFret: 0, // Default value for startFret
     order: 'ascending', // Default value for order
     isReadyToPlay: false,
-    audioElement: null,
   };
 
   audioElement: HTMLAudioElement | null = null;
@@ -67,9 +65,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
   };
 
   createAudioElement = (): HTMLAudioElement => {
-    const audioElement = new Audio();
+    this.audioElement = new Audio(); // Assign the created audio element to the reference
     // Add event listeners, if needed
-    return audioElement;
+    return this.audioElement;
   };
 
   secondsToTime = (totalSeconds) => {
@@ -123,10 +121,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
           formData.append('file', fileList[fileIdx]);
 
           const audioElement = this.createAudioElement(); // Create the audio element here
-
-          this.setState({
-            audioElement: audioElement, // Set the audioElement in the state
-          });
 
           const processFilePromise = axios
             .post('http://localhost:5000/api/process-audio', formData, {
@@ -320,7 +314,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
             getCurrentTimestamp={this.getCurrentTimestamp} // Pass the prop here
             updateDigest={this.updateDigest}
             updateResult={this.updateResult}
-            audioElement={this.state.audioElement} // Pass the audioElement to the child component
+            audioElement={this.audioElement} // Pass the audioElement to the child component
             isReadyToPlay={
               this.audioElement ? fileItem.id === this.audioElement.id : false
             }

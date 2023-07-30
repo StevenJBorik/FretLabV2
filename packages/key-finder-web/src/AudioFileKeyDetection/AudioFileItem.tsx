@@ -88,16 +88,11 @@ class AudioFileItem extends Component<Props, State> {
   mounted = false;
   fretboardContainerRef = createRef<HTMLDivElement>();
   audioElement: HTMLAudioElement | null; // New property to store the audio element
-  getCurrentTimestamp = () => {
-    const audioElement = this.props.audioElement;
-    if (!audioElement) return 0;
-    return audioElement.currentTime;
-  };
 
   componentDidMount() {
     console.log('in componentDidMount method');
     this.mounted = true;
-    this.audioElement = new Audio(); // Initialize the audioElement here
+    this.audioElement = this.props.audioElement; // Assign the prop value to the class property
     this.initAudio(this.props.fileItem);
     this.props.audioElement?.addEventListener(
       'timeupdate',
@@ -184,7 +179,7 @@ class AudioFileItem extends Component<Props, State> {
     // Set getCurrentTimestamp method in fileItem
     const updatedFileItem = {
       ...this.props.fileItem,
-      getCurrentTimestamp: this.getCurrentTimestamp,
+      getCurrentTimestamp: this.props.getCurrentTimestamp,
     };
 
     this.props.updateDigest(updatedFileItem.id, hashHex);
@@ -206,7 +201,7 @@ class AudioFileItem extends Component<Props, State> {
     source.buffer = buffer;
     source.connect(audioContext.destination);
 
-    // Set the audioSource to the class instance
+    // Set the audioSource to the class instance (optional)
     this.audioSource = source;
 
     const worker = keyFinderUtils.initializeKeyFinder({
@@ -382,7 +377,11 @@ class AudioFileItem extends Component<Props, State> {
     this.setState({ analyzing: false });
 
     if (this.state.isPlaying) {
-      this.audioSource.start(0, this.state.lastPlayedPosition || 0);
+      const audioElement = this.props.audioElement;
+      if (audioElement) {
+        audioElement.currentTime = this.state.lastPlayedPosition || 0;
+        audioElement.play();
+      }
     }
   };
 
@@ -420,24 +419,29 @@ class AudioFileItem extends Component<Props, State> {
 
   handleAudioTimeUpdate = () => {
     console.log('in handleAudioTimeUpdate method');
-    const audioElement = this.props.audioElement;
+    const audioElement = this.audioElement;
+    console.log('audio element log: ', audioElement);
     if (!audioElement) return;
 
-    const currentTimestamp = this.getCurrentTimestamp();
-    console.log('current time stamp:', currentTimestamp);
-    this.updateFretboardScale(currentTimestamp); // Update the fretboard scale once
+    // Update the current time in the state
+    this.setState({ currentTime: audioElement.currentTime });
+
+    this.updateFretboardScale(audioElement.currentTime); // Update the fretboard scale based on the current time
   };
 
   updateFretboardScale = (currentTimestamp: number) => {
     console.log('in updateFretboardScale method');
-    const { sectionBoundaries, frets, order } = this.props;
+    const { frets, order } = this.state;
+    const { sectionBoundaries } = this.props;
+
+    console.log('sectionBoundaries props', this.props.sectionBoundaries);
 
     console.log(sectionBoundaries, frets, order, currentTimestamp);
 
     for (let i = 0; i < sectionBoundaries.length; i++) {
       if (sectionBoundaries[i] === currentTimestamp) {
         // Calculate the next startFret based on the selected order
-        let nextStartFret = this.props.startFret;
+        let nextStartFret = this.state.startFret;
         if (order === 'ascending') {
           nextStartFret = (nextStartFret + frets) % 12;
         } else if (order === 'descending') {
@@ -447,9 +451,10 @@ class AudioFileItem extends Component<Props, State> {
         }
 
         // Check if an update is required before calling setState
-        if (nextStartFret !== this.props.startFret) {
-          // Since startFret is controlled by the parent component, we don't need to use setState here
-          this.props.updateStartFret(nextStartFret); // Add the function to update startFret in the parent component
+        if (nextStartFret !== this.state.startFret) {
+          this.setState({ startFret: nextStartFret }, () => {
+            this.renderFretboardScale();
+          });
           break;
         }
         this.renderFretboardScale();
