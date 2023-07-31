@@ -16,6 +16,7 @@ export interface FileItem {
   startFret: number; // Add startFret property to store user-defined startFret value
   order: 'ascending' | 'descending' | 'random'; // Add order property to store user-defined order value
   normalizedResult: string;
+  sectionBoundaries: string[][]; // Add sectionBoundaries property to store the section boundaries
 }
 
 interface Props {
@@ -26,7 +27,7 @@ interface Props {
   frets: number; // Add frets property to store user-defined frets value
   startFret: number; // Add startFret property to store user-defined startFret value
   order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
-  sectionBoundaries: number[] | null;
+  sectionBoundaries: string[][] | null;
   normalizedResult: string;
   getCurrentTimestamp: () => number; // Include the getCurrentTimestamp function in Props
   updateStartFret: (startFret: number) => void; // Add updateStartFret function to Props
@@ -52,6 +53,7 @@ interface State {
   order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
   files: Array<FileItem>;
   normalizedResult: string | null;
+  lastMatchedBoundary: string[] | null;
 }
 
 class AudioFileItem extends Component<Props, State> {
@@ -77,6 +79,7 @@ class AudioFileItem extends Component<Props, State> {
     order: this.props.order, // Add order property to store user-defined order value
     files: [],
     normalizedResult: this.props.normalizedResult || '', // Initialize with an empty string if not provided
+    lastMatchedBoundary: [],
   };
 
   audioContext: AudioContext | null = null;
@@ -94,10 +97,10 @@ class AudioFileItem extends Component<Props, State> {
     this.mounted = true;
     this.audioElement = this.props.audioElement; // Assign the prop value to the class property
     this.initAudio(this.props.fileItem);
-    this.props.audioElement?.addEventListener(
-      'timeupdate',
-      this.handleAudioTimeUpdate
-    );
+    // this.props.audioElement?.addEventListener(
+    //   'timeupdate',
+    //   this.handleAudioTimeUpdate
+    // );
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -120,10 +123,10 @@ class AudioFileItem extends Component<Props, State> {
           startFret: this.props.startFret,
           order: this.props.order,
           normalizedResult: this.props.normalizedResult, // Add normalizedResult to the state
-        },
-        () => {
-          this.renderFretboardScale();
         }
+        // () => {
+        //   this.renderFretboardScale();
+        // }
       );
     }
   }
@@ -375,8 +378,8 @@ class AudioFileItem extends Component<Props, State> {
   handleAudioCanPlay = () => {
     console.log('AudioFileItem - handleAudioCanPlay');
     this.setState({ analyzing: false });
-
-    if (this.state.isPlaying) {
+    console.log('this.props.isReadyToPlay: ', this.props.isReadyToPlay);
+    if (this.props.isReadyToPlay) {
       const audioElement = this.props.audioElement;
       if (audioElement) {
         audioElement.currentTime = this.state.lastPlayedPosition || 0;
@@ -423,42 +426,60 @@ class AudioFileItem extends Component<Props, State> {
     console.log('audio element log: ', audioElement);
     if (!audioElement) return;
 
-    // Update the current time in the state
-    this.setState({ currentTime: audioElement.currentTime });
+    // Round the current timestamp to match the section boundaries
+    const currentTimestamp = Math.round(audioElement.currentTime);
 
-    this.updateFretboardScale(audioElement.currentTime); // Update the fretboard scale based on the current time
+    // Convert the current timestamp to a string in the minute:second format
+    const formattedTime = this.convertSecondsToMinuteSecond(currentTimestamp);
+    console.log('current time stamp: ', formattedTime);
+
+    // Check if the current timestamp matches any of the section boundaries
+    const matchedBoundary = this.props.sectionBoundaries.find((boundary) =>
+      boundary.includes(formattedTime)
+    );
+
+    console.log('section boundaries from props', this.props.sectionBoundaries);
+
+    if (matchedBoundary && matchedBoundary !== this.state.lastMatchedBoundary) {
+      console.log("we've got a match!", matchedBoundary);
+
+      // Update the fretboard scale based on the rounded current time
+      this.updateFretboardScale(currentTimestamp);
+
+      // Set the last matched boundary to the current matched boundary
+      this.setState({ lastMatchedBoundary: matchedBoundary });
+    }
+  };
+
+  // Function to convert seconds to a string in the minute:second format
+  convertSecondsToMinuteSecond = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   updateFretboardScale = (currentTimestamp: number) => {
     console.log('in updateFretboardScale method');
     const { frets, order } = this.state;
-    const { sectionBoundaries } = this.props;
 
-    console.log('sectionBoundaries props', this.props.sectionBoundaries);
+    // Calculate the next startFret based on the selected order
+    let nextStartFret = this.state.startFret;
+    if (order === 'ascending') {
+      nextStartFret = (nextStartFret + frets) % 12;
+    } else if (order === 'descending') {
+      nextStartFret = (nextStartFret - frets + 12) % 12;
+    } else if (order === 'random') {
+      nextStartFret = Math.floor(Math.random() * 12);
+    }
 
-    console.log(sectionBoundaries, frets, order, currentTimestamp);
-
-    for (let i = 0; i < sectionBoundaries.length; i++) {
-      if (sectionBoundaries[i] === currentTimestamp) {
-        // Calculate the next startFret based on the selected order
-        let nextStartFret = this.state.startFret;
-        if (order === 'ascending') {
-          nextStartFret = (nextStartFret + frets) % 12;
-        } else if (order === 'descending') {
-          nextStartFret = (nextStartFret - frets + 12) % 12;
-        } else if (order === 'random') {
-          nextStartFret = Math.floor(Math.random() * 12);
-        }
-
-        // Check if an update is required before calling setState
-        if (nextStartFret !== this.state.startFret) {
-          this.setState({ startFret: nextStartFret }, () => {
-            this.renderFretboardScale();
-          });
-          break;
-        }
+    // Check if an update is required before calling setState
+    if (nextStartFret !== this.state.startFret) {
+      this.setState({ startFret: nextStartFret }, () => {
         this.renderFretboardScale();
-      }
+      });
+    } else {
+      // If startFret is not changed, no need to update the state; just render the fretboard scale
+      this.renderFretboardScale();
     }
   };
 

@@ -12,7 +12,7 @@ interface Props {}
 
 interface State {
   files: Array<FileItem>;
-  sectionBoundaries: number[];
+  sectionBoundaries: string[][];
   frets: number; // User input for frets
   startFret: number; // User input for startFret
   order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
@@ -92,6 +92,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
       const newFiles = prevState.files.slice(); // Create a shallow copy of the files array
       const promises = []; // Create an array to store promises for API calls
+      const parsedSectionBoundaries: string[][] = []; // Declare and initialize parsedSectionBoundaries as a two-dimensional array
 
       for (let fileIdx = 0; fileIdx < fileList.length; fileIdx += 1) {
         let canProcess = false;
@@ -101,19 +102,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
         }
 
         const id = uuidv4();
-        newFiles.push({
-          id,
-          canProcess,
-          file: fileList[fileIdx],
-          result: null,
-          digest: null,
-          keySignatureNumericValue: null,
-          scale: null,
-          frets: this.state.frets, // Set the correct frets value here
-          startFret: this.state.startFret, // Set the correct startFret value here
-          order: this.state.order, // Set the correct order value here
-          normalizedResult: null,
-        });
 
         // Call the API for each selected file
         if (canProcess) {
@@ -133,7 +121,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
               console.log('Raw Section Boundaries:', rawSectionBoundaries);
 
               try {
-                const parsedSectionBoundaries = rawSectionBoundaries.map(
+                const parsedSectionBoundariesForFile = rawSectionBoundaries.map(
                   (boundary) => {
                     // Extract minute and second values from the boundary string
                     const [minutes, seconds] = boundary
@@ -141,28 +129,20 @@ class AudioFileKeyDetection extends Component<Props, State> {
                       .split(':')
                       .map((value) => parseInt(value, 10));
 
-                    // Convert to seconds
-                    const totalSeconds = minutes * 60 + seconds;
-                    return totalSeconds;
+                    // Construct the minute:second format
+                    const formattedTime = `${minutes}:${seconds
+                      .toString()
+                      .padStart(2, '0')}`;
+
+                    return formattedTime;
                   }
                 );
 
+                parsedSectionBoundaries.push(...parsedSectionBoundariesForFile); // Store the section boundaries for the current file
+
                 console.log(
                   'Parsed Section Boundaries:',
-                  parsedSectionBoundaries
-                );
-                this.setState(
-                  {
-                    sectionBoundaries: parsedSectionBoundaries.map(
-                      this.secondsToTime
-                    ),
-                  },
-                  () => {
-                    console.log(
-                      'final boundaries state:',
-                      this.state.sectionBoundaries
-                    );
-                  }
+                  parsedSectionBoundariesForFile
                 );
               } catch (error) {
                 console.error('Error parsing section boundaries:', error);
@@ -177,19 +157,43 @@ class AudioFileKeyDetection extends Component<Props, State> {
             this.setState({ isReadyToPlay: true });
           };
         }
+
+        newFiles.push({
+          id,
+          canProcess,
+          file: fileList[fileIdx],
+          result: null,
+          digest: null,
+          keySignatureNumericValue: null,
+          scale: null,
+          frets: this.state.frets, // Set the correct frets value here
+          startFret: this.state.startFret, // Set the correct startFret value here
+          order: this.state.order, // Set the correct order value here
+          normalizedResult: null,
+          sectionBoundaries: [], // Initialize with an empty array for now
+        });
       }
 
       // After all API calls are complete, set isReadyToPlay to true
       Promise.all(promises)
         .then(() => {
-          this.setState({ isReadyToPlay: true });
+          this.setState({
+            files: newFiles.map((file, index) => ({
+              ...file,
+              sectionBoundaries: parsedSectionBoundaries.slice(
+                index * parsedSectionBoundaries.length,
+                (index + 1) * parsedSectionBoundaries.length
+              ), // Assign the correct section boundaries for each file
+            })),
+            isReadyToPlay: true,
+          });
         })
         .catch((error) => {
           console.error('Error processing files with MSAF:', error);
         });
 
       this.ref.current.value = null;
-      return { files: newFiles };
+      return { files: newFiles, sectionBoundaries: parsedSectionBoundaries };
     });
   };
 
@@ -315,9 +319,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
             updateDigest={this.updateDigest}
             updateResult={this.updateResult}
             audioElement={this.audioElement} // Pass the audioElement to the child component
-            isReadyToPlay={
-              this.audioElement ? fileItem.id === this.audioElement.id : false
-            }
+            isReadyToPlay={this.state.isReadyToPlay}
             updateStartFret={this.updateStartFret} // Pass the updateStartFret method as a prop
           />
         ))}
