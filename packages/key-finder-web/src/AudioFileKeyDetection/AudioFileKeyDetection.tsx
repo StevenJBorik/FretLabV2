@@ -153,9 +153,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
             });
 
           promises.push(processFilePromise);
-          audioElement.onloadedmetadata = () => {
-            this.setState({ isReadyToPlay: true });
-          };
+          // audioElement.onloadedmetadata = () => {
+          //   this.setState({ isReadyToPlay: true });
+          // };
         }
 
         newFiles.push({

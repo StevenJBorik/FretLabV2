@@ -135,8 +135,8 @@ class AudioFileItem extends Component<Props, State> {
     // Check if any changes in state or props that would trigger a re-render
     if (
       this.state.files !== nextState.files ||
-      this.state.currentTime !== nextState.currentTime ||
-      this.props.isReadyToPlay !== nextProps.isReadyToPlay // Include isReadyToPlay prop
+      this.state.currentTime !== nextState.currentTime
+      // this.props.isReadyToPlay !== nextProps.isReadyToPlay // Include isReadyToPlay prop
       // Add more checks here if needed for other props or state properties
     ) {
       return true; // Allow re-render
@@ -338,21 +338,30 @@ class AudioFileItem extends Component<Props, State> {
       this.keyObtainedCallback = undefined; // Reset the callback
     }
 
-    const container = this.fretboardContainerRef.current;
-
-    if (container) {
-      container.innerHTML = '';
-
-      const fb = fretboards.Fretboard({ frets: frets, startFret: startFret });
-      console.log(
-        'frets, startFret, and order variables',
-        frets,
-        startFret,
-        order
-      );
-
-      fb.add(normalizedResult).paint();
+    // Remove the previous fretboards
+    const previousFretboardContainers =
+      document.getElementsByClassName('fretboard');
+    const containersArray = [];
+    for (let i = 0; i < previousFretboardContainers.length; i++) {
+      containersArray.push(previousFretboardContainers[i]);
     }
+
+    containersArray.forEach((container) => {
+      container.innerHTML = '';
+    });
+
+    const fb = fretboards.Fretboard({ frets: frets, startFret: startFret });
+    const fbPaintResult = fb
+      .add(normalizedResult)
+      .paint(previousFretboardContainers);
+
+    console.log(
+      'frets, startFret, and order variables',
+      frets,
+      startFret,
+      order
+    );
+    console.log('fbPaintResult', fbPaintResult);
   }
 
   advanceSegmentCount = (
@@ -499,7 +508,7 @@ class AudioFileItem extends Component<Props, State> {
             </div>
           )}
 
-          <div ref={this.fretboardContainerRef} />
+          <div id="fretboard-container" ref={this.fretboardContainerRef} />
 
           {/* Audio Player */}
           <div>
