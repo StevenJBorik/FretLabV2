@@ -339,6 +339,29 @@ class AudioFileItem extends Component<Props, State> {
     }
 
     // Remove the previous fretboards
+    // const previousFretboardContainers = document.getElementsByClassName('fretboard');
+    // const containersArray = [];
+    // for (let i = 0; i < previousFretboardContainers.length; i++) {
+    //   containersArray.push(previousFretboardContainers[i]);
+    // }
+
+    // containersArray.forEach((container) => {
+    //   container.innerHTML = '';
+    // });
+
+    // const fb = fretboards.Fretboard({ frets: frets, startFret: startFret });
+    // const fbPaintResult = fb
+    //   .add(normalizedResult)
+    //   .paint(previousFretboardContainers);
+
+    // console.log(
+    //   'frets, startFret, and order variables',
+    //   frets,
+    //   startFret,
+    //   order
+    // );
+    // console.log('fbPaintResult', fbPaintResult);
+
     const previousFretboardContainers =
       document.getElementsByClassName('fretboard');
     const containersArray = [];
@@ -350,10 +373,9 @@ class AudioFileItem extends Component<Props, State> {
       container.innerHTML = '';
     });
 
+    // Create the new fretboard
     const fb = fretboards.Fretboard({ frets: frets, startFret: startFret });
-    const fbPaintResult = fb
-      .add(normalizedResult)
-      .paint(previousFretboardContainers);
+    const fbPaintResult = fb.add(normalizedResult).paint();
 
     console.log(
       'frets, startFret, and order variables',
