@@ -357,7 +357,11 @@ class AudioFileItem extends Component<Props, State> {
       container.parentNode.removeChild(container);
     });
 
-    const fb = fretboards.Fretboard({ frets: frets, startFret: startFret });
+    const fb = fretboards.Fretboard({
+      frets: frets,
+      startFret: startFret,
+      showTitle: true,
+    });
     console.log('frets: ', frets);
     console.log('startFret: ', startFret);
 
