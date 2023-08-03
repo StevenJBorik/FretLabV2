@@ -15,6 +15,7 @@ export interface FileItem {
   frets: number; // Add frets property to store user-defined frets value
   startFret: number; // Add startFret property to store user-defined startFret value
   order: 'ascending' | 'descending' | 'random'; // Add order property to store user-defined order value
+  incrementFactor: number;
   normalizedResult: string;
   sectionBoundaries: string[][]; // Add sectionBoundaries property to store the section boundaries
 }
@@ -27,10 +28,12 @@ interface Props {
   frets: number; // Add frets property to store user-defined frets value
   startFret: number; // Add startFret property to store user-defined startFret value
   order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
+  incrementFactor: number;
   sectionBoundaries: string[][] | null;
   normalizedResult: string;
   getCurrentTimestamp: () => number; // Include the getCurrentTimestamp function in Props
   updateStartFret: (startFret: number) => void; // Add updateStartFret function to Props
+  updateFretSpan: (frets: number) => void;
   isReadyToPlay: boolean; // Include the 'isReadyToPlay' prop
 }
 
@@ -51,6 +54,7 @@ interface State {
   frets: number | null;
   startFret: number | null;
   order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
+  incrementFactor: number | null;
   files: Array<FileItem>;
   normalizedResult: string | null;
   lastMatchedBoundary: string[] | null;
@@ -77,6 +81,7 @@ class AudioFileItem extends Component<Props, State> {
     frets: this.props.frets,
     startFret: this.props.startFret,
     order: this.props.order, // Add order property to store user-defined order value
+    incrementFactor: this.props.incrementFactor,
     files: [],
     normalizedResult: this.props.normalizedResult || '', // Initialize with an empty string if not provided
     lastMatchedBoundary: [],
@@ -115,6 +120,7 @@ class AudioFileItem extends Component<Props, State> {
       prevProps.frets !== this.props.frets ||
       prevProps.startFret !== this.props.startFret ||
       prevProps.order !== this.props.order ||
+      prevProps.incrementFactor !== this.props.incrementFactor ||
       prevProps.normalizedResult !== this.props.normalizedResult
     ) {
       this.setState(
@@ -122,6 +128,7 @@ class AudioFileItem extends Component<Props, State> {
           frets: this.props.frets,
           startFret: this.props.startFret,
           order: this.props.order,
+          incrementFactor: this.props.incrementFactor,
           normalizedResult: this.props.normalizedResult, // Add normalizedResult to the state
         }
         // () => {
@@ -338,44 +345,23 @@ class AudioFileItem extends Component<Props, State> {
       this.keyObtainedCallback = undefined; // Reset the callback
     }
 
-    // Remove the previous fretboards
-    // const previousFretboardContainers = document.getElementsByClassName('fretboard');
-    // const containersArray = [];
-    // for (let i = 0; i < previousFretboardContainers.length; i++) {
-    //   containersArray.push(previousFretboardContainers[i]);
-    // }
-
-    // containersArray.forEach((container) => {
-    //   container.innerHTML = '';
-    // });
-
-    // const fb = fretboards.Fretboard({ frets: frets, startFret: startFret });
-    // const fbPaintResult = fb
-    //   .add(normalizedResult)
-    //   .paint(previousFretboardContainers);
-
-    // console.log(
-    //   'frets, startFret, and order variables',
-    //   frets,
-    //   startFret,
-    //   order
-    // );
-    // console.log('fbPaintResult', fbPaintResult);
-
+    // Get all previous fretboard containers
     const previousFretboardContainers =
       document.getElementsByClassName('fretboard');
-    const containersArray = [];
-    for (let i = 0; i < previousFretboardContainers.length; i++) {
-      containersArray.push(previousFretboardContainers[i]);
-    }
 
+    // Convert HTMLCollection to Array
+    const containersArray = Array.from(previousFretboardContainers);
+
+    // Iterate over each container and remove it from the DOM
     containersArray.forEach((container) => {
-      container.innerHTML = '';
+      container.parentNode.removeChild(container);
     });
 
-    // Create the new fretboard
     const fb = fretboards.Fretboard({ frets: frets, startFret: startFret });
-    const fbPaintResult = fb.add(normalizedResult).paint();
+    console.log('frets: ', frets);
+    console.log('startFret: ', startFret);
+
+    fb.add(normalizedResult).paint();
 
     console.log(
       'frets, startFret, and order variables',
@@ -383,7 +369,6 @@ class AudioFileItem extends Component<Props, State> {
       startFret,
       order
     );
-    console.log('fbPaintResult', fbPaintResult);
   }
 
   advanceSegmentCount = (
@@ -491,21 +476,43 @@ class AudioFileItem extends Component<Props, State> {
 
   updateFretboardScale = (currentTimestamp: number) => {
     console.log('in updateFretboardScale method');
-    const { frets, order } = this.state;
+    const { order, incrementFactor, startFret, frets } = this.state;
 
-    // Calculate the next startFret based on the selected order
-    let nextStartFret = this.state.startFret;
+    let fretDiff = frets - startFret;
+    let nextStartFret = startFret;
+    let nextFretSpan = frets;
+
     if (order === 'ascending') {
-      nextStartFret = (nextStartFret + frets) % 12;
+      nextStartFret = nextStartFret + incrementFactor;
+      nextFretSpan = nextFretSpan + incrementFactor;
+
+      if (nextFretSpan > 24) {
+        nextStartFret = 0;
+        nextFretSpan = fretDiff;
+      }
     } else if (order === 'descending') {
-      nextStartFret = (nextStartFret - frets + 12) % 12;
+      nextStartFret = nextStartFret - incrementFactor;
+      nextFretSpan = nextFretSpan - incrementFactor;
+
+      if (nextStartFret < 0) {
+        nextStartFret = fretDiff;
+        nextFretSpan = 24;
+      }
     } else if (order === 'random') {
-      nextStartFret = Math.floor(Math.random() * 12);
+      nextStartFret = Math.floor(Math.random() * 25); // inclusive of 0 and 24
+      nextFretSpan = nextStartFret + fretDiff;
+
+      if (nextFretSpan > 24) {
+        nextFretSpan = 24;
+      }
     }
 
     // Check if an update is required before calling setState
-    if (nextStartFret !== this.state.startFret) {
-      this.setState({ startFret: nextStartFret }, () => {
+    if (
+      nextStartFret !== this.state.startFret ||
+      nextFretSpan !== this.state.frets
+    ) {
+      this.setState({ startFret: nextStartFret, frets: nextFretSpan }, () => {
         this.renderFretboardScale();
       });
     } else {

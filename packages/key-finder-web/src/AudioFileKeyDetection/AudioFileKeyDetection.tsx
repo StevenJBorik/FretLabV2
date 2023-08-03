@@ -17,6 +17,7 @@ interface State {
   startFret: number; // User input for startFret
   order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
   isReadyToPlay: boolean;
+  incrementFactor: number;
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -29,6 +30,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     startFret: 0, // Default value for startFret
     order: 'ascending', // Default value for order
     isReadyToPlay: false,
+    incrementFactor: 3,
   };
 
   audioElement: HTMLAudioElement | null = null;
@@ -49,7 +51,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
       this.state.files !== nextState.files ||
       this.state.frets !== nextState.frets ||
       this.state.startFret !== nextState.startFret ||
-      this.state.order !== nextState.order
+      this.state.order !== nextState.order ||
+      this.state.incrementFactor !== nextState.incrementFactor
       // Add more checks here if needed for other props or state properties
     ) {
       return true; // Allow re-render
@@ -169,6 +172,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
           frets: this.state.frets, // Set the correct frets value here
           startFret: this.state.startFret, // Set the correct startFret value here
           order: this.state.order, // Set the correct order value here
+          incrementFactor: this.state.incrementFactor,
           normalizedResult: null,
           sectionBoundaries: [], // Initialize with an empty array for now
         });
@@ -245,14 +249,25 @@ class AudioFileKeyDetection extends Component<Props, State> {
     this.setState({ order });
   };
 
-  // New method to update the startFret state
+  // Event handler for updating the range to increment by each time there is a song section change
+  handleIncrementFactorChange = (event: Event): void => {
+    const incrementFactor = Number((event.target as HTMLInputElement).value);
+    this.setState({ incrementFactor });
+  };
+
+  // method to update the startFret state
   updateStartFret = (startFret: number): void => {
     this.setState({ startFret });
   };
 
+  // method to update the startFret state
+  updateFretSpan = (frets: number): void => {
+    this.setState({ frets });
+  };
+
   render(props) {
     console.log('AudioFileKeyDetection - render');
-    const { files, frets, startFret, order } = this.state;
+    const { files, frets, startFret, order, incrementFactor } = this.state;
 
     return (
       <>
@@ -273,7 +288,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 multiple={true}
                 onChange={async (event) => await this.handleFileInput(event)}
               />
-              <label for="frets">Number of Frets:</label>
+              <label for="frets">End Fret::</label>
               <input
                 id="frets"
                 type="number"
@@ -291,6 +306,16 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 max="24" // Set the maximum number of frets you want to support
                 value={startFret}
                 onChange={this.handleStartFretChange}
+              />
+              <br />
+              <label for="increment-factor">Increment Factor:</label>
+              <input
+                id="increment-factor"
+                type="number"
+                min="1"
+                max="24"
+                value={incrementFactor}
+                onChange={this.handleIncrementFactorChange}
               />
               <br />
               <label for="order">Order:</label>
@@ -313,6 +338,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
             frets={fileItem.frets} // Pass the user-defined frets value to the AudioFileItem component
             startFret={fileItem.startFret} // Pass the user-defined startFret value to the AudioFileItem component
             order={fileItem.order} // Pass the user-defined order value to the AudioFileItem component
+            incrementFactor={fileItem.incrementFactor}
             normalizedResult={fileItem.normalizedResult} // Pass the normalizedResult here
             sectionBoundaries={this.state.sectionBoundaries}
             getCurrentTimestamp={this.getCurrentTimestamp} // Pass the prop here
@@ -321,6 +347,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
             audioElement={this.audioElement} // Pass the audioElement to the child component
             isReadyToPlay={this.state.isReadyToPlay}
             updateStartFret={this.updateStartFret} // Pass the updateStartFret method as a prop
+            updateFretSpan={this.updateFretSpan}
           />
         ))}
       </>
