@@ -265,6 +265,11 @@ class AudioFileKeyDetection extends Component<Props, State> {
     this.setState({ frets });
   };
 
+  // method to handle note detection for lighting up notes on fretboard
+  handleNoteDetection = (note) => {
+    this.childComponentRef.setDetectedNote(note);
+  };
+
   render(props) {
     console.log('AudioFileKeyDetection - render');
     const { files, frets, startFret, order, incrementFactor } = this.state;
