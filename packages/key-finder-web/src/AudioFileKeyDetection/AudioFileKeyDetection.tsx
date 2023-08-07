@@ -5,6 +5,7 @@ import AudioFileItem from './AudioFileItem';
 import { v4 as uuidv4 } from 'uuid';
 import { numberOfThreads } from '../defaults';
 import { FileItem } from './AudioFileItem'; // Import the FileItem interface
+import { PitchDetector } from 'pitchy';
 
 import './AudioFileKeyDetection.css';
 
@@ -18,10 +19,12 @@ interface State {
   order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
   isReadyToPlay: boolean;
   incrementFactor: number;
+  detectedNote: string;
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
   ref = createRef<HTMLInputElement>();
+  childComponentRef: RefObject<AudioFileItem> = createRef();
 
   state: State = {
     files: [],
@@ -31,6 +34,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     order: 'ascending', // Default value for order
     isReadyToPlay: false,
     incrementFactor: 3,
+    detectedNote: '',
   };
 
   audioElement: HTMLAudioElement | null = null;
@@ -266,8 +270,44 @@ class AudioFileKeyDetection extends Component<Props, State> {
   };
 
   // method to handle note detection for lighting up notes on fretboard
-  handleNoteDetection = (note) => {
-    this.childComponentRef.setDetectedNote(note);
+  handleNoteDetection = (frequency: number) => {
+    const note = this.getNoteFromFrequency(frequency);
+    this.setState({ detectedNote: note }); // Set the detectedNote in the state
+  };
+
+  // Helper function to convert frequency to musical note
+  getNoteFromFrequency = (frequency: number): string => {
+    // Define the note frequencies for A4=440Hz tuning
+    const A4Frequency = 440;
+    const semitoneRatio = 2 ** (1 / 12);
+    const semitoneDifference = 69; // MIDI note number for A4
+
+    // Calculate the MIDI note number for the given frequency
+    const midiNote =
+      12 * (Math.log2(frequency / A4Frequency) / Math.log2(semitoneRatio)) +
+      semitoneDifference;
+
+    // Map the MIDI note number to the corresponding note name
+    const notes = [
+      'C',
+      'C#',
+      'D',
+      'D#',
+      'E',
+      'F',
+      'F#',
+      'G',
+      'G#',
+      'A',
+      'A#',
+      'B',
+    ];
+    const noteIndex = Math.round(midiNote) % 12;
+    const octave = Math.floor(midiNote / 12) - 1;
+
+    console.log('note calculation:', `${notes[noteIndex]}${octave}`);
+
+    return `${notes[noteIndex]}${octave}`;
   };
 
   render(props) {
@@ -353,6 +393,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
             isReadyToPlay={this.state.isReadyToPlay}
             updateStartFret={this.updateStartFret} // Pass the updateStartFret method as a prop
             updateFretSpan={this.updateFretSpan}
+            handleNoteDetection={this.handleNoteDetection} // Include handleNoteDetection in the props passed to the child component
+            detectedNote={this.state.detectedNote} // Pass the detected note to the child component
           />
         ))}
       </>

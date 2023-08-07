@@ -18,6 +18,7 @@
     "fretboards": "^0.5.0",
     "key-finder-wasm": "workspace:*",
     "normalize.css": "8.0.1",
+    "pitchy": "^4.0.7",
     "preact": "^10.16.0",
     "preact-router": "^4.1.1",
     "rollup": "2.79.1",

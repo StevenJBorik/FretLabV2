@@ -34,7 +34,9 @@ interface Props {
   getCurrentTimestamp: () => number; // Include the getCurrentTimestamp function in Props
   updateStartFret: (startFret: number) => void; // Add updateStartFret function to Props
   updateFretSpan: (frets: number) => void;
+  handleNoteDetection: (frequency: number) => void; // Adjust the type of 'note' accordingly
   isReadyToPlay: boolean; // Include the 'isReadyToPlay' prop
+  detectedNote: string | null; // Add detectedNote property to the props
 }
 
 interface State {
@@ -58,6 +60,7 @@ interface State {
   files: Array<FileItem>;
   normalizedResult: string | null;
   lastMatchedBoundary: string[] | null;
+  detectedNote: string | null;
 }
 
 class AudioFileItem extends Component<Props, State> {
@@ -85,6 +88,7 @@ class AudioFileItem extends Component<Props, State> {
     files: [],
     normalizedResult: this.props.normalizedResult || '', // Initialize with an empty string if not provided
     lastMatchedBoundary: [],
+    detectedNote: null,
   };
 
   audioContext: AudioContext | null = null;
@@ -163,6 +167,10 @@ class AudioFileItem extends Component<Props, State> {
       this.handleAudioTimeUpdate
     );
   }
+
+  setDetectedNote = (note: string | null) => {
+    this.setState({ detectedNote: note });
+  };
 
   initAudio = (fileItem) => {
     const audioElement = this.props.audioElement; // Use the audioElement from props
@@ -373,6 +381,25 @@ class AudioFileItem extends Component<Props, State> {
       startFret,
       order
     );
+    // Unhighlight all notes
+    document.querySelectorAll('.fretboard circle').forEach((circle) => {
+      circle.classList.remove('highlight');
+    });
+
+    // Highlight the detected note
+    const detectedNote = this.state.detectedNote;
+    if (detectedNote) {
+      console.log(detectedNote);
+      // Find the circle element with the matching title containing the detected note
+      const noteElements = document.querySelectorAll('.fretboard circle title');
+      noteElements.forEach((titleElement) => {
+        const noteText = titleElement.textContent.trim();
+        if (noteText === detectedNote) {
+          const circleElement = titleElement.parentElement;
+          circleElement.classList.add('highlight');
+        }
+      });
+    }
   }
 
   advanceSegmentCount = (
