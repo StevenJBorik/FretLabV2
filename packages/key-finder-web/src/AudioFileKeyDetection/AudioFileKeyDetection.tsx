@@ -5,8 +5,7 @@ import AudioFileItem from './AudioFileItem';
 import { v4 as uuidv4 } from 'uuid';
 import { numberOfThreads } from '../defaults';
 import { FileItem } from './AudioFileItem'; // Import the FileItem interface
-import { PitchDetector } from 'pitchy';
-
+import { PitchDetector } from './pitchyModule.js';
 import './AudioFileKeyDetection.css';
 
 interface Props {}
@@ -47,6 +46,13 @@ class AudioFileKeyDetection extends Component<Props, State> {
         'content',
         'A web application to find the musical key (root note) of an audio file. Song will be analyzed right in your browser. Select the audio file from your computer to find the root note.'
       );
+    this.startListeningForNotes();
+  }
+
+  componentWillUnmount() {
+    // Clean up event listener when the component is unmounted
+    // Assuming you have a function called `stopListeningForNotes` to stop listening for notes
+    this.stopListeningForNotes();
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
@@ -269,11 +275,80 @@ class AudioFileKeyDetection extends Component<Props, State> {
     this.setState({ frets });
   };
 
-  // method to handle note detection for lighting up notes on fretboard
-  handleNoteDetection = (frequency: number) => {
-    const note = this.getNoteFromFrequency(frequency);
-    this.setState({ detectedNote: note }); // Set the detectedNote in the state
+  // Method to handle note detection for lighting up notes on fretboard
+  handleNoteDetection = (frequency: number | null) => {
+    if (frequency !== null) {
+      const note = this.getNoteFromFrequency(frequency);
+      this.setState({ detectedNote: note }); // Set the detectedNote in the state
+    } else {
+      this.setState({ detectedNote: '' }); // Clear the detectedNote in the state
+    }
   };
+
+  startListeningForNotes() {
+    // Set up the event listener or initialize the note detection system
+    const audioContext = new AudioContext();
+    const analyserNode = audioContext.createAnalyser();
+
+    // Dynamically import the PitchDetector from the pitchyModule.js
+    import('./pitchyModule.js')
+      .then(({ PitchDetector }) => {
+        // Rest of the function remains unchanged
+
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then((stream) => {
+            audioContext.createMediaStreamSource(stream).connect(analyserNode);
+
+            // Configure the analyserNode for pitch detection (frequency analysis)
+            analyserNode.fftSize = 2048;
+            const bufferLength = analyserNode.frequencyBinCount;
+            const input = new Float32Array(bufferLength);
+
+            // Create the pitch detector
+            const detector = PitchDetector.forFloat32Array(
+              analyserNode.fftSize
+            );
+
+            const processAudioData = () => {
+              analyserNode.getFloatTimeDomainData(input);
+
+              // Detect pitch and clarity using pitchy
+              const [pitch] = detector.findPitch(
+                input,
+                audioContext.sampleRate
+              );
+
+              if (typeof pitch === 'number') {
+                // Call the handleNoteDetection function in the parent component with the detected note
+                this.handleNoteDetection(pitch);
+              } else {
+                // If pitch is not a number (could not detect note), you may choose to handle it accordingly
+                this.handleNoteDetection(null);
+              }
+
+              // Call processAudioData recursively to keep processing the audio data
+              requestAnimationFrame(processAudioData);
+            };
+
+            // Start processing the audio data
+            processAudioData();
+          })
+          .catch((error) => {
+            console.error('Error accessing microphone:', error);
+          });
+      })
+      .catch((error) => {
+        console.error('Error importing PitchDetector:', error);
+      });
+  }
+
+  stopListeningForNotes() {
+    if (this.childComponentRef.current) {
+      // Call the stopListeningForNotes function in the child component
+      this.childComponentRef.current.stopListeningForNotes();
+    }
+  }
 
   // Helper function to convert frequency to musical note
   getNoteFromFrequency = (frequency: number): string => {
@@ -333,7 +408,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 multiple={true}
                 onChange={async (event) => await this.handleFileInput(event)}
               />
-              <label for="frets">End Fret::</label>
+              <label for="frets">End Fret:</label>
               <input
                 id="frets"
                 type="number"

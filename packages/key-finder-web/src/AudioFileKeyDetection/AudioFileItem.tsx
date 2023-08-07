@@ -168,6 +168,19 @@ class AudioFileItem extends Component<Props, State> {
     );
   }
 
+  stopListeningForNotes() {
+    // Disconnect the media stream source and stop the audio processing
+    if (this.audioContext) {
+      this.audioContext.close().catch((error) => {
+        console.error('Error closing audio context:', error);
+      });
+      this.audioContext = null;
+    }
+
+    // Clear the detected note
+    this.setState({ detectedNote: null });
+  }
+
   setDetectedNote = (note: string | null) => {
     this.setState({ detectedNote: note });
   };
