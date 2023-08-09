@@ -5,7 +5,6 @@ import AudioFileItem from './AudioFileItem';
 import { v4 as uuidv4 } from 'uuid';
 import { numberOfThreads } from '../defaults';
 import { FileItem } from './AudioFileItem'; // Import the FileItem interface
-import { PitchDetector } from './pitchyModule.js';
 import './AudioFileKeyDetection.css';
 
 interface Props {}
@@ -283,6 +282,27 @@ class AudioFileKeyDetection extends Component<Props, State> {
     } else {
       this.setState({ detectedNote: '' }); // Clear the detectedNote in the state
     }
+    this.updateFretboardHighlights(this.state.detectedNote);
+  };
+
+  updateFretboardHighlights = (detectedNote) => {
+    // Unhighlight all notes
+    document.querySelectorAll('.fretboard circle').forEach((circle) => {
+      circle.classList.remove('highlight');
+    });
+
+    // Highlight the detected note
+    if (detectedNote) {
+      const noteElements = document.querySelectorAll('.fretboard circle title');
+      noteElements.forEach((titleElement) => {
+        const noteText = titleElement.textContent.trim();
+        console.log('note text & detectedNote: ', noteText, detectedNote);
+        if (noteText === detectedNote) {
+          const circleElement = titleElement.parentElement;
+          circleElement.classList.add('highlight');
+        }
+      });
+    }
   };
 
   startListeningForNotes() {
@@ -359,25 +379,30 @@ class AudioFileKeyDetection extends Component<Props, State> {
       12 * (Math.log2(frequency / A4Frequency) / Math.log2(semitoneRatio)) +
       semitoneDifference;
 
-    // Map the MIDI note number to the corresponding note name
+    // Define the note names with both sharps and flats
     const notes = [
       'C',
       'C#',
+      'Db',
       'D',
       'D#',
+      'Eb',
       'E',
       'F',
       'F#',
+      'Gb',
       'G',
       'G#',
+      'Ab',
       'A',
       'A#',
+      'Bb',
       'B',
     ];
     const noteIndex = Math.round(midiNote) % 12;
     const octave = Math.floor(midiNote / 12) - 1;
 
-    console.log('note calculation:', `${notes[noteIndex]}${octave}`);
+    // console.log('note calculation:', `${notes[noteIndex]}${octave}`);
 
     return `${notes[noteIndex]}${octave}`;
   };

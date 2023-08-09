@@ -394,25 +394,25 @@ class AudioFileItem extends Component<Props, State> {
       startFret,
       order
     );
-    // Unhighlight all notes
-    document.querySelectorAll('.fretboard circle').forEach((circle) => {
-      circle.classList.remove('highlight');
-    });
+    // // Unhighlight all notes
+    // document.querySelectorAll('.fretboard circle').forEach((circle) => {
+    //   circle.classList.remove('highlight');
+    // });
 
-    // Highlight the detected note
-    const detectedNote = this.state.detectedNote;
-    if (detectedNote) {
-      console.log(detectedNote);
-      // Find the circle element with the matching title containing the detected note
-      const noteElements = document.querySelectorAll('.fretboard circle title');
-      noteElements.forEach((titleElement) => {
-        const noteText = titleElement.textContent.trim();
-        if (noteText === detectedNote) {
-          const circleElement = titleElement.parentElement;
-          circleElement.classList.add('highlight');
-        }
-      });
-    }
+    // // Highlight the detected note
+    // const detectedNote = this.state.detectedNote;
+    // if (detectedNote) {
+    //   console.log(detectedNote);
+    //   // Find the circle element with the matching title containing the detected note
+    //   const noteElements = document.querySelectorAll('.fretboard circle title');
+    //   noteElements.forEach((titleElement) => {
+    //     const noteText = titleElement.textContent.trim();
+    //     if (noteText === detectedNote) {
+    //       const circleElement = titleElement.parentElement;
+    //       circleElement.classList.add('highlight');
+    //     }
+    //   });
+    // }
   }
 
   advanceSegmentCount = (
