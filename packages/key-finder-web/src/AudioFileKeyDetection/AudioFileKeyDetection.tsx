@@ -300,15 +300,12 @@ class AudioFileKeyDetection extends Component<Props, State> {
           .then((stream) => {
             audioContext.createMediaStreamSource(stream).connect(analyserNode);
 
-            // Configure the analyserNode for pitch detection (frequency analysis)
-            analyserNode.fftSize = 2048;
-            const bufferLength = analyserNode.frequencyBinCount;
-            const input = new Float32Array(bufferLength);
-
             // Create the pitch detector
             const detector = PitchDetector.forFloat32Array(
               analyserNode.fftSize
             );
+
+            const input = new Float32Array(detector.inputLength);
 
             const processAudioData = () => {
               analyserNode.getFloatTimeDomainData(input);
