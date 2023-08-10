@@ -282,24 +282,28 @@ class AudioFileKeyDetection extends Component<Props, State> {
     } else {
       this.setState({ detectedNote: '' }); // Clear the detectedNote in the state
     }
+    // console.log("this.state.detectedNote: ", this.state.detectedNote);
     this.updateFretboardHighlights(this.state.detectedNote);
   };
 
   updateFretboardHighlights = (detectedNote) => {
     // Unhighlight all notes
     document.querySelectorAll('.fretboard circle').forEach((circle) => {
-      circle.classList.remove('highlight');
+      if (circle instanceof SVGElement) {
+        circle.classList.remove('highlight');
+        circle.style.fill = 'white'; // Reset fill color
+      }
     });
-
     // Highlight the detected note
     if (detectedNote) {
       const noteElements = document.querySelectorAll('.fretboard circle title');
       noteElements.forEach((titleElement) => {
         const noteText = titleElement.textContent.trim();
-        console.log('note text & detectedNote: ', noteText, detectedNote);
-        if (noteText === detectedNote) {
+        if (
+          noteText.toLowerCase().trim() === detectedNote.toLowerCase().trim()
+        ) {
           const circleElement = titleElement.parentElement;
-          circleElement.classList.add('highlight');
+          circleElement.style.fill = 'green'; // Set fill color to green
         }
       });
     }
@@ -399,8 +403,11 @@ class AudioFileKeyDetection extends Component<Props, State> {
       'Bb',
       'B',
     ];
-    const noteIndex = Math.round(midiNote) % 12;
-    const octave = Math.floor(midiNote / 12) - 1;
+
+    const validMidiNote = (midiNote + 128) % 128;
+
+    const noteIndex = Math.round(validMidiNote) % 12;
+    const octave = Math.floor(validMidiNote / 12) - 1;
 
     // console.log('note calculation:', `${notes[noteIndex]}${octave}`);
 
