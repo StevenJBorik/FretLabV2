@@ -302,12 +302,15 @@ class AudioFileKeyDetection extends Component<Props, State> {
         if (
           noteText.toLowerCase().trim() === detectedNote.toLowerCase().trim()
         ) {
+          console.log('Detected Note for match', detectedNote);
           const circleElement = titleElement.parentElement;
           circleElement.style.fill = 'green'; // Set fill color to green
         }
       });
     }
   };
+
+  lastConsoleLogTime = 0; // Initialize the variable to track the last console.log time
 
   startListeningForNotes() {
     // Set up the event listener or initialize the note detection system
@@ -341,6 +344,11 @@ class AudioFileKeyDetection extends Component<Props, State> {
               );
 
               if (typeof pitch === 'number') {
+                const currentTime = Date.now();
+                if (currentTime - this.lastConsoleLogTime >= 5000) {
+                  // console.log('pitch', pitch);
+                  this.lastConsoleLogTime = currentTime; // Update the last console.log time
+                }
                 // Call the handleNoteDetection function in the parent component with the detected note
                 this.handleNoteDetection(pitch);
               } else {
@@ -378,10 +386,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     const semitoneRatio = 2 ** (1 / 12);
     const semitoneDifference = 69; // MIDI note number for A4
 
-    // Calculate the MIDI note number for the given frequency
-    const midiNote =
-      12 * (Math.log2(frequency / A4Frequency) / Math.log2(semitoneRatio)) +
-      semitoneDifference;
+    const midiNote = 12 * Math.log2(frequency / A4Frequency) + 69;
 
     // Define the note names with both sharps and flats
     const notes = [
@@ -404,12 +409,13 @@ class AudioFileKeyDetection extends Component<Props, State> {
       'B',
     ];
 
-    const validMidiNote = (midiNote + 128) % 128;
+    const noteIndex = Math.round(midiNote) % 12;
+    const octave = Math.floor(midiNote / 12);
 
-    const noteIndex = Math.round(validMidiNote) % 12;
-    const octave = Math.floor(validMidiNote / 12) - 1;
-
-    // console.log('note calculation:', `${notes[noteIndex]}${octave}`);
+    console.log(
+      'note calculation from frequency:',
+      `${notes[noteIndex]}${octave}`
+    );
 
     return `${notes[noteIndex]}${octave}`;
   };
