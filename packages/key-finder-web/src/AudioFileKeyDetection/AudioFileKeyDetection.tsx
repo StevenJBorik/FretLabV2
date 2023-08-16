@@ -287,26 +287,29 @@ class AudioFileKeyDetection extends Component<Props, State> {
   };
 
   updateFretboardHighlights = (detectedNote) => {
+    // Create a map of note frequencies to UI elements
+    const noteElementsMap = new Map();
+    document
+      .querySelectorAll('.fretboard circle title')
+      .forEach((titleElement) => {
+        const noteText = titleElement.textContent.trim().toLowerCase();
+        noteElementsMap.set(noteText, titleElement.parentElement);
+      });
+
     // Unhighlight all notes
-    document.querySelectorAll('.fretboard circle').forEach((circle) => {
-      if (circle instanceof SVGElement) {
-        circle.classList.remove('highlight');
-        circle.style.fill = 'white'; // Reset fill color
+    noteElementsMap.forEach((circleElement) => {
+      if (circleElement instanceof SVGElement) {
+        circleElement.classList.remove('highlight');
+        circleElement.style.fill = 'white'; // Reset fill color
       }
     });
+
     // Highlight the detected note
     if (detectedNote) {
-      const noteElements = document.querySelectorAll('.fretboard circle title');
-      noteElements.forEach((titleElement) => {
-        const noteText = titleElement.textContent.trim();
-        if (
-          noteText.toLowerCase().trim() === detectedNote.toLowerCase().trim()
-        ) {
-          console.log('Detected Note for match', detectedNote);
-          const circleElement = titleElement.parentElement;
-          circleElement.style.fill = 'green'; // Set fill color to green
-        }
-      });
+      const matchingElement = noteElementsMap.get(detectedNote.toLowerCase());
+      if (matchingElement instanceof SVGElement) {
+        matchingElement.style.fill = 'green'; // Set fill color to green
+      }
     }
   };
 
@@ -318,8 +321,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
     // Dynamically import the PitchDetector from the pitchyModule.js
     import('./pitchyModule.js')
       .then(({ PitchDetector }) => {
-        // Rest of the function remains unchanged
-
         navigator.mediaDevices
           .getUserMedia({ audio: true })
           .then((stream) => {
@@ -332,25 +333,35 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
             const input = new Float32Array(detector.inputLength);
 
+            const SILENCE_THRESHOLD = 0.2; // Adjust this threshold value as needed
+
             const processAudioData = () => {
               analyserNode.getFloatTimeDomainData(input);
 
-              // Detect pitch and clarity using pitchy
-              const [pitch] = detector.findPitch(
-                input,
-                audioContext.sampleRate
-              );
+              // Calculate the maximum amplitude of the input signal
+              let maxAmplitude = -Infinity;
+              for (let i = 0; i < input.length; i++) {
+                if (input[i] > maxAmplitude) {
+                  maxAmplitude = input[i];
+                }
+              }
+              if (maxAmplitude > SILENCE_THRESHOLD) {
+                // Detect pitch and clarity using pitchy
+                const [pitch] = detector.findPitch(
+                  input,
+                  audioContext.sampleRate
+                );
 
-              if (typeof pitch === 'number') {
-                // console.log("pitch: ", pitch);
-                // Call the handleNoteDetection function in the parent component with the detected note
-                this.handleNoteDetection(pitch);
+                if (typeof pitch === 'number') {
+                  console.log('pitch:  ', pitch);
+                  this.handleNoteDetection(pitch);
+                } else {
+                  this.handleNoteDetection(null);
+                }
               } else {
-                // If pitch is not a number (could not detect note), you may choose to handle it accordingly
                 this.handleNoteDetection(null);
               }
 
-              // Call processAudioData recursively to keep processing the audio data
               requestAnimationFrame(processAudioData);
             };
 
@@ -373,45 +384,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
     }
   }
 
-  // // Helper function to convert frequency to musical note
-  // getNoteFromFrequency = (frequency: number): string => {
-
-  //   // // Define the note frequencies for A4=440Hz tuning
-  //   const A4Frequency = 440;
-  //   const log = Math.log2(frequency / A4Frequency);
-  //   let noteNumber = Math.round(12 * log) + 57;
-  //   const octave = Math.floor(noteNumber / 12);
-  //   if (octave < 0) {
-  //     noteNumber += -12 * octave;
-  //   }
-
-  //    const noteLetters = [
-  //     'C',
-  //     'C#',
-  //     'Db',
-  //     'D',
-  //     'D#',
-  //     'Eb',
-  //     'E',
-  //     'F',
-  //     'F#',
-  //     'Gb',
-  //     'G',
-  //     'G#',
-  //     'Ab',
-  //     'A',
-  //     'A#',
-  //     'Bb',
-  //     'B',
-  //   ];
-
-  //   const noteName = noteLetters[noteNumber % 12];
-  //   const finalNote = noteName + octave.toString()
-
-  //   console.log("final note: ", finalNote);
-
-  //   return finalNote;
-  // };
   getNoteFromFrequency = (frequency: number): string => {
     const noteFrequencies = {
       C0: 16.35,
@@ -584,6 +556,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
     const octave = parseInt(closestNote.slice(-1));
     const convertedFrequency = closestNote.slice(0, -1) + octave.toString();
+    console.log('convertedFrequency: ', convertedFrequency);
 
     return convertedFrequency;
   };
