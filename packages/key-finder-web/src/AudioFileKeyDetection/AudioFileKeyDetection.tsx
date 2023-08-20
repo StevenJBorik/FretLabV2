@@ -51,7 +51,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
   componentWillUnmount() {
     // Clean up event listener when the component is unmounted
     // Assuming you have a function called `stopListeningForNotes` to stop listening for notes
-    this.stopListeningForNotes();
+    // UNCOMMENT POST TESTING
+    // this.stopListeningForNotes();
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
@@ -333,7 +334,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
             const input = new Float32Array(detector.inputLength);
 
-            const SILENCE_THRESHOLD = 0.2; // Adjust this threshold value as needed
+            const SILENCE_THRESHOLD = 0.15; // Adjust this threshold value as needed
 
             const processAudioData = () => {
               analyserNode.getFloatTimeDomainData(input);
