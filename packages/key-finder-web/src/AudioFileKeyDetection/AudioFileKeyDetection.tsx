@@ -24,6 +24,7 @@ interface State {
 class AudioFileKeyDetection extends Component<Props, State> {
   ref = createRef<HTMLInputElement>();
   childComponentRef: RefObject<AudioFileItem> = createRef();
+  meydaAnalyzer: any;
 
   state: State = {
     files: [],
@@ -733,6 +734,43 @@ class AudioFileKeyDetection extends Component<Props, State> {
   //   return { note: closestNote, fret: closestFret };
   // };
 
+  handleStartCalibration = () => {
+    import('./meydaModule.js')
+      .then(({ Meyda }) => {
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then((stream) => {
+            const audioContext = new AudioContext();
+            const source = audioContext.createMediaStreamSource(stream);
+
+            this.meydaAnalyzer = Meyda.createMeydaAnalyzer({
+              audioContext: audioContext,
+              source: source,
+              bufferSize: 512,
+              featureExtractors: ['spectralCentroid'],
+              callback: (features) => {
+                console.log(features);
+              },
+            });
+
+            this.meydaAnalyzer.start();
+          })
+          .catch((error) => {
+            console.error('Error accessing audio stream:', error);
+          });
+      })
+      .catch((error) => {
+        console.error('Error importing Meyda:', error);
+      });
+  };
+
+  handleStopCalibration = () => {
+    // Stop the analyzer if it's defined
+    if (this.meydaAnalyzer) {
+      this.meydaAnalyzer.stop();
+    }
+  };
+
   render(props) {
     console.log('AudioFileKeyDetection - render');
     const { files, frets, startFret, order, incrementFactor } = this.state;
@@ -796,6 +834,19 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 <option value="descending">Descending</option>
                 <option value="random">Random</option>
               </select>
+              <label for="calibration">Calibration:</label>
+              <button
+                id="start-calibration"
+                onClick={this.handleStartCalibration}
+              >
+                Start
+              </button>
+              <button
+                id="stop-calibration"
+                onClick={this.handleStopCalibration}
+              >
+                Stop
+              </button>
             </div>
           </div>
         </main>
