@@ -3,6 +3,9 @@ declare module 'omt:*' {
   export default value;
 }
 
+declare module 'https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-core.es.js';
+declare module 'https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia-wasm.es.js';
+
 declare interface AudioAnalyzerNode extends AudioNode {
   getByteTimeDomainData: (array: Uint8Array) => void;
   frequencyBinCount: number;

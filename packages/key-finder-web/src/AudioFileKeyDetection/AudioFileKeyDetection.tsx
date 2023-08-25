@@ -7,6 +7,9 @@ import { numberOfThreads } from '../defaults';
 import { FileItem } from './AudioFileItem'; // Import the FileItem interface
 import './AudioFileKeyDetection.css';
 
+import Essentia from 'essentia.js/dist/essentia.js-core.es.js';
+import { EssentiaWASM } from 'essentia.js/dist/essentia-wasm.es.js';
+
 interface Props {}
 
 interface State {
@@ -435,7 +438,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 );
 
                 if (typeof pitch === 'number') {
-                  console.log('pitch:  ', pitch);
+                  // console.log('pitch:  ', pitch);
                   this.handleNoteDetection(pitch);
                 } else {
                   this.handleNoteDetection(null);
@@ -734,40 +737,54 @@ class AudioFileKeyDetection extends Component<Props, State> {
   //   return { note: closestNote, fret: closestFret };
   // };
 
-  handleStartCalibration = () => {
-    import('./meydaModule.js')
-      .then(({ Meyda }) => {
-        navigator.mediaDevices
-          .getUserMedia({ audio: true })
-          .then((stream) => {
-            const audioContext = new AudioContext();
-            const source = audioContext.createMediaStreamSource(stream);
+  handleStartCalibration = async () => {
+    try {
+      // 1. Initialize Essentia with its WASM backend
+      const essentia = new Essentia(EssentiaWASM);
 
-            this.meydaAnalyzer = Meyda.createMeydaAnalyzer({
-              audioContext: audioContext,
-              source: source,
-              bufferSize: 512,
-              featureExtractors: ['spectralCentroid'],
-              callback: (features) => {
-                console.log(features);
-              },
-            });
+      // 2. Get audio stream
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-            this.meydaAnalyzer.start();
-          })
-          .catch((error) => {
-            console.error('Error accessing audio stream:', error);
-          });
-      })
-      .catch((error) => {
-        console.error('Error importing Meyda:', error);
-      });
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(stream);
+      const processor = audioContext.createScriptProcessor(512, 1, 1); // bufferSize: 512, inputChannels: 1, outputChannels: 1
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+
+      processor.onaudioprocess = (audioProcessingEvent) => {
+        const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+
+        // Convert Float32Array inputData to Essentia's format (std::vector<float>)
+        const essentiaInputVector = essentia.arrayToVector(inputData);
+
+        // Extract spectral centroid
+        const centroidResult = essentia.Centroid(essentiaInputVector);
+        console.log('Spectral Centroid:', centroidResult.centroid);
+
+        // It's a good idea to delete the vectors after using them to free up memory
+        essentiaInputVector.delete();
+      };
+
+      // To stop processing later, you can call:
+      // source.stop();
+      // processor.disconnect();
+    } catch (error) {
+      console.error('Error:', error);
+    }
   };
 
+  audioContext;
+  source;
+  processor;
+
   handleStopCalibration = () => {
-    // Stop the analyzer if it's defined
-    if (this.meydaAnalyzer) {
-      this.meydaAnalyzer.stop();
+    if (this.source) {
+      this.source.stop();
+      this.source.disconnect();
+    }
+    if (this.processor) {
+      this.processor.disconnect();
     }
   };
 
