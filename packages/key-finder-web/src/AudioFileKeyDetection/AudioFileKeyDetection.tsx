@@ -736,39 +736,129 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
   //   return { note: closestNote, fret: closestFret };
   // };
+  centroidValues = [];
+  mfccValues = [];
+  spectralContrastValues = [];
+  spectralFlatnessValues = [];
+  pitchSalienceValues = [];
+  averageInterval;
 
   handleStartCalibration = async () => {
     try {
-      // 1. Initialize Essentia with its WASM backend
       const essentia = new Essentia(EssentiaWASM);
 
-      // 2. Get audio stream
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
       const audioContext = new AudioContext();
+      const sampleRate = audioContext.sampleRate;
+      const frameSize = 512;
       const source = audioContext.createMediaStreamSource(stream);
-      const processor = audioContext.createScriptProcessor(512, 1, 1); // bufferSize: 512, inputChannels: 1, outputChannels: 1
+      const processor = audioContext.createScriptProcessor(512, 1, 1);
 
       source.connect(processor);
       processor.connect(audioContext.destination);
 
+      const computeRMS = (buffer) => {
+        let sum = 0;
+        for (let i = 0; i < buffer.length; i++) {
+          sum += buffer[i] * buffer[i];
+        }
+        return Math.sqrt(sum / buffer.length);
+      };
+
       processor.onaudioprocess = (audioProcessingEvent) => {
         const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+        const rmsValue = computeRMS(inputData);
+        const silenceThreshold = 0.08;
 
-        // Convert Float32Array inputData to Essentia's format (std::vector<float>)
+        if (rmsValue < silenceThreshold) return;
+
         const essentiaInputVector = essentia.arrayToVector(inputData);
 
-        // Extract spectral centroid
+        // Spectral Centroid Setup
         const centroidResult = essentia.Centroid(essentiaInputVector);
-        console.log('Spectral Centroid:', centroidResult.centroid);
+        this.centroidValues.push(centroidResult.centroid);
 
-        // It's a good idea to delete the vectors after using them to free up memory
+        // MFCC Setup
+        const mfccResult = essentia.MFCC(essentiaInputVector);
+        this.mfccValues.push(mfccResult.bands);
+
+        // Spectral Contrast Setup
+        const spectralContrastWindowedSignal =
+          essentia.Windowing(essentiaInputVector);
+        const spectralContrastSpectrum = essentia.Spectrum(
+          spectralContrastWindowedSignal.frame
+        );
+        const spectralContrastResult = essentia.SpectralContrast(
+          spectralContrastSpectrum.spectrum,
+          512
+        );
+        this.spectralContrastValues.push(spectralContrastResult.contrast);
+
+        // Spectral Flatness Setup
+        const spectralFlatnessWindowedSignal =
+          essentia.Windowing(essentiaInputVector);
+        const spectralFlatnessSpectrum = essentia.Spectrum(
+          spectralFlatnessWindowedSignal.frame
+        );
+        const spectralFlatnessResult = essentia.Flatness(
+          spectralFlatnessSpectrum.spectrum,
+          512
+        );
+        this.spectralFlatnessValues.push(spectralFlatnessResult.flatness);
+
+        // Pitch Salience Setup
+        const pitchSalienceWindowedSignal =
+          essentia.Windowing(essentiaInputVector);
+        const pitchSalienceSpectrum = essentia.Spectrum(
+          pitchSalienceWindowedSignal.frame
+        );
+        const pitchSalienceResult = essentia.PitchSalience(
+          pitchSalienceSpectrum.spectrum,
+          512
+        );
+        this.pitchSalienceValues.push(pitchSalienceResult.pitchSalience);
+
         essentiaInputVector.delete();
       };
 
-      // To stop processing later, you can call:
-      // source.stop();
-      // processor.disconnect();
+      this.averageInterval = setInterval(() => {
+        if (this.centroidValues.length > 0) {
+          const avgCentroid =
+            this.centroidValues.reduce((acc, val) => acc + val, 0) /
+            this.centroidValues.length;
+          console.log('Average Spectral Centroid:', avgCentroid);
+          this.centroidValues = [];
+
+          const avgMFCC = this.mfccValues
+            .reduce((acc, val) => {
+              for (let i = 0; i < val.length; i++) {
+                acc[i] = (acc[i] || 0) + val[i];
+              }
+              return acc;
+            }, [])
+            .map((sum) => sum / this.mfccValues.length);
+          console.log('Average MFCCs:', avgMFCC);
+          this.mfccValues = [];
+
+          const avgSpectralContrast =
+            this.spectralContrastValues.reduce((acc, val) => acc + val, 0) /
+            this.spectralContrastValues.length;
+          console.log('Average Spectral Contrast:', avgSpectralContrast);
+          this.spectralContrastValues = [];
+
+          const avgSpectralFlatness =
+            this.spectralFlatnessValues.reduce((acc, val) => acc + val, 0) /
+            this.spectralFlatnessValues.length;
+          console.log('Average Spectral Flatness:', avgSpectralFlatness);
+          this.spectralFlatnessValues = [];
+
+          const avgPitchSalience =
+            this.pitchSalienceValues.reduce((acc, val) => acc + val, 0) /
+            this.pitchSalienceValues.length;
+          console.log('Average Pitch Salience:', avgPitchSalience);
+          this.pitchSalienceValues = [];
+        }
+      }, 500);
     } catch (error) {
       console.error('Error:', error);
     }
