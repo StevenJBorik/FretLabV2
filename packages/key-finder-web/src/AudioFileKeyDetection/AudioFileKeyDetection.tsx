@@ -779,18 +779,26 @@ class AudioFileKeyDetection extends Component<Props, State> {
         const centroidResult = essentia.Centroid(essentiaInputVector);
         this.centroidValues.push(centroidResult.centroid);
 
-        // MFCC Setup
         function vectorFloatToArray(vector) {
           let arr = [];
-          for (let i = 0; i < vector.size(); i++) {
-            arr.push(vector.get(i));
+          if (vector && typeof vector.size === 'function') {
+            for (let i = 0; i < vector.size(); i++) {
+              arr.push(vector.get(i));
+            }
+          } else {
+            console.error('Invalid vector:', vector);
           }
           return arr;
         }
 
         const mfccResult = essentia.MFCC(essentiaInputVector);
-        const bandsArray = vectorFloatToArray(mfccResult.bands);
-        this.mfccValues.push(bandsArray);
+
+        if (mfccResult && mfccResult.bands) {
+          const bandsArray = vectorFloatToArray(mfccResult.bands);
+          this.mfccValues.push(bandsArray);
+        } else {
+          console.error('Unexpected mfccResult:', mfccResult);
+        }
 
         // Spectral Contrast Setup
         const spectralContrastWindowedSignal =
@@ -802,10 +810,18 @@ class AudioFileKeyDetection extends Component<Props, State> {
           spectralContrastSpectrum.spectrum,
           512
         );
-        const contrastArray = vectorFloatToArray(
-          spectralContrastResult.contrast
-        );
-        this.spectralContrastValues.push(contrastArray);
+
+        if (spectralContrastResult && spectralContrastResult.spectralContrast) {
+          const contrastArray = vectorFloatToArray(
+            spectralContrastResult.spectralContrast
+          );
+          this.spectralContrastValues.push(contrastArray);
+        } else {
+          console.error(
+            'Unexpected spectralContrastResult:',
+            spectralContrastResult
+          );
+        }
 
         // Spectral Flatness Setup
         const spectralFlatnessWindowedSignal =
@@ -884,12 +900,12 @@ class AudioFileKeyDetection extends Component<Props, State> {
           });
 
           // Compute the averages
-          const avgSpectralContrast = sums.map(
-            (sum, idx) =>
-              sum /
-              this.spectralContrastValues.filter((val) => idx < val.length)
-                .length
-          );
+          const avgSpectralContrast = spectralContrastSums.map((sum, idx) => {
+            const denominator = this.spectralContrastValues.filter(
+              (val) => idx < val.length
+            ).length;
+            return denominator ? sum / denominator : 0;
+          });
 
           console.log('Average Spectral Contrast:', avgSpectralContrast);
           this.spectralContrastValues = [];
@@ -948,7 +964,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
           console.log('Average Pitch Salience:', avgPitchSalience);
           this.pitchSalienceValues = [];
         }
-      }, 1000);
+      }, 5000);
     } catch (error) {
       console.error('Error:', error);
     }
