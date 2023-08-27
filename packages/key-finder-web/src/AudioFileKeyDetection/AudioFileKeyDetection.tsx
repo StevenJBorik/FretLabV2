@@ -740,6 +740,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
   mfccValues = [];
   spectralContrastValues = [];
   spectralFlatnessValues = [];
+  spectralPeaksValues = [];
   pitchSalienceValues = [];
   averageInterval;
 
@@ -779,8 +780,17 @@ class AudioFileKeyDetection extends Component<Props, State> {
         this.centroidValues.push(centroidResult.centroid);
 
         // MFCC Setup
+        function vectorFloatToArray(vector) {
+          let arr = [];
+          for (let i = 0; i < vector.size(); i++) {
+            arr.push(vector.get(i));
+          }
+          return arr;
+        }
+
         const mfccResult = essentia.MFCC(essentiaInputVector);
-        this.mfccValues.push(mfccResult.bands);
+        const bandsArray = vectorFloatToArray(mfccResult.bands);
+        this.mfccValues.push(bandsArray);
 
         // Spectral Contrast Setup
         const spectralContrastWindowedSignal =
@@ -792,7 +802,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
           spectralContrastSpectrum.spectrum,
           512
         );
-        this.spectralContrastValues.push(spectralContrastResult.contrast);
+        const contrastArray = vectorFloatToArray(
+          spectralContrastResult.contrast
+        );
+        this.spectralContrastValues.push(contrastArray);
 
         // Spectral Flatness Setup
         const spectralFlatnessWindowedSignal =
@@ -805,6 +818,22 @@ class AudioFileKeyDetection extends Component<Props, State> {
           512
         );
         this.spectralFlatnessValues.push(spectralFlatnessResult.flatness);
+
+        // Spectral Peak Setup
+        const spectralPeaksWindowedSignal =
+          essentia.Windowing(essentiaInputVector);
+        const spectralPeaksSpectrum = essentia.Spectrum(
+          spectralPeaksWindowedSignal.frame
+        );
+        const spectralPeaksResult = essentia.SpectralPeaks(
+          spectralPeaksSpectrum.spectrum
+        );
+        this.spectralPeaksValues.push({
+          frequencies: spectralPeaksResult.frequencies,
+          magnitudes: spectralPeaksResult.magnitudes,
+        });
+
+        // console.log("VectorFloat properties:  ", this.spectralPeaksValues[0].frequencies);
 
         // Pitch Salience Setup
         const pitchSalienceWindowedSignal =
@@ -829,20 +858,39 @@ class AudioFileKeyDetection extends Component<Props, State> {
           console.log('Average Spectral Centroid:', avgCentroid);
           this.centroidValues = [];
 
-          const avgMFCC = this.mfccValues
-            .reduce((acc, val) => {
-              for (let i = 0; i < val.length; i++) {
-                acc[i] = (acc[i] || 0) + val[i];
-              }
-              return acc;
-            }, [])
-            .map((sum) => sum / this.mfccValues.length);
+          // Compute the sums
+          const sums = [];
+          this.mfccValues.forEach((val) => {
+            for (let i = 0; i < val.length; i++) {
+              sums[i] = (sums[i] || 0) + val[i];
+            }
+          });
+
+          // Compute the averages
+          const avgMFCC = sums.map(
+            (sum, idx) =>
+              sum / this.mfccValues.filter((val) => idx < val.length).length
+          );
+
           console.log('Average MFCCs:', avgMFCC);
           this.mfccValues = [];
 
-          const avgSpectralContrast =
-            this.spectralContrastValues.reduce((acc, val) => acc + val, 0) /
-            this.spectralContrastValues.length;
+          // Compute the sums
+          const spectralContrastSums = [];
+          this.spectralContrastValues.forEach((val) => {
+            for (let i = 0; i < val.length; i++) {
+              spectralContrastSums[i] = (spectralContrastSums[i] || 0) + val[i];
+            }
+          });
+
+          // Compute the averages
+          const avgSpectralContrast = sums.map(
+            (sum, idx) =>
+              sum /
+              this.spectralContrastValues.filter((val) => idx < val.length)
+                .length
+          );
+
           console.log('Average Spectral Contrast:', avgSpectralContrast);
           this.spectralContrastValues = [];
 
@@ -852,13 +900,55 @@ class AudioFileKeyDetection extends Component<Props, State> {
           console.log('Average Spectral Flatness:', avgSpectralFlatness);
           this.spectralFlatnessValues = [];
 
+          const frequenciesArray = [];
+          const magnitudesArray = [];
+
+          // Extract frequencies and magnitudes for each spectral peaks result
+          this.spectralPeaksValues.forEach((value) => {
+            const freqArray = [];
+            const magArray = [];
+
+            for (let i = 0; i < value.frequencies.size(); i++) {
+              freqArray.push(value.frequencies.get(i));
+            }
+
+            for (let i = 0; i < value.magnitudes.size(); i++) {
+              magArray.push(value.magnitudes.get(i));
+            }
+
+            frequenciesArray.push(freqArray);
+            magnitudesArray.push(magArray);
+          });
+
+          // Calculate average for frequencies and magnitudes
+          const totalFrequencies = frequenciesArray.reduce(
+            (acc, val) => acc + val.reduce((a, v) => a + v, 0),
+            0
+          );
+          const totalMagnitudes = magnitudesArray.reduce(
+            (acc, val) => acc + val.reduce((a, v) => a + v, 0),
+            0
+          );
+
+          const avgFrequencies =
+            totalFrequencies /
+            (this.spectralPeaksValues.length *
+              (frequenciesArray[0] ? frequenciesArray[0].length : 0));
+          const avgMagnitudes =
+            totalMagnitudes /
+            (this.spectralPeaksValues.length *
+              (magnitudesArray[0] ? magnitudesArray[0].length : 0));
+
+          console.log('Average Spectral Peaks Frequencies:', avgFrequencies);
+          console.log('Average Spectral Peaks Magnitudes:', avgMagnitudes);
+
           const avgPitchSalience =
             this.pitchSalienceValues.reduce((acc, val) => acc + val, 0) /
             this.pitchSalienceValues.length;
           console.log('Average Pitch Salience:', avgPitchSalience);
           this.pitchSalienceValues = [];
         }
-      }, 500);
+      }, 1000);
     } catch (error) {
       console.error('Error:', error);
     }
