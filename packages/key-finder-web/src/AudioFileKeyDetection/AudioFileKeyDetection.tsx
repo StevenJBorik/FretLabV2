@@ -22,6 +22,7 @@ interface State {
   incrementFactor: number;
   detectedNote: string;
   detectedFret: number;
+  detectedString: string;
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -39,6 +40,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     incrementFactor: 3,
     detectedNote: '',
     detectedFret: 0,
+    detectedString: '',
   };
 
   audioElement: HTMLAudioElement | null = null;
@@ -52,12 +54,21 @@ class AudioFileKeyDetection extends Component<Props, State> {
         'A web application to find the musical key (root note) of an audio file. Song will be analyzed right in your browser. Select the audio file from your computer to find the root note.'
       );
     this.startListeningForNotes();
+    // CV Feature
+    // Initiliaze MediaPipe Hand Detection Function - identify positions of fingertips.
+    // Initialize OpenCV Fret and String Detection Function
+    // Pass detected note & possible string/fret positions from getFrequency.
+    // Map positions of fingertips obtained from MediaPipe and OpenCV positional information
+    // --> Once Above complete:
+    // Logic to deduce the fret and string position based on fingertip position and the detected lines.
+    // This will involve spatial comparisons to see which two detected lines the fingertip is between.
+    // Additionally, recognize which string the fingertip is closest to.
   }
 
   componentWillUnmount() {
     // Clean up event listener when the component is unmounted
     // Assuming you have a function called `stopListeningForNotes` to stop listening for notes
-    // UNCOMMENT POST TESTING
+    // !!!! UNCOMMENT POST TESTING !!!!
     // this.stopListeningForNotes();
   }
 
@@ -288,14 +299,16 @@ class AudioFileKeyDetection extends Component<Props, State> {
       this.setState({
         detectedNote: noteInfo.note,
         detectedFret: noteInfo.fret,
+        detectedString: noteInfo.string,
       }); // Set the detectedNote and detectedFret in the state
     } else {
       this.setState({ detectedNote: '', detectedFret: null }); // Clear the detectedNote and detectedFret in the state
     }
-    // console.log("this.state.detectedNote: ", this.state.detectedNote);
+    //
     this.updateFretboardHighlights(
       this.state.detectedNote,
-      this.state.detectedFret
+      this.state.detectedFret,
+      this.state.detectedString
     );
   };
 
@@ -326,7 +339,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
     23: 1187.5,
     24: 1237.5,
   };
-  updateFretboardHighlights = (detectedNote, detectedFret) => {
+
+  updateFretboardHighlights = (detectedNote, detectedString, detectedFret) => {
     // Unhighlight all notes
     const allCircleElements = document.querySelectorAll('.fretboard circle');
     allCircleElements.forEach((circleElement) => {
@@ -341,7 +355,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
       const noteData = this.noteMappings[detectedNote];
       if (noteData) {
         noteData.forEach((data) => {
-          if (data.fret === detectedFret) {
+          if (data.fret === detectedFret && data.string == detectedString) {
             const fretPosition = this.fretPositions[detectedFret];
             const matchingCircle = Array.from(allCircleElements).find(
               (circleElement) => {
@@ -469,16 +483,23 @@ class AudioFileKeyDetection extends Component<Props, State> {
     }
   }
 
+  // E -6
+  // A -5
+  // D -4
+  // G -3
+  // B -2
+  // E -1
+
   noteMappings = {
     A2: [
-      { fret: 0, string: 'A', frequency: 109.29731839890319 },
-      { fret: 5, string: 'Low E', frequency: 108.82289874232004 },
+      { fret: 0, string: 5, frequency: 110.0 },
+      { fret: 5, string: 6, frequency: 110.0 },
     ],
     A3: [
-      { fret: 2, string: 'G', frequency: 218.41505353783103 },
-      { fret: 7, string: 'D', frequency: 219.36331125231712 },
-      { fret: 12, string: 'A', frequency: 218.08466313903585 },
-      { fret: 17, string: 'Low E', frequency: 216.15946143420035 },
+      { fret: 2, string: 3, frequency: 218.41505353783103 },
+      { fret: 7, string: 4, frequency: 219.36331125231712 },
+      { fret: 12, string: 5, frequency: 218.08466313903585 },
+      { fret: 17, string: 6, frequency: 216.15946143420035 },
     ],
     A4: [
       { fret: 5, string: 'High E', frequency: 442.12159464149624 },
@@ -674,23 +695,19 @@ class AudioFileKeyDetection extends Component<Props, State> {
     ],
   };
 
-  referenceFrequencies = {
-    E2: 82.41,
-    A2: 110.0,
-    D3: 146.83,
-    G3: 196.0,
-    B3: 246.94,
-    E4: 329.63,
-  };
-
+  // CV Feature
+  // refactor touseOriginalNoteMappings to include fret/string values for instances where note has more than 1 position on fretboard.
+  // potentially get rid of closest fret as not using multiple frequency mappings for same note.
+  // pass updated note mapping state back to updateFretboard Highlight
   getNoteFromFrequency = (
     frequency: number
-  ): { note: string; fret: number } => {
+  ): { note: string; fret: number; string: string } => {
     const freq =
       typeof frequency === 'string' ? parseFloat(frequency) : frequency;
     let closestNote = '';
     let closestFret = 0; // Initialize with a default value
     let closestDifference = Number.POSITIVE_INFINITY;
+    let closestString = 'implement me!';
 
     for (const note in this.noteMappings) {
       const noteData = this.noteMappings[note];
@@ -709,7 +726,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     // console.log('Closest Note:', closestNote);
     // console.log('Closest Fret:', closestFret);
 
-    return { note: closestNote, fret: closestFret };
+    return { note: closestNote, fret: closestFret, string: closestString };
   };
 
   // getNoteFromFrequency = (frequency: number): { note: string, fret: number } => {
