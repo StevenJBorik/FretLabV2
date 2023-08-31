@@ -14,6 +14,8 @@ import {
   FilesetResolver,
 } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0';
 
+import { DrawingUtils } from 'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js';
+
 interface Props {}
 
 interface State {
@@ -27,12 +29,19 @@ interface State {
   detectedNote: string;
   detectedFret: number;
   detectedString: string;
+  handLandmarker?: any; // Your hand landmarking model
+  runningMode: 'IMAGE' | 'VIDEO'; // Only two modes according to your code
+  webcamRunning: boolean;
+  lastVideoTime: number;
+  results?: any; // The results from your detection
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
   ref = createRef<HTMLInputElement>();
   childComponentRef: RefObject<AudioFileItem> = createRef();
   meydaAnalyzer: any;
+  videoRef = createRef<HTMLInputElement>();
+  canvasRef = createRef<HTMLInputElement>();
 
   state: State = {
     files: [],
@@ -45,10 +54,14 @@ class AudioFileKeyDetection extends Component<Props, State> {
     detectedNote: '',
     detectedFret: 0,
     detectedString: '',
+    handLandmarker: undefined,
+    runningMode: 'IMAGE',
+    webcamRunning: false,
+    lastVideoTime: -1,
+    results: undefined,
   };
 
   audioElement: HTMLAudioElement | null = null;
-
   componentDidMount() {
     document.title = 'keyfinder | Key Finder for Audio Files';
     document
@@ -74,6 +87,20 @@ class AudioFileKeyDetection extends Component<Props, State> {
     // Assuming you have a function called `stopListeningForNotes` to stop listening for notes
     // !!!! UNCOMMENT POST TESTING !!!!
     // this.stopListeningForNotes();
+
+    if (this.video && this.video.srcObject) {
+      let stream = this.video.srcObject as MediaStream;
+      let tracks = stream.getTracks();
+
+      tracks.forEach((track) => {
+        track.stop();
+      });
+
+      this.video.srcObject = null;
+    }
+
+    // Remove event listener
+    this.video.removeEventListener('loadeddata', this.predictWebcam);
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
@@ -997,6 +1024,128 @@ class AudioFileKeyDetection extends Component<Props, State> {
     }
   };
 
+  activateWebcam = async () => {
+    if (!this.state.handLandmarker) {
+      await this.createHandLandmarker();
+    }
+
+    // Start the webcam and make predictions
+    this.enableCam();
+  };
+
+  createHandLandmarker = async () => {
+    const vision = await FilesetResolver.forVisionTasks(
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm'
+    );
+    const handLandmarker = await HandLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+        delegate: 'GPU',
+      },
+      runningMode: this.state.runningMode,
+      numHands: 2,
+    });
+    this.setState({ handLandmarker });
+  };
+
+  // 8/31 add output canvas html and css, adjust render and variable declarations:
+  //   <video ref={this.videoRef} ... ></video>
+  // <canvas ref={this.canvasRef} ... ></canvas>
+  // Then, access them with:
+
+  // const video = this.videoRef.current;
+  // const canvas = this.canvasRef.current;
+  // const canvasCtx = canvas.getContext("2d");
+
+  video = document.getElementById('webcam') as HTMLVideoElement;
+  canvasElement = document.getElementById('output_canvas') as HTMLCanvasElement;
+  canvasCtx = this.canvasElement.getContext('2d');
+
+  enableCam = async () => {
+    if (!this.state.handLandmarker) {
+      console.log('Wait! HandLandmarker not loaded yet.');
+      return;
+    }
+
+    // This part checks if the webcam is running and toggles it.
+    this.setState((prevState) => ({
+      webcamRunning: !prevState.webcamRunning,
+    }));
+
+    const constraints = {
+      video: true,
+    };
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.video.srcObject = stream;
+      this.video.addEventListener('loadeddata', this.predictWebcam);
+    } catch (error) {
+      console.error('Error accessing the webcam:', error);
+    }
+  };
+
+  lastVideoTime = -1;
+  results = undefined;
+
+  predictWebcam = async () => {
+    this.canvasElement.style.width = `${this.video.videoWidth}px`;
+    this.canvasElement.style.height = `${this.video.videoHeight}px`;
+    this.canvasElement.width = this.video.videoWidth;
+    this.canvasElement.height = this.video.videoHeight;
+
+    // Now let's start detecting the stream.
+    if (this.state.runningMode === 'IMAGE') {
+      await this.state.handLandmarker.setOptions({ runningMode: 'VIDEO' });
+      this.setState({ runningMode: 'VIDEO' });
+    }
+
+    let startTimeMs = performance.now();
+    if (this.state.lastVideoTime !== this.video.currentTime) {
+      const currentVideoTime = this.video.currentTime;
+      const results = this.state.handLandmarker.detectForVideo(
+        this.video,
+        startTimeMs
+      );
+
+      this.setState({
+        lastVideoTime: currentVideoTime,
+        results,
+      });
+    }
+
+    this.canvasCtx.save();
+    this.canvasCtx.clearRect(
+      0,
+      0,
+      this.canvasElement.width,
+      this.canvasElement.height
+    );
+    if (this.state.results.landmarks) {
+      for (const landmarks of this.state.results.landmarks) {
+        DrawingUtils.drawConnectors(
+          this.canvasCtx,
+          landmarks,
+          HandLandmarker.HAND_CONNECTIONS,
+          {
+            color: '#00FF00',
+            lineWidth: 5,
+          }
+        );
+        DrawingUtils.drawLandmarks(this.canvasCtx, landmarks, {
+          color: '#FF0000',
+          lineWidth: 2,
+        });
+      }
+    }
+    this.canvasCtx.restore();
+
+    // Call this function again to keep predicting when the browser is ready.
+    if (this.state.webcamRunning === true) {
+      window.requestAnimationFrame(this.predictWebcam);
+    }
+  };
+
   render(props) {
     console.log('AudioFileKeyDetection - render');
     const { files, frets, startFret, order, incrementFactor } = this.state;
@@ -1072,6 +1221,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 onClick={this.handleStopCalibration}
               >
                 Stop
+              </button>
+              <button id="activate-webcam">
+                onClick={this.activateWebcam}
               </button>
             </div>
           </div>
