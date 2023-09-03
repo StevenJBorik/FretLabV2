@@ -113,7 +113,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     }
 
     // Remove event listener
-    this.video.removeEventListener('loadeddata', this.predictWebcam);
+    this.videoRef.current.removeEventListener('loadeddata', this.predictWebcam);
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
@@ -1076,9 +1076,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
   // video = document.getElementById('webcam') as HTMLVideoElement;
   // canvasElement = document.getElementById('output_canvas') as HTMLCanvasElement;
 
-  video = this.videoRef.current;
-  canvasElement = this.canvasRef.current;
-
   enableCam = async () => {
     if (!this.state.handLandmarker) {
       console.log('Wait! HandLandmarker not loaded yet.');
@@ -1100,14 +1097,19 @@ class AudioFileKeyDetection extends Component<Props, State> {
         this.videoRef.current.srcObject = stream;
       }
       if (this.videoRef.current && this.canvasRef.current) {
-        this.video.onloadedmetadata = () => {
-          this.canvasRef.current.style.width = `${this.video.videoWidth}px`;
-          this.canvasRef.current.style.height = `${this.video.videoHeight}px`;
-          this.canvasRef.current.width = this.video.videoWidth;
-          this.canvasRef.current.height = this.video.videoHeight;
+        this.videoRef.current.onloadedmetadata = () => {
+          this.canvasRef.current.style.width = `${this.videoRef.current.videoWidth}px`;
+          this.canvasRef.current.style.height = `${this.videoRef.current.videoHeight}px`;
+          this.canvasRef.current.width = this.videoRef.current.videoWidth;
+          this.canvasRef.current.height = this.videoRef.current.videoHeight;
         };
       }
-      this.video.addEventListener('loadeddata', this.predictWebcam);
+      if (this.videoRef.current) {
+        this.videoRef.current.addEventListener(
+          'loadeddata',
+          this.predictWebcam
+        );
+      }
     } catch (error) {
       console.error('Error accessing the webcam:', error);
     }
@@ -1128,10 +1130,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
     }
 
     let startTimeMs = performance.now();
-    if (this.state.lastVideoTime !== this.video.currentTime) {
-      const currentVideoTime = this.video.currentTime;
+    if (this.state.lastVideoTime !== this.videoRef.current.currentTime) {
+      const currentVideoTime = this.videoRef.current.currentTime;
       const results = this.state.handLandmarker.detectForVideo(
-        this.video,
+        this.videoRef.current,
         startTimeMs
       );
 
@@ -1248,6 +1250,14 @@ class AudioFileKeyDetection extends Component<Props, State> {
               <button id="activate-webcam" onClick={this.activateWebcam}>
                 Activate Webcam
               </button>
+              <video
+                ref={this.videoRef}
+                width="640"
+                height="480"
+                autoPlay
+                muted
+                playsInline
+              />
               <canvas ref={this.canvasRef} />
             </div>
           </div>
