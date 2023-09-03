@@ -9,12 +9,21 @@ import './AudioFileKeyDetection.css';
 
 import Essentia from 'essentia.js/dist/essentia.js-core.es.js';
 import { EssentiaWASM } from 'essentia.js/dist/essentia-wasm.es.js';
-import {
-  HandLandmarker,
-  FilesetResolver,
-} from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0';
+// import {
+//   HandLandmarker,
+//   FilesetResolver,
+// } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0';
 
-import { DrawingUtils } from 'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js';
+// import { drawConnectors, drawLandmarks } from 'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js';
+
+// const { drawConnectors, drawLandmarks } = window.DrawingUtils;
+// const { HandLandmarker, FilesetResolver } = window.TasksVision;
+// import {
+//   HandLandmarker,
+//   FilesetResolver,
+// } from '@mediapipe/tasks-vision'
+
+// import * as DrawingUtils from '@mediapipe/drawing_utils/drawing_utils.js';
 
 interface Props {}
 
@@ -40,8 +49,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
   ref = createRef<HTMLInputElement>();
   childComponentRef: RefObject<AudioFileItem> = createRef();
   meydaAnalyzer: any;
-  videoRef = createRef<HTMLInputElement>();
-  canvasRef = createRef<HTMLInputElement>();
+  videoRef = createRef<HTMLVideoElement>();
+  canvasRef = createRef<HTMLCanvasElement>();
+  canvasCtx: CanvasRenderingContext2D | null = null;
+  audioElement: HTMLAudioElement | null = null;
 
   state: State = {
     files: [],
@@ -61,7 +72,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
     results: undefined,
   };
 
-  audioElement: HTMLAudioElement | null = null;
   componentDidMount() {
     document.title = 'keyfinder | Key Finder for Audio Files';
     document
@@ -70,6 +80,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
         'content',
         'A web application to find the musical key (root note) of an audio file. Song will be analyzed right in your browser. Select the audio file from your computer to find the root note.'
       );
+    if (this.canvasRef.current) {
+      this.canvasCtx = this.canvasRef.current.getContext('2d');
+    }
     this.startListeningForNotes();
     // CV Feature
     // Initiliaze MediaPipe Hand Detection Function - identify positions of fingertips.
@@ -88,15 +101,15 @@ class AudioFileKeyDetection extends Component<Props, State> {
     // !!!! UNCOMMENT POST TESTING !!!!
     // this.stopListeningForNotes();
 
-    if (this.video && this.video.srcObject) {
-      let stream = this.video.srcObject as MediaStream;
+    if (this.videoRef.current && this.videoRef.current.srcObject) {
+      let stream = this.videoRef.current.srcObject as MediaStream;
       let tracks = stream.getTracks();
 
       tracks.forEach((track) => {
         track.stop();
       });
 
-      this.video.srcObject = null;
+      this.videoRef.current.srcObject = null;
     }
 
     // Remove event listener
@@ -1033,7 +1046,18 @@ class AudioFileKeyDetection extends Component<Props, State> {
     this.enableCam();
   };
 
+  convertedConnections = [];
+
   createHandLandmarker = async () => {
+    // Dynamic import for the vision tasks.
+    const { HandLandmarker, FilesetResolver } = await import(
+      './visionModule.js'
+    );
+
+    this.convertedConnections = HandLandmarker.HAND_CONNECTIONS.map(
+      (connection) => [connection.start, connection.end] as [number, number]
+    );
+
     const vision = await FilesetResolver.forVisionTasks(
       'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm'
     );
@@ -1048,18 +1072,12 @@ class AudioFileKeyDetection extends Component<Props, State> {
     this.setState({ handLandmarker });
   };
 
-  // 8/31 add output canvas html and css, adjust render and variable declarations:
-  //   <video ref={this.videoRef} ... ></video>
-  // <canvas ref={this.canvasRef} ... ></canvas>
-  // Then, access them with:
+  // Refactor - make reactRefs
+  // video = document.getElementById('webcam') as HTMLVideoElement;
+  // canvasElement = document.getElementById('output_canvas') as HTMLCanvasElement;
 
-  // const video = this.videoRef.current;
-  // const canvas = this.canvasRef.current;
-  // const canvasCtx = canvas.getContext("2d");
-
-  video = document.getElementById('webcam') as HTMLVideoElement;
-  canvasElement = document.getElementById('output_canvas') as HTMLCanvasElement;
-  canvasCtx = this.canvasElement.getContext('2d');
+  video = this.videoRef.current;
+  canvasElement = this.canvasRef.current;
 
   enableCam = async () => {
     if (!this.state.handLandmarker) {
@@ -1078,7 +1096,17 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      this.video.srcObject = stream;
+      if (this.videoRef.current) {
+        this.videoRef.current.srcObject = stream;
+      }
+      if (this.videoRef.current && this.canvasRef.current) {
+        this.video.onloadedmetadata = () => {
+          this.canvasRef.current.style.width = `${this.video.videoWidth}px`;
+          this.canvasRef.current.style.height = `${this.video.videoHeight}px`;
+          this.canvasRef.current.width = this.video.videoWidth;
+          this.canvasRef.current.height = this.video.videoHeight;
+        };
+      }
       this.video.addEventListener('loadeddata', this.predictWebcam);
     } catch (error) {
       console.error('Error accessing the webcam:', error);
@@ -1089,10 +1117,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
   results = undefined;
 
   predictWebcam = async () => {
-    this.canvasElement.style.width = `${this.video.videoWidth}px`;
-    this.canvasElement.style.height = `${this.video.videoHeight}px`;
-    this.canvasElement.width = this.video.videoWidth;
-    this.canvasElement.height = this.video.videoHeight;
+    const { drawConnectors, drawLandmarks } = await import(
+      './drawingUtilsModule.js'
+    );
 
     // Now let's start detecting the stream.
     if (this.state.runningMode === 'IMAGE') {
@@ -1118,21 +1145,17 @@ class AudioFileKeyDetection extends Component<Props, State> {
     this.canvasCtx.clearRect(
       0,
       0,
-      this.canvasElement.width,
-      this.canvasElement.height
+      this.canvasRef.current.width,
+      this.canvasRef.current.height
     );
+
     if (this.state.results.landmarks) {
       for (const landmarks of this.state.results.landmarks) {
-        DrawingUtils.drawConnectors(
-          this.canvasCtx,
-          landmarks,
-          HandLandmarker.HAND_CONNECTIONS,
-          {
-            color: '#00FF00',
-            lineWidth: 5,
-          }
-        );
-        DrawingUtils.drawLandmarks(this.canvasCtx, landmarks, {
+        drawConnectors(this.canvasCtx, landmarks, this.convertedConnections, {
+          color: '#00FF00',
+          lineWidth: 5,
+        });
+        drawLandmarks(this.canvasCtx, landmarks, {
           color: '#FF0000',
           lineWidth: 2,
         });
@@ -1222,9 +1245,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
               >
                 Stop
               </button>
-              <button id="activate-webcam">
-                onClick={this.activateWebcam}
+              <button id="activate-webcam" onClick={this.activateWebcam}>
+                Activate Webcam
               </button>
+              <canvas ref={this.canvasRef} />
             </div>
           </div>
         </main>

@@ -1,11 +1,40 @@
 .audio-file-key-detection-page {
   max-width: 960px;
   margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* Spacing between elements for a cleaner look */
+  padding: 2rem; /* General padding to give the content some breathing space */
 }
 
-.audio-file-key-detection-page input {
+.audio-file-key-detection-page header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.audio-file-key-detection-page input,
+.audio-file-key-detection-page select {
+  padding: 0.5rem; /* Padding for comfort */
+  margin-bottom: 0.5rem; /* Some space between each input */
   white-space: pre-line;
   max-width: calc(100vw - 6rem);
+  width: 100%; /* Ensures inputs expand to full width of the container */
+  box-sizing: border-box; /* Makes sure padding is included in width calculation */
+}
+
+.audio-file-key-detection-page button {
+  padding: 0.5rem 1rem; /* Button padding */
+  margin-right: 0.5rem; /* Space between buttons */
+  background-color: #0047ab; /* Cobalt blue background */
+  color: white; /* White text */
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease; /* Transition for hover effect */
+  border-radius: 0.25rem; /* Rounded corners for a modern look */
+}
+
+.audio-file-key-detection-page button:hover {
+  background-color: #003366; /* A darker shade when hovered */
 }
 
 .fretboard .circle.note {
@@ -15,4 +44,12 @@
 
 .fretboard .circle.note.highlight {
   fill: green;
+}
+
+/* Canvas Styles - this will just ensure the canvas is visible and you can adjust as needed */
+#output_canvas {
+  width: 100%;
+  height: auto;
+  border: 1px solid #ccc;
+  margin-top: 1rem;
 }
