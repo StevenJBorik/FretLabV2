@@ -39,6 +39,7 @@ interface State {
   detectedFret: number;
   detectedString: string;
   handLandmarker?: any; // Your hand landmarking model
+  handConnections: any;
   runningMode: 'IMAGE' | 'VIDEO'; // Only two modes according to your code
   webcamRunning: boolean;
   lastVideoTime: number;
@@ -65,11 +66,12 @@ class AudioFileKeyDetection extends Component<Props, State> {
     detectedNote: '',
     detectedFret: 0,
     detectedString: '',
-    handLandmarker: undefined,
+    handLandmarker: null,
+    handConnections: null,
     runningMode: 'IMAGE',
     webcamRunning: false,
     lastVideoTime: -1,
-    results: undefined,
+    results: null,
   };
 
   componentDidMount() {
@@ -1054,9 +1056,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
       './visionModule.js'
     );
 
-    this.convertedConnections = HandLandmarker.HAND_CONNECTIONS.map(
-      (connection) => [connection.start, connection.end] as [number, number]
-    );
+    // this.convertedConnections = HandLandmarker.HAND_CONNECTIONS.map(
+    //   (connection) => [connection.start, connection.end] as [number, number]
+    // );
 
     const vision = await FilesetResolver.forVisionTasks(
       'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm'
@@ -1069,7 +1071,11 @@ class AudioFileKeyDetection extends Component<Props, State> {
       runningMode: this.state.runningMode,
       numHands: 2,
     });
-    this.setState({ handLandmarker });
+    this.setState({
+      handLandmarker,
+      handConnections: HandLandmarker.HAND_CONNECTIONS,
+    });
+    console.log('State after createHandLandmarker:', this.state);
   };
 
   // Refactor - make reactRefs
@@ -1113,15 +1119,19 @@ class AudioFileKeyDetection extends Component<Props, State> {
     } catch (error) {
       console.error('Error accessing the webcam:', error);
     }
+
+    console.log('State after enableCam:', this.state); // <--- Here
   };
 
   lastVideoTime = -1;
-  results = undefined;
+  // results = undefined;
 
   predictWebcam = async () => {
-    const { drawConnectors, drawLandmarks } = await import(
-      './drawingUtilsModule.js'
-    );
+    const { DrawingUtils } = await import('./visionModule.js');
+    console.log('Imported DrawingUtils:', DrawingUtils);
+    console.log('predictWebcam called');
+    const drawingUtils = new DrawingUtils(this.canvasCtx);
+    console.log('Instantiated drawingUtils:', drawingUtils);
 
     // Now let's start detecting the stream.
     if (this.state.runningMode === 'IMAGE') {
@@ -1132,16 +1142,20 @@ class AudioFileKeyDetection extends Component<Props, State> {
     let startTimeMs = performance.now();
     if (this.state.lastVideoTime !== this.videoRef.current.currentTime) {
       const currentVideoTime = this.videoRef.current.currentTime;
-      const results = this.state.handLandmarker.detectForVideo(
+      const results = await this.state.handLandmarker.detectForVideo(
         this.videoRef.current,
         startTimeMs
       );
+
+      console.log('About to set state with results:', results);
 
       this.setState({
         lastVideoTime: currentVideoTime,
         results,
       });
     }
+
+    console.log('State after setting:', this.state);
 
     this.canvasCtx.save();
     this.canvasCtx.clearRect(
@@ -1151,13 +1165,21 @@ class AudioFileKeyDetection extends Component<Props, State> {
       this.canvasRef.current.height
     );
 
-    if (this.state.results.landmarks) {
+    if (this.state.results && this.state.results.landmarks) {
+      console.log(
+        'State Results have landmarks:',
+        this.state.results.landmarks
+      );
+      console.log('drawingUtils exists:', !!drawingUtils);
+      console.log('drawConnectors function:', drawingUtils.drawConnectors);
+      console.log('drawLandmarks function:', drawingUtils.drawLandmarks);
+
       for (const landmarks of this.state.results.landmarks) {
-        drawConnectors(this.canvasCtx, landmarks, this.convertedConnections, {
+        drawingUtils.drawConnectors(landmarks, this.state.handConnections, {
           color: '#00FF00',
           lineWidth: 5,
         });
-        drawLandmarks(this.canvasCtx, landmarks, {
+        drawingUtils.drawLandmarks(landmarks, {
           color: '#FF0000',
           lineWidth: 2,
         });
@@ -1169,6 +1191,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     if (this.state.webcamRunning === true) {
       window.requestAnimationFrame(this.predictWebcam);
     }
+    // console.log('State at the end of predictWebcam:', this.state);  // <--- Here
   };
 
   render(props) {
@@ -1250,15 +1273,17 @@ class AudioFileKeyDetection extends Component<Props, State> {
               <button id="activate-webcam" onClick={this.activateWebcam}>
                 Activate Webcam
               </button>
-              <video
-                ref={this.videoRef}
-                width="640"
-                height="480"
-                autoPlay
-                muted
-                playsInline
-              />
-              <canvas ref={this.canvasRef} />
+              <div className="webcam-container">
+                <video
+                  ref={this.videoRef}
+                  width="640"
+                  height="480"
+                  autoPlay
+                  muted
+                  playsInline
+                />
+                <canvas ref={this.canvasRef} />
+              </div>
             </div>
           </div>
         </main>
