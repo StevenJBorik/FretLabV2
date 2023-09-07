@@ -9,6 +9,8 @@ import './AudioFileKeyDetection.css';
 
 import Essentia from 'essentia.js/dist/essentia.js-core.es.js';
 import { EssentiaWASM } from 'essentia.js/dist/essentia-wasm.es.js';
+import cv, { Mat, Rect } from 'opencv-ts';
+
 // import {
 //   HandLandmarker,
 //   FilesetResolver,
@@ -1174,7 +1176,21 @@ class AudioFileKeyDetection extends Component<Props, State> {
       console.log('drawConnectors function:', drawingUtils.drawConnectors);
       console.log('drawLandmarks function:', drawingUtils.drawLandmarks);
 
+      // video?
+      let currentFrame = cv.imread('output_canvas');
+
       for (const landmarks of this.state.results.landmarks) {
+        const fingerPositionLandmarks = this.state.results.landmarks[0];
+        const detectedString = this.determineStringFromLandmarks(
+          fingerPositionLandmarks
+        );
+        const detectedFret = this.determineFretFromLandmarks(
+          fingerPositionLandmarks
+        );
+
+        console.log('Detected String:', detectedString);
+        console.log('Detected Fret:', detectedFret);
+
         drawingUtils.drawConnectors(landmarks, this.state.handConnections, {
           color: '#00FF00',
           lineWidth: 5,
@@ -1192,6 +1208,46 @@ class AudioFileKeyDetection extends Component<Props, State> {
       window.requestAnimationFrame(this.predictWebcam);
     }
     // console.log('State at the end of predictWebcam:', this.state);  // <--- Here
+  };
+
+  determineStringFromLandmarks = async (fingerPositionLandmarks) => {
+    const STRING_THRESHOLD = 0.5;
+    const stringsYPositions = [
+      /*...*/
+    ];
+    const fingertips = [
+      fingerPositionLandmarks[8],
+      fingerPositionLandmarks[12],
+      fingerPositionLandmarks[16],
+      fingerPositionLandmarks[20],
+    ];
+
+    for (const fingertip of fingertips) {
+      for (let i = 0; i < stringsYPositions.length; i++) {
+        if (Math.abs(fingertip.y - stringsYPositions[i]) < STRING_THRESHOLD) {
+          return i; // Return the index of the string that's being pressed.
+        }
+      }
+    }
+
+    return -1; // If no string is detected.
+  };
+
+  determineFretFromLandmarks = async (fingerPositionLandmarks) => {
+    // Assuming we have X-positions boundaries for frets stored in an array of tuples.
+    const fretsXBoundaries = [
+      /*...*/
+    ]; // e.g., [(startX1, endX1), (startX2, endX2), ...]
+    const fingertip = fingerPositionLandmarks[8]; // You can choose any fingertip landmark, or even average them.
+
+    for (let i = 0; i < fretsXBoundaries.length; i++) {
+      const [startX, endX] = fretsXBoundaries[i];
+      if (fingertip.x >= startX && fingertip.x <= endX) {
+        return i; // Return the index of the fret that's being pressed.
+      }
+    }
+
+    return -1; // If no fret is detected.
   };
 
   render(props) {
