@@ -1,10 +1,10 @@
 {
   "name": "key-finder-web",
   "scripts": {
-    "clean": "del /S /Q dist",
+    "clean": "rm -rf ./dist",
     "build": "rollup -c",
-    "copy:html": "robocopy src dist index.html",
-    "copy:favicon": "robocopy src dist favicon.ico /NFL",
+    "copy:html": "cp src/index.html dist/index.html",
+    "copy:favicon": "cp src/favicon.ico dist/favicon.ico",
     "build:release": "yarn clean && yarn build && yarn copy:html && yarn copy:favicon",
     "serve": "serve ./dist -l 3000 -s"
   },
@@ -41,5 +41,8 @@
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept"
+  },
+  "devDependencies": {
+    "@yarnpkg/pnpify": "^4.0.0-rc.50"
   }
 }

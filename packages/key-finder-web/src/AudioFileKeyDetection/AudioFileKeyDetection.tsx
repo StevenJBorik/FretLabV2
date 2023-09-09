@@ -9,8 +9,7 @@ import './AudioFileKeyDetection.css';
 
 import Essentia from 'essentia.js/dist/essentia.js-core.es.js';
 import { EssentiaWASM } from 'essentia.js/dist/essentia-wasm.es.js';
-import cv, { Mat, Rect } from 'opencv-ts';
-
+// import cv, { Mat, Rect } from "opencv-ts";
 // import {
 //   HandLandmarker,
 //   FilesetResolver,
@@ -46,6 +45,7 @@ interface State {
   webcamRunning: boolean;
   lastVideoTime: number;
   results?: any; // The results from your detection
+  isCVInitialized: boolean;
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -74,6 +74,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     webcamRunning: false,
     lastVideoTime: -1,
     results: null,
+    isCVInitialized: false,
   };
 
   componentDidMount() {
@@ -1177,7 +1178,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
       console.log('drawLandmarks function:', drawingUtils.drawLandmarks);
 
       // video?
-      let currentFrame = cv.imread('output_canvas');
+      // let currentFrame = cv.imread('output_canvas');
 
       for (const landmarks of this.state.results.landmarks) {
         const fingerPositionLandmarks = this.state.results.landmarks[0];
