@@ -6,10 +6,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { numberOfThreads } from '../defaults';
 import { FileItem } from './AudioFileItem'; // Import the FileItem interface
 import './AudioFileKeyDetection.css';
-
 import Essentia from 'essentia.js/dist/essentia.js-core.es.js';
 import { EssentiaWASM } from 'essentia.js/dist/essentia-wasm.es.js';
-// import cv, { Mat, Rect } from "opencv-ts";
+// import cv from '@techstark/opencv-js';
+import * as cv from '@u4/opencv4nodejs';
+
+// declare var window: CustomWindow;
+
 // import {
 //   HandLandmarker,
 //   FilesetResolver,
@@ -45,7 +48,6 @@ interface State {
   webcamRunning: boolean;
   lastVideoTime: number;
   results?: any; // The results from your detection
-  isCVInitialized: boolean;
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -74,7 +76,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
     webcamRunning: false,
     lastVideoTime: -1,
     results: null,
-    isCVInitialized: false,
   };
 
   componentDidMount() {
@@ -88,6 +89,12 @@ class AudioFileKeyDetection extends Component<Props, State> {
     if (this.canvasRef.current) {
       this.canvasCtx = this.canvasRef.current.getContext('2d');
     }
+    // window.audioFileKeyDetectionInstance = this;
+    // window.initializeOpenCV = function() {
+    //   console.log('OpenCV is initialized and ready!');
+    //   // window.audioFileKeyDetectionInstance && window.audioFileKeyDetectionInstance.someMethodToCallWhenOpenCVIsReady();
+    // };
+
     this.startListeningForNotes();
     // CV Feature
     // Initiliaze MediaPipe Hand Detection Function - identify positions of fingertips.
@@ -119,6 +126,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
     // Remove event listener
     this.videoRef.current.removeEventListener('loadeddata', this.predictWebcam);
+    // window.initializeOpenCV = null;
+    // window.audioFileKeyDetectionInstance = null;
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
@@ -1085,6 +1094,11 @@ class AudioFileKeyDetection extends Component<Props, State> {
   // video = document.getElementById('webcam') as HTMLVideoElement;
   // canvasElement = document.getElementById('output_canvas') as HTMLCanvasElement;
 
+  // onRuntimeInitialized = () => {
+  //   console.log("OpenCV is initialized and ready!");
+  //   this.enableCam(); // Start the webcam and prediction flow immediately after OpenCV is ready.
+  // };
+
   enableCam = async () => {
     if (!this.state.handLandmarker) {
       console.log('Wait! HandLandmarker not loaded yet.');
@@ -1131,12 +1145,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
   predictWebcam = async () => {
     const { DrawingUtils } = await import('./visionModule.js');
-    console.log('Imported DrawingUtils:', DrawingUtils);
-    console.log('predictWebcam called');
     const drawingUtils = new DrawingUtils(this.canvasCtx);
-    console.log('Instantiated drawingUtils:', drawingUtils);
 
-    // Now let's start detecting the stream.
     if (this.state.runningMode === 'IMAGE') {
       await this.state.handLandmarker.setOptions({ runningMode: 'VIDEO' });
       this.setState({ runningMode: 'VIDEO' });
@@ -1149,16 +1159,11 @@ class AudioFileKeyDetection extends Component<Props, State> {
         this.videoRef.current,
         startTimeMs
       );
-
-      console.log('About to set state with results:', results);
-
       this.setState({
         lastVideoTime: currentVideoTime,
         results,
       });
     }
-
-    console.log('State after setting:', this.state);
 
     this.canvasCtx.save();
     this.canvasCtx.clearRect(
@@ -1169,49 +1174,168 @@ class AudioFileKeyDetection extends Component<Props, State> {
     );
 
     if (this.state.results && this.state.results.landmarks) {
-      console.log(
-        'State Results have landmarks:',
-        this.state.results.landmarks
-      );
-      console.log('drawingUtils exists:', !!drawingUtils);
-      console.log('drawConnectors function:', drawingUtils.drawConnectors);
-      console.log('drawLandmarks function:', drawingUtils.drawLandmarks);
+      // Convert canvas content to an image dataURL
+      const imgSrc = this.canvasRef.current.toDataURL('image/png');
 
-      // video?
-      // let currentFrame = cv.imread('output_canvas');
+      // Convert dataURL to OpenCV Mat using a temporary canvas
+      const image = new Image();
+      image.src = imgSrc;
 
-      for (const landmarks of this.state.results.landmarks) {
-        const fingerPositionLandmarks = this.state.results.landmarks[0];
-        const detectedString = this.determineStringFromLandmarks(
-          fingerPositionLandmarks
-        );
-        const detectedFret = this.determineFretFromLandmarks(
-          fingerPositionLandmarks
-        );
+      image.onload = () => {
+        const tempCanvas = document.getElementById(
+          'tempCanvas'
+        ) as HTMLCanvasElement;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(image, 0, 0);
+        const canvasSrc = cv.imread('tempCanvas'); // using the id of the tempCanvas
 
-        console.log('Detected String:', detectedString);
-        console.log('Detected Fret:', detectedFret);
+        // Perform OpenCV operations once for the frame
+        const edges = this.preprocessImage(canvasSrc);
+        const stringsYPositions = this.detectStrings(edges);
+        const fretsXPositions = this.detectFrets(edges);
 
-        drawingUtils.drawConnectors(landmarks, this.state.handConnections, {
-          color: '#00FF00',
-          lineWidth: 5,
-        });
-        drawingUtils.drawLandmarks(landmarks, {
-          color: '#FF0000',
-          lineWidth: 2,
-        });
-      }
+        for (const landmarks of this.state.results.landmarks) {
+          const detectedString = this.determineStringFromLandmarks(
+            landmarks,
+            stringsYPositions
+          );
+          const detectedFret = this.determineFretFromLandmarks(
+            landmarks,
+            fretsXPositions
+          );
+
+          console.log('Detected String:', detectedString);
+          console.log('Detected Fret:', detectedFret);
+
+          drawingUtils.drawConnectors(landmarks, this.state.handConnections, {
+            color: '#00FF00',
+            lineWidth: 5,
+          });
+          drawingUtils.drawLandmarks(landmarks, {
+            color: '#FF0000',
+            lineWidth: 2,
+          });
+        }
+      };
     }
+
     this.canvasCtx.restore();
 
-    // Call this function again to keep predicting when the browser is ready.
     if (this.state.webcamRunning === true) {
       window.requestAnimationFrame(this.predictWebcam);
     }
-    // console.log('State at the end of predictWebcam:', this.state);  // <--- Here
   };
 
-  determineStringFromLandmarks = async (fingerPositionLandmarks) => {
+  preprocessImage(image) {
+    // Convert to grayscale
+    let gray;
+    if (image.channels() === 3) {
+      gray = image.cvtColor(cv.COLOR_BGR2GRAY);
+    } else if (image.channels() === 4) {
+      gray = image.cvtColor(cv.COLOR_BGRA2GRAY);
+    } else {
+      gray = image; // assuming it's already grayscale
+    }
+
+    // Blur to reduce noise using GaussianBlur
+    let blurred = gray.GaussianBlur(new cv.Size(5, 5), 0, 0);
+
+    // Compute the gradient in x (dx) and y (dy) directions using the sobel method
+    let dx = blurred.sobel(cv.CV_64F, 1, 0, 3);
+    let dy = blurred.sobel(cv.CV_64F, 0, 1, 3);
+
+    // Edge detection using Canny
+    let edges = cv.canny(dx, dy, 50, 150);
+
+    console.log('Grayscale image dimensions:', gray.rows, 'x', gray.cols);
+    console.log('Edge-detected image dimensions:', edges.rows, 'x', edges.cols);
+
+    // Clean up resources. Make sure to free up the memory to avoid leaks.
+    dx.delete();
+    dy.delete();
+    gray.delete();
+    blurred.delete();
+
+    return edges;
+  }
+
+  detectStrings(edgesImage) {
+    const STRING_VERTICAL_THRESHOLD = 22; // for 1080p resolution, adjust proportionally for other resolutions
+
+    // Use the houghLines method
+    let detectedLines = edgesImage.houghLines(1, Math.PI / 180, 20);
+
+    let stringsYPositions = [];
+
+    console.log('Total lines detected:', detectedLines.length);
+
+    for (let i = 0; i < detectedLines.length; i++) {
+      let rho = detectedLines[i].at(0);
+      let theta = detectedLines[i].at(1);
+
+      // Convert rho, theta to cartesian coordinates
+      let a = Math.cos(theta);
+      let b = Math.sin(theta);
+      let x0 = a * rho;
+      let y0 = b * rho;
+      let startPoint = new (cv.Point as any)(x0 - 1000 * b, y0 + 1000 * a);
+      let endPoint = new (cv.Point as any)(x0 + 1000 * b, y0 - 1000 * a);
+
+      console.log(
+        `Line ${i + 1}: Start (${startPoint.x}, ${startPoint.y}), End (${
+          endPoint.x
+        }, ${endPoint.y})`
+      );
+
+      if (Math.abs(startPoint.y - endPoint.y) < STRING_VERTICAL_THRESHOLD) {
+        stringsYPositions.push((startPoint.y + endPoint.y) / 2); // Get the average Y-position
+      }
+    }
+
+    console.log('Detected string positions (by pixel):', stringsYPositions);
+
+    return stringsYPositions;
+  }
+
+  detectFrets(edgesImage) {
+    const FRET_HORIZONTAL_THRESHOLD = 22; // similarly for frets
+
+    // Use the houghLines method
+    let detectedLines = edgesImage.houghLines(1, Math.PI / 180, 20);
+
+    let fretsXPositions = [];
+
+    console.log('Total lines detected:', detectedLines.length);
+
+    for (let i = 0; i < detectedLines.length; i++) {
+      let rho = detectedLines[i].at(0);
+      let theta = detectedLines[i].at(1);
+
+      // Convert rho, theta to cartesian coordinates
+      let a = Math.cos(theta);
+      let b = Math.sin(theta);
+      let x0 = a * rho;
+      let y0 = b * rho;
+      let startPoint = new (cv.Point as any)(x0 - 1000 * b, y0 + 1000 * a);
+      let endPoint = new (cv.Point as any)(x0 + 1000 * b, y0 - 1000 * a);
+
+      console.log(
+        `Line ${i + 1}: Start (${startPoint.x}, ${startPoint.y}), End (${
+          endPoint.x
+        }, ${endPoint.y})`
+      );
+
+      if (Math.abs(startPoint.x - endPoint.x) < FRET_HORIZONTAL_THRESHOLD) {
+        fretsXPositions.push((startPoint.x + endPoint.x) / 2); // Get the average X-position
+      }
+    }
+
+    console.log('Detected frets positions (by pixel):', fretsXPositions);
+
+    return fretsXPositions;
+  }
+
+  determineStringFromLandmarks = async (fingerPositionLandmarks, yPosition) => {
     const STRING_THRESHOLD = 0.5;
     const stringsYPositions = [
       /*...*/
@@ -1234,7 +1358,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     return -1; // If no string is detected.
   };
 
-  determineFretFromLandmarks = async (fingerPositionLandmarks) => {
+  determineFretFromLandmarks = async (fingerPositionLandmarks, xPosition) => {
     // Assuming we have X-positions boundaries for frets stored in an array of tuples.
     const fretsXBoundaries = [
       /*...*/
@@ -1341,6 +1465,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 />
                 <canvas ref={this.canvasRef} />
               </div>
+              <canvas id="tempCanvas" style={{ display: 'none' }}></canvas>
             </div>
           </div>
         </main>
