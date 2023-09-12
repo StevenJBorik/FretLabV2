@@ -8,10 +8,8 @@ import { FileItem } from './AudioFileItem'; // Import the FileItem interface
 import './AudioFileKeyDetection.css';
 import Essentia from 'essentia.js/dist/essentia.js-core.es.js';
 import { EssentiaWASM } from 'essentia.js/dist/essentia-wasm.es.js';
-// import cv from '@techstark/opencv-js';
-import * as cv from '@u4/opencv4nodejs';
 
-// declare var window: CustomWindow;
+declare var cv: any;
 
 // import {
 //   HandLandmarker,
@@ -58,6 +56,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
   canvasRef = createRef<HTMLCanvasElement>();
   canvasCtx: CanvasRenderingContext2D | null = null;
   audioElement: HTMLAudioElement | null = null;
+  opencvIsReady = createRef<boolean>();
 
   state: State = {
     files: [],
@@ -89,11 +88,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     if (this.canvasRef.current) {
       this.canvasCtx = this.canvasRef.current.getContext('2d');
     }
-    // window.audioFileKeyDetectionInstance = this;
-    // window.initializeOpenCV = function() {
-    //   console.log('OpenCV is initialized and ready!');
-    //   // window.audioFileKeyDetectionInstance && window.audioFileKeyDetectionInstance.someMethodToCallWhenOpenCVIsReady();
-    // };
+    window.initializeOpenCV = this.handleOpenCVReady;
 
     this.startListeningForNotes();
     // CV Feature
@@ -144,6 +139,11 @@ class AudioFileKeyDetection extends Component<Props, State> {
     }
     return false; // Prevent re-render
   }
+
+  handleOpenCVReady = () => {
+    this.opencvIsReady.current = true;
+    // Call any initial setup or functions you need here
+  };
 
   // Inside AudioFileKeyDetection class
   getCurrentTimestamp = (): number => {
@@ -351,14 +351,22 @@ class AudioFileKeyDetection extends Component<Props, State> {
   };
 
   // Method to handle note detection for lighting up notes on fretboard
-  handleNoteDetection = (frequency: number | null) => {
+  handleNoteDetection = (
+    frequency: number | null,
+    detectedString?: string,
+    detectedFret?: number
+  ) => {
     if (frequency !== null) {
-      const noteInfo = this.getNoteFromFrequency(frequency);
+      const noteInfo = this.getNoteFromFrequency(
+        frequency,
+        detectedString,
+        detectedFret
+      );
       this.setState({
         detectedNote: noteInfo.note,
-        detectedFret: noteInfo.fret,
-        detectedString: noteInfo.string,
-      }); // Set the detectedNote and detectedFret in the state
+        detectedFret: detectedFret ? detectedFret : noteInfo.fret,
+        detectedString: detectedString ? detectedString : noteInfo.string,
+      });
     } else {
       this.setState({ detectedNote: '', detectedFret: null }); // Clear the detectedNote and detectedFret in the state
     }
@@ -510,10 +518,18 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 );
 
                 if (typeof pitch === 'number') {
-                  // console.log('pitch:  ', pitch);
-                  this.handleNoteDetection(pitch);
+                  // Use state values for detected string and fret
+                  this.handleNoteDetection(
+                    pitch,
+                    this.state.detectedString,
+                    this.state.detectedFret
+                  );
                 } else {
-                  this.handleNoteDetection(null);
+                  this.handleNoteDetection(
+                    null,
+                    this.state.detectedString,
+                    this.state.detectedFret
+                  );
                 }
               } else {
                 this.handleNoteDetection(null);
@@ -750,7 +766,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
   // potentially get rid of closest fret as not using multiple frequency mappings for same note.
   // pass updated note mapping state back to updateFretboard Highlight
   getNoteFromFrequency = (
-    frequency: number
+    frequency: number,
+    detectedString: string, // Add this argument
+    detectedFret: number
   ): { note: string; fret: number; string: string } => {
     const freq =
       typeof frequency === 'string' ? parseFloat(frequency) : frequency;
@@ -762,6 +780,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     for (const note in this.noteMappings) {
       const noteData = this.noteMappings[note];
       noteData.forEach((data) => {
+        if (data.string !== detectedString) return; // Skip if the string doesn't match
         const difference = Math.abs(freq - data.frequency);
         // console.log(`Note: ${note}, Data:`, data);
         // console.log('Difference:', difference);
@@ -769,6 +788,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
           closestNote = note;
           closestFret = data.fret; // Set the closest fret value
           closestDifference = difference;
+          closestString = detectedString; // Set the closest string value
         }
       });
     }
@@ -1052,6 +1072,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
   };
 
   activateWebcam = async () => {
+    if (!this.opencvIsReady.current) {
+      console.log('OpenCV is not ready yet.');
+      return;
+    }
     if (!this.state.handLandmarker) {
       await this.createHandLandmarker();
     }
@@ -1100,6 +1124,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
   // };
 
   enableCam = async () => {
+    if (!this.opencvIsReady.current) {
+      console.log('OpenCV is not ready yet.');
+      return;
+    }
     if (!this.state.handLandmarker) {
       console.log('Wait! HandLandmarker not loaded yet.');
       return;
@@ -1144,6 +1172,11 @@ class AudioFileKeyDetection extends Component<Props, State> {
   // results = undefined;
 
   predictWebcam = async () => {
+    if (!this.opencvIsReady.current) {
+      console.log('OpenCV is not ready yet.');
+      return;
+    }
+
     const { DrawingUtils } = await import('./visionModule.js');
     const drawingUtils = new DrawingUtils(this.canvasCtx);
 
@@ -1174,49 +1207,47 @@ class AudioFileKeyDetection extends Component<Props, State> {
     );
 
     if (this.state.results && this.state.results.landmarks) {
-      // Convert canvas content to an image dataURL
-      const imgSrc = this.canvasRef.current.toDataURL('image/png');
+      // Directly convert canvas to OpenCV Mat
+      const imageData = this.canvasCtx.getImageData(
+        0,
+        0,
+        this.canvasRef.current.width,
+        this.canvasRef.current.height
+      );
+      const canvasSrc = cv.matFromImageData(imageData);
 
-      // Convert dataURL to OpenCV Mat using a temporary canvas
-      const image = new Image();
-      image.src = imgSrc;
+      // Perform OpenCV operations once for the frame
+      const edges = this.preprocessImage(canvasSrc);
+      const stringsYPositions = this.detectStrings(edges);
+      const fretsXPositions = this.detectFrets(edges);
 
-      image.onload = () => {
-        const tempCanvas = document.getElementById(
-          'tempCanvas'
-        ) as HTMLCanvasElement;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.drawImage(image, 0, 0);
-        const canvasSrc = cv.imread('tempCanvas'); // using the id of the tempCanvas
+      for (const landmarks of this.state.results.landmarks) {
+        const detectedString = this.determineStringFromLandmarks(
+          landmarks,
+          stringsYPositions
+        );
+        const detectedFret = this.determineFretFromLandmarks(
+          landmarks,
+          fretsXPositions
+        );
 
-        // Perform OpenCV operations once for the frame
-        const edges = this.preprocessImage(canvasSrc);
-        const stringsYPositions = this.detectStrings(edges);
-        const fretsXPositions = this.detectFrets(edges);
+        this.setState({
+          detectedString: String(detectedString), // convert to string if needed
+          detectedFret: Number(detectedFret),
+        });
 
-        for (const landmarks of this.state.results.landmarks) {
-          const detectedString = this.determineStringFromLandmarks(
-            landmarks,
-            stringsYPositions
-          );
-          const detectedFret = this.determineFretFromLandmarks(
-            landmarks,
-            fretsXPositions
-          );
+        console.log('Detected String:', detectedString);
+        console.log('Detected Fret:', detectedFret);
 
-          console.log('Detected String:', detectedString);
-          console.log('Detected Fret:', detectedFret);
-
-          drawingUtils.drawConnectors(landmarks, this.state.handConnections, {
-            color: '#00FF00',
-            lineWidth: 5,
-          });
-          drawingUtils.drawLandmarks(landmarks, {
-            color: '#FF0000',
-            lineWidth: 2,
-          });
-        }
-      };
+        drawingUtils.drawConnectors(landmarks, this.state.handConnections, {
+          color: '#00FF00',
+          lineWidth: 5,
+        });
+        drawingUtils.drawLandmarks(landmarks, {
+          color: '#FF0000',
+          lineWidth: 2,
+        });
+      }
     }
 
     this.canvasCtx.restore();
@@ -1260,26 +1291,28 @@ class AudioFileKeyDetection extends Component<Props, State> {
   }
 
   detectStrings(edgesImage) {
-    const STRING_VERTICAL_THRESHOLD = 22; // for 1080p resolution, adjust proportionally for other resolutions
+    const STRING_VERTICAL_THRESHOLD = 22;
+    const VERTICAL_ANGLE_BUFFER = Math.PI / 12; // +/- 15 degrees
+    const VERTICAL_ANGLE = Math.PI / 2; // 90 degrees
 
-    // Use the houghLines method
     let detectedLines = edgesImage.houghLines(1, Math.PI / 180, 20);
-
     let stringsYPositions = [];
-
-    console.log('Total lines detected:', detectedLines.length);
 
     for (let i = 0; i < detectedLines.length; i++) {
       let rho = detectedLines[i].at(0);
       let theta = detectedLines[i].at(1);
+
+      if (Math.abs(theta - VERTICAL_ANGLE) > VERTICAL_ANGLE_BUFFER) {
+        continue; // Skip non-vertical lines
+      }
 
       // Convert rho, theta to cartesian coordinates
       let a = Math.cos(theta);
       let b = Math.sin(theta);
       let x0 = a * rho;
       let y0 = b * rho;
-      let startPoint = new (cv.Point as any)(x0 - 1000 * b, y0 + 1000 * a);
-      let endPoint = new (cv.Point as any)(x0 + 1000 * b, y0 - 1000 * a);
+      let startPoint = new cv.Point(x0 - 1000 * b, y0 + 1000 * a);
+      let endPoint = new cv.Point(x0 + 1000 * b, y0 - 1000 * a);
 
       console.log(
         `Line ${i + 1}: Start (${startPoint.x}, ${startPoint.y}), End (${
@@ -1298,18 +1331,22 @@ class AudioFileKeyDetection extends Component<Props, State> {
   }
 
   detectFrets(edgesImage) {
-    const FRET_HORIZONTAL_THRESHOLD = 22; // similarly for frets
+    const FRET_HORIZONTAL_THRESHOLD = 22;
+    const HORIZONTAL_ANGLE_BUFFER = Math.PI / 12; // +/- 15 degrees
 
-    // Use the houghLines method
     let detectedLines = edgesImage.houghLines(1, Math.PI / 180, 20);
-
     let fretsXPositions = [];
-
-    console.log('Total lines detected:', detectedLines.length);
 
     for (let i = 0; i < detectedLines.length; i++) {
       let rho = detectedLines[i].at(0);
       let theta = detectedLines[i].at(1);
+
+      if (
+        theta > HORIZONTAL_ANGLE_BUFFER &&
+        theta < Math.PI - HORIZONTAL_ANGLE_BUFFER
+      ) {
+        continue; // Skip non-horizontal lines
+      }
 
       // Convert rho, theta to cartesian coordinates
       let a = Math.cos(theta);
