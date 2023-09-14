@@ -57,6 +57,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
   canvasCtx: CanvasRenderingContext2D | null = null;
   audioElement: HTMLAudioElement | null = null;
   opencvIsReady = createRef<boolean>();
+  worker = new Worker('./fingerDetectionWorker.js');
 
   state: State = {
     files: [],
@@ -88,7 +89,15 @@ class AudioFileKeyDetection extends Component<Props, State> {
     if (this.canvasRef.current) {
       this.canvasCtx = this.canvasRef.current.getContext('2d');
     }
-    window.initializeOpenCV = this.handleOpenCVReady;
+    // const script = document.querySelector("script[src='https://docs.opencv.org/4.5.4/opencv.js']");
+    // script.addEventListener('load', this.handleOpenCVReady);
+    // Dynamically load the OpenCV script
+    const opencvScript = document.createElement('script');
+    opencvScript.src = 'https://docs.opencv.org/4.5.4/opencv.js';
+    opencvScript.type = 'text/javascript';
+    opencvScript.onload = this.handleOpenCVReady;
+
+    document.body.appendChild(opencvScript);
 
     this.startListeningForNotes();
     // CV Feature
@@ -142,6 +151,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
   handleOpenCVReady = () => {
     this.opencvIsReady.current = true;
+    console.log('openCV is ready!');
     // Call any initial setup or functions you need here
   };
 
@@ -1071,47 +1081,71 @@ class AudioFileKeyDetection extends Component<Props, State> {
     }
   };
 
-  activateWebcam = async () => {
-    if (!this.opencvIsReady.current) {
-      console.log('OpenCV is not ready yet.');
-      return;
-    }
-    if (!this.state.handLandmarker) {
-      await this.createHandLandmarker();
-    }
+  // todo initialize worker function
+  //   worker.onmessage = (e) => {
+  //     if (e.data.type === 'handLandmarkerCreated') {
+  //         this.setState({
+  //             // update the state as required
+  //         });
+  //     } else if (e.data.type === 'landmarks') {
+  //         // Use the landmarks to draw on the canvas
+  //         const landmarks = e.data.landmarks;
+  //         // Your drawing logic here
+  //     } else if (e.data.type === 'error') {
+  //         console.error(e.data.message, e.data.error);
+  //     }
+  //     // Handle other types as required
+  // };
 
-    // Start the webcam and make predictions
-    this.enableCam();
+  activateWebcam = async () => {
+    try {
+      if (!this.opencvIsReady.current) {
+        console.log('activateWebcam: OpenCV is not ready yet.');
+        return;
+      }
+      if (!this.state.handLandmarker) {
+        await this.createHandLandmarker();
+      }
+
+      // Start the webcam and make predictions
+      this.enableCam();
+    } catch (error) {
+      console.error('Error in activateWebcam:', error);
+    }
   };
 
   convertedConnections = [];
 
   createHandLandmarker = async () => {
-    // Dynamic import for the vision tasks.
-    const { HandLandmarker, FilesetResolver } = await import(
-      './visionModule.js'
-    );
+    console.log('passed from activateWebcam to createHandLandmarker');
 
-    // this.convertedConnections = HandLandmarker.HAND_CONNECTIONS.map(
-    //   (connection) => [connection.start, connection.end] as [number, number]
-    // );
+    try {
+      // Dynamic import for the vision tasks.
+      const { HandLandmarker, FilesetResolver } = await import(
+        './visionModule.js'
+      );
 
-    const vision = await FilesetResolver.forVisionTasks(
-      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm'
-    );
-    const handLandmarker = await HandLandmarker.createFromOptions(vision, {
-      baseOptions: {
-        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
-        delegate: 'GPU',
-      },
-      runningMode: this.state.runningMode,
-      numHands: 2,
-    });
-    this.setState({
-      handLandmarker,
-      handConnections: HandLandmarker.HAND_CONNECTIONS,
-    });
-    console.log('State after createHandLandmarker:', this.state);
+      const vision = await FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm'
+      );
+      const handLandmarker = await HandLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+          delegate: 'GPU',
+        },
+        runningMode: this.state.runningMode,
+        numHands: 2,
+      });
+
+      this.setState({
+        handLandmarker,
+        handConnections: HandLandmarker.HAND_CONNECTIONS,
+      });
+
+      console.log('State after createHandLandmarker:', this.state);
+    } catch (error) {
+      console.error('Error in createHandLandmarker:', error);
+    }
   };
 
   // Refactor - make reactRefs
@@ -1124,25 +1158,27 @@ class AudioFileKeyDetection extends Component<Props, State> {
   // };
 
   enableCam = async () => {
-    if (!this.opencvIsReady.current) {
-      console.log('OpenCV is not ready yet.');
-      return;
-    }
-    if (!this.state.handLandmarker) {
-      console.log('Wait! HandLandmarker not loaded yet.');
-      return;
-    }
-
-    // This part checks if the webcam is running and toggles it.
-    this.setState((prevState) => ({
-      webcamRunning: !prevState.webcamRunning,
-    }));
-
-    const constraints = {
-      video: true,
-    };
+    console.log('in enableCam');
 
     try {
+      if (!this.opencvIsReady.current) {
+        console.log('enableCam: OpenCV is not ready yet.');
+        return;
+      }
+      if (!this.state.handLandmarker) {
+        console.log('Wait! HandLandmarker not loaded yet.');
+        return;
+      }
+
+      // This part checks if the webcam is running and toggles it.
+      this.setState((prevState) => ({
+        webcamRunning: !prevState.webcamRunning,
+      }));
+
+      const constraints = {
+        video: true,
+      };
+
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (this.videoRef.current) {
         this.videoRef.current.srcObject = stream;
@@ -1161,19 +1197,20 @@ class AudioFileKeyDetection extends Component<Props, State> {
           this.predictWebcam
         );
       }
-    } catch (error) {
-      console.error('Error accessing the webcam:', error);
-    }
 
-    console.log('State after enableCam:', this.state); // <--- Here
+      console.log('State after enableCam:', this.state);
+    } catch (error) {
+      console.error('Error in enableCam:', error);
+    }
   };
 
   lastVideoTime = -1;
   // results = undefined;
 
   predictWebcam = async () => {
+    console.log('inpredictcam');
     if (!this.opencvIsReady.current) {
-      console.log('OpenCV is not ready yet.');
+      console.log('predictWebcam: OpenCV is not ready yet.');
       return;
     }
 
