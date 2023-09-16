@@ -46,6 +46,9 @@ interface State {
   webcamRunning: boolean;
   lastVideoTime: number;
   results?: any; // The results from your detection
+  fretDistance: number;
+  calibrationMode: boolean;
+  handPositionRange: { start: number; end: number } | null; // This can be null if no hand position range is detected.
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -76,6 +79,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
     webcamRunning: false,
     lastVideoTime: -1,
     results: null,
+    fretDistance: null,
+    calibrationMode: false,
+    handPositionRange: null,
   };
 
   componentDidMount() {
@@ -361,31 +367,35 @@ class AudioFileKeyDetection extends Component<Props, State> {
   };
 
   // Method to handle note detection for lighting up notes on fretboard
-  handleNoteDetection = (
-    frequency: number | null,
-    detectedString?: string,
-    detectedFret?: number
-  ) => {
+  handleNoteDetection = (frequency: number | null) => {
     if (frequency !== null) {
-      const noteInfo = this.getNoteFromFrequency(
-        frequency,
-        detectedString,
-        detectedFret
-      );
-      this.setState({
-        detectedNote: noteInfo.note,
-        detectedFret: detectedFret ? detectedFret : noteInfo.fret,
-        detectedString: detectedString ? detectedString : noteInfo.string,
+      const potentialMatches = this.getNoteFromFrequency(frequency);
+
+      // Using the hand position to filter the potential matches.
+      const probableMatch = potentialMatches.filter((entry) => {
+        return (
+          entry.fret >= this.state.handPositionRange.start &&
+          entry.fret <= this.state.handPositionRange.end
+        );
       });
+
+      if (probableMatch.length === 1) {
+        this.setState({
+          detectedNote: probableMatch[0].note,
+          detectedFret: probableMatch[0].fret,
+        });
+        this.updateFretboardHighlights(
+          probableMatch[0].note,
+          probableMatch[0].fret
+        );
+      } else {
+        // This means there's an ambiguity or an error.
+        console.error('Ambiguous match or error in fret detection');
+        this.setState({ detectedNote: '', detectedFret: null });
+      }
     } else {
-      this.setState({ detectedNote: '', detectedFret: null }); // Clear the detectedNote and detectedFret in the state
+      this.setState({ detectedNote: '', detectedFret: null });
     }
-    //
-    this.updateFretboardHighlights(
-      this.state.detectedNote,
-      this.state.detectedFret,
-      this.state.detectedString
-    );
   };
 
   fretPositions = {
@@ -416,7 +426,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     24: 1237.5,
   };
 
-  updateFretboardHighlights = (detectedNote, detectedString, detectedFret) => {
+  updateFretboardHighlights = (detectedNote, detectedFret) => {
     // Unhighlight all notes
     const allCircleElements = document.querySelectorAll('.fretboard circle');
     allCircleElements.forEach((circleElement) => {
@@ -431,7 +441,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
       const noteData = this.noteMappings[detectedNote];
       if (noteData) {
         noteData.forEach((data) => {
-          if (data.fret === detectedFret && data.string == detectedString) {
+          if (data.fret === detectedFret) {
             const fretPosition = this.fretPositions[detectedFret];
             const matchingCircle = Array.from(allCircleElements).find(
               (circleElement) => {
@@ -529,17 +539,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
                 if (typeof pitch === 'number') {
                   // Use state values for detected string and fret
-                  this.handleNoteDetection(
-                    pitch,
-                    this.state.detectedString,
-                    this.state.detectedFret
-                  );
+                  this.handleNoteDetection(pitch);
                 } else {
-                  this.handleNoteDetection(
-                    null,
-                    this.state.detectedString,
-                    this.state.detectedFret
-                  );
+                  this.handleNoteDetection(null);
                 }
               } else {
                 this.handleNoteDetection(null);
@@ -776,37 +778,32 @@ class AudioFileKeyDetection extends Component<Props, State> {
   // potentially get rid of closest fret as not using multiple frequency mappings for same note.
   // pass updated note mapping state back to updateFretboard Highlight
   getNoteFromFrequency = (
-    frequency: number,
-    detectedString: string, // Add this argument
-    detectedFret: number
-  ): { note: string; fret: number; string: string } => {
+    frequency: number
+  ): Array<{ note: string; fret: number; string: number }> => {
     const freq =
       typeof frequency === 'string' ? parseFloat(frequency) : frequency;
-    let closestNote = '';
-    let closestFret = 0; // Initialize with a default value
-    let closestDifference = Number.POSITIVE_INFINITY;
-    let closestString = 'implement me!';
+    const potentialMatches: Array<{
+      note: string;
+      fret: number;
+      string: number;
+    }> = [];
 
     for (const note in this.noteMappings) {
       const noteData = this.noteMappings[note];
       noteData.forEach((data) => {
-        if (data.string !== detectedString) return; // Skip if the string doesn't match
         const difference = Math.abs(freq - data.frequency);
-        // console.log(`Note: ${note}, Data:`, data);
-        // console.log('Difference:', difference);
-        if (difference < closestDifference) {
-          closestNote = note;
-          closestFret = data.fret; // Set the closest fret value
-          closestDifference = difference;
-          closestString = detectedString; // Set the closest string value
+        if (difference < 5) {
+          // some threshold of your choosing
+          potentialMatches.push({
+            note: note,
+            fret: data.fret,
+            string: data.string,
+          });
         }
       });
     }
 
-    // console.log('Closest Note:', closestNote);
-    // console.log('Closest Fret:', closestFret);
-
-    return { note: closestNote, fret: closestFret, string: closestString };
+    return potentialMatches;
   };
 
   // getNoteFromFrequency = (frequency: number): { note: string, fret: number } => {
@@ -1097,18 +1094,16 @@ class AudioFileKeyDetection extends Component<Props, State> {
   //     // Handle other types as required
   // };
 
-  activateWebcam = async () => {
+  activateWebcam = async (isCalibrationMode = false) => {
     try {
       if (!this.opencvIsReady.current) {
         console.log('activateWebcam: OpenCV is not ready yet.');
         return;
       }
-      if (!this.state.handLandmarker) {
-        await this.createHandLandmarker();
-      }
 
-      // Start the webcam and make predictions
+      // Start the webcam
       this.enableCam();
+      this.setState({ calibrationMode: isCalibrationMode });
     } catch (error) {
       console.error('Error in activateWebcam:', error);
     }
@@ -1116,45 +1111,36 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
   convertedConnections = [];
 
-  createHandLandmarker = async () => {
-    console.log('passed from activateWebcam to createHandLandmarker');
+  // createHandLandmarker = async () => {
+  //   console.log('passed from activateWebcam to createHandLandmarker');
 
-    try {
-      // Dynamic import for the vision tasks.
-      const { HandLandmarker, FilesetResolver } = await import(
-        './visionModule.js'
-      );
+  //   try {
+  //     // Dynamic import for the vision tasks.
+  //     const { HandLandmarker, FilesetResolver } = await import(
+  //       './visionModule.js'
+  //     );
 
-      const vision = await FilesetResolver.forVisionTasks(
-        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm'
-      );
-      const handLandmarker = await HandLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
-          delegate: 'GPU',
-        },
-        runningMode: this.state.runningMode,
-        numHands: 2,
-      });
+  //     const vision = await FilesetResolver.forVisionTasks(
+  //       'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm'
+  //     );
+  //     const handLandmarker = await HandLandmarker.createFromOptions(vision, {
+  //       baseOptions: {
+  //         modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+  //         delegate: 'GPU',
+  //       },
+  //       runningMode: this.state.runningMode,
+  //       numHands: 2,
+  //     });
 
-      this.setState({
-        handLandmarker,
-        handConnections: HandLandmarker.HAND_CONNECTIONS,
-      });
+  //     this.setState({
+  //       handLandmarker,
+  //       handConnections: HandLandmarker.HAND_CONNECTIONS,
+  //     });
 
-      console.log('State after createHandLandmarker:', this.state);
-    } catch (error) {
-      console.error('Error in createHandLandmarker:', error);
-    }
-  };
-
-  // Refactor - make reactRefs
-  // video = document.getElementById('webcam') as HTMLVideoElement;
-  // canvasElement = document.getElementById('output_canvas') as HTMLCanvasElement;
-
-  // onRuntimeInitialized = () => {
-  //   console.log("OpenCV is initialized and ready!");
-  //   this.enableCam(); // Start the webcam and prediction flow immediately after OpenCV is ready.
+  //     console.log('State after createHandLandmarker:', this.state);
+  //   } catch (error) {
+  //     console.error('Error in createHandLandmarker:', error);
+  //   }
   // };
 
   enableCam = async () => {
@@ -1165,12 +1151,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
         console.log('enableCam: OpenCV is not ready yet.');
         return;
       }
-      if (!this.state.handLandmarker) {
-        console.log('Wait! HandLandmarker not loaded yet.');
-        return;
-      }
 
-      // This part checks if the webcam is running and toggles it.
+      // Toggle webcam state
       this.setState((prevState) => ({
         webcamRunning: !prevState.webcamRunning,
       }));
@@ -1194,7 +1176,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
       if (this.videoRef.current) {
         this.videoRef.current.addEventListener(
           'loadeddata',
-          this.predictWebcam
+          this.processOpenCV // This replaces predictWebcam
         );
       }
 
@@ -1203,6 +1185,112 @@ class AudioFileKeyDetection extends Component<Props, State> {
       console.error('Error in enableCam:', error);
     }
   };
+
+  processOpenCV = () => {
+    try {
+      const video = this.videoRef.current;
+      const canvas = this.canvasRef.current;
+      const ctx = canvas.getContext('2d');
+
+      // Draw the current video frame on canvas
+      ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+
+      // Convert the canvas data to OpenCV format
+      const src = cv.imread(canvas);
+      const dst = new cv.Mat();
+
+      // Pre-process the image (grayscale & edge detection)
+      cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
+      cv.Canny(dst, dst, 50, 150, 3, false); // You can play with these parameters
+
+      // Detect frets
+      const lines = new cv.Mat();
+      cv.HoughLinesP(dst, lines, 1, Math.PI / 180, 50, 50, 10); // Params can be tuned
+
+      if (this.state.calibrationMode) {
+        const averageFretDistance = this.calibrateFretDistance(lines);
+        this.setState({
+          fretDistance: averageFretDistance,
+          calibrationMode: false,
+        });
+        if (
+          this.videoRef.current &&
+          this.videoRef.current.srcObject instanceof MediaStream
+        ) {
+          const tracks = this.videoRef.current.srcObject.getTracks();
+          tracks.forEach((track) => track.stop());
+        }
+        alert('Fret Calibration Successful!');
+      } else {
+        // Analyze gaps
+        const handPositionRange = this.analyzeGaps(lines);
+        if (handPositionRange) {
+          this.setState({ handPositionRange });
+        }
+      }
+      // Cleanup
+      src.delete();
+      dst.delete();
+      lines.delete();
+    } catch (error) {
+      console.error('Error in processOpenCV:', error);
+    }
+  };
+
+  analyzeGaps = (lines) => {
+    const threshold = this.state.fretDistance * 1.5; // Assuming a 50% increase is significant
+    let possibleStart = null;
+
+    for (let i = 0; i < lines.rows - 1; i++) {
+      const start1 = lines.data32S[i * lines.cols];
+      const end1 = lines.data32S[i * lines.cols + 2];
+
+      const start2 = lines.data32S[(i + 1) * lines.cols];
+      const end2 = lines.data32S[(i + 1) * lines.cols + 2];
+
+      const avgY1 = (start1.y + end1.y) / 2;
+      const avgY2 = (start2.y + end2.y) / 2;
+
+      const gap = avgY2 - avgY1;
+
+      if (gap > threshold && possibleStart === null) {
+        // We start detecting a possible hand position here
+        possibleStart = i + 1;
+      } else if (gap <= this.state.fretDistance && possibleStart !== null) {
+        // End of possible hand position, so we return the range
+        return { start: possibleStart, end: i + 1 };
+      }
+    }
+
+    // If we reach here without finding the end, then it's possible the hand covers till the last detected fret
+    if (possibleStart !== null) {
+      return { start: possibleStart, end: lines.rows };
+    }
+
+    return null; // No significant blockage detected
+  };
+
+  calibrateFretDistance = (lines) => {
+    let totalDistance = 0;
+    for (let i = 0; i < lines.rows - 1; i++) {
+      const start1 = lines.data32S[i * lines.cols];
+      const end1 = lines.data32S[i * lines.cols + 2];
+
+      const start2 = lines.data32S[(i + 1) * lines.cols];
+      const end2 = lines.data32S[(i + 1) * lines.cols + 2];
+
+      const avgY1 = (start1.y + end1.y) / 2;
+      const avgY2 = (start2.y + end2.y) / 2;
+
+      totalDistance += avgY2 - avgY1;
+    }
+
+    return totalDistance / (lines.rows - 1); // average distance between frets
+  };
+
+  /// !!! Outdated code below !!!! ///    /// !!! Outdated code below !!!! ///    /// !!! Outdated code below !!!! ///
+  /// !!! Outdated code below !!!! ///    /// !!! Outdated code below !!!! ///    /// !!! Outdated code below !!!! ///
+  /// !!! Outdated code below !!!! ///    /// !!! Outdated code below !!!! ///    /// !!! Outdated code below !!!! ///
 
   lastVideoTime = -1;
   // results = undefined;
@@ -1449,6 +1537,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
     return -1; // If no fret is detected.
   };
 
+  /// !!! Outdated code above !!!! ///     /// !!! Outdated code above !!!! ///     /// !!! Outdated code above !!!! ///
+  /// !!! Outdated code above !!!! ///     /// !!! Outdated code above !!!! ///     /// !!! Outdated code above !!!! ///
+  /// !!! Outdated code above !!!! ///     /// !!! Outdated code above !!!! ///     /// !!! Outdated code above !!!! ///
+
   render(props) {
     console.log('AudioFileKeyDetection - render');
     const { files, frets, startFret, order, incrementFactor } = this.state;
@@ -1525,8 +1617,17 @@ class AudioFileKeyDetection extends Component<Props, State> {
               >
                 Stop
               </button>
-              <button id="activate-webcam" onClick={this.activateWebcam}>
+              <button
+                id="activate-webcam"
+                onClick={() => this.activateWebcam()}
+              >
                 Activate Webcam
+              </button>
+              <button
+                id="calibrate-fret-distance"
+                onClick={() => this.activateWebcam(true)}
+              >
+                Calibrate Guitar
               </button>
               <div className="webcam-container">
                 <video
