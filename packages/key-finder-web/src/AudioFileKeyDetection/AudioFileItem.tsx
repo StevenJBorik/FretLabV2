@@ -113,7 +113,7 @@ class AudioFileItem extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    // Check if the fileItem.id has changed before initializing audio
+    // Check if the fileItem.id has changed before initalizing audio
     if (prevProps.fileItem.id !== this.props.fileItem.id) {
       console.log('AudioFileItem - componentDidUpdate');
       this.initAudio(this.props.fileItem);
@@ -221,7 +221,7 @@ class AudioFileItem extends Component<Props, State> {
   };
 
   handleAudioFile = async (buffer: AudioBuffer) => {
-    console.log('AudioFileItem - handleAudioFile');
+    // console.log('AudioFileItem - handleAudioFile');
 
     this.setState({
       analyzing: true,
@@ -334,7 +334,7 @@ class AudioFileItem extends Component<Props, State> {
   };
 
   getKeySignatureNumericValue(result: string | null) {
-    console.log('AudioFileItem - getKeySignatureNumericValue');
+    // console.log('AudioFileItem - getKeySignatureNumericValue');
     if (!result) {
       return null;
     }
@@ -383,17 +383,17 @@ class AudioFileItem extends Component<Props, State> {
       startFret: startFret,
       showTitle: true,
     });
-    console.log('frets: ', frets);
-    console.log('startFret: ', startFret);
+    // console.log('frets: ', frets);
+    // console.log('startFret: ', startFret);
 
     fb.add(normalizedResult).paint();
 
-    console.log(
-      'frets, startFret, and order variables',
-      frets,
-      startFret,
-      order
-    );
+    // console.log(
+    //   'frets, startFret, and order variables',
+    //   frets,
+    //   startFret,
+    //   order
+    // );
     // // Unhighlight all notes
     // document.querySelectorAll('.fretboard circle').forEach((circle) => {
     //   circle.classList.remove('highlight');
@@ -436,9 +436,9 @@ class AudioFileItem extends Component<Props, State> {
   };
 
   handleAudioCanPlay = () => {
-    console.log('AudioFileItem - handleAudioCanPlay');
+    // console.log('AudioFileItem - handleAudioCanPlay');
     this.setState({ analyzing: false });
-    console.log('this.props.isReadyToPlay: ', this.props.isReadyToPlay);
+    // console.log('this.props.isReadyToPlay: ', this.props.isReadyToPlay);
     if (this.props.isReadyToPlay) {
       const audioElement = this.props.audioElement;
       if (audioElement) {
@@ -481,9 +481,9 @@ class AudioFileItem extends Component<Props, State> {
   };
 
   handleAudioTimeUpdate = () => {
-    console.log('in handleAudioTimeUpdate method');
+    // console.log('in handleAudioTimeUpdate method');
     const audioElement = this.audioElement;
-    console.log('audio element log: ', audioElement);
+    // console.log('audio element log: ', audioElement);
     if (!audioElement) return;
 
     // Round the current timestamp to match the section boundaries
@@ -491,17 +491,17 @@ class AudioFileItem extends Component<Props, State> {
 
     // Convert the current timestamp to a string in the minute:second format
     const formattedTime = this.convertSecondsToMinuteSecond(currentTimestamp);
-    console.log('current time stamp: ', formattedTime);
+    // console.log('current time stamp: ', formattedTime);
 
     // Check if the current timestamp matches any of the section boundaries
     const matchedBoundary = this.props.sectionBoundaries.find((boundary) =>
       boundary.includes(formattedTime)
     );
 
-    console.log('section boundaries from props', this.props.sectionBoundaries);
+    // console.log('section boundaries from props', this.props.sectionBoundaries);
 
     if (matchedBoundary && matchedBoundary !== this.state.lastMatchedBoundary) {
-      console.log("we've got a match!", matchedBoundary);
+      // console.log("we've got a match!", matchedBoundary);
 
       // Update the fretboard scale based on the rounded current time
       this.updateFretboardScale(currentTimestamp);
@@ -519,7 +519,7 @@ class AudioFileItem extends Component<Props, State> {
   };
 
   updateFretboardScale = (currentTimestamp: number) => {
-    console.log('in updateFretboardScale method');
+    // console.log('in updateFretboardScale method');
     const { order, incrementFactor, startFret, frets } = this.state;
 
     let fretDiff = frets - startFret;

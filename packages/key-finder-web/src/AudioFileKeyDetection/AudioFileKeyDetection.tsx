@@ -49,6 +49,8 @@ interface State {
   fretDistance: number;
   calibrationMode: boolean;
   handPositionRange: { start: number; end: number } | null; // This can be null if no hand position range is detected.
+  isCalibrated: boolean;
+  showGuitarPrompt: boolean;
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -60,7 +62,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
   canvasCtx: CanvasRenderingContext2D | null = null;
   audioElement: HTMLAudioElement | null = null;
   opencvIsReady = createRef<boolean>();
-  worker = new Worker('./fingerDetectionWorker.js');
+  debugCanvasRef = createRef<HTMLCanvasElement>();
 
   state: State = {
     files: [],
@@ -82,6 +84,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
     fretDistance: null,
     calibrationMode: false,
     handPositionRange: null,
+    isCalibrated: false,
+    showGuitarPrompt: false,
   };
 
   componentDidMount() {
@@ -95,26 +99,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
     if (this.canvasRef.current) {
       this.canvasCtx = this.canvasRef.current.getContext('2d');
     }
-    // const script = document.querySelector("script[src='https://docs.opencv.org/4.5.4/opencv.js']");
-    // script.addEventListener('load', this.handleOpenCVReady);
-    // Dynamically load the OpenCV script
-    const opencvScript = document.createElement('script');
-    opencvScript.src = 'https://docs.opencv.org/4.5.4/opencv.js';
-    opencvScript.type = 'text/javascript';
-    opencvScript.onload = this.handleOpenCVReady;
-
-    document.body.appendChild(opencvScript);
 
     this.startListeningForNotes();
-    // CV Feature
-    // Initiliaze MediaPipe Hand Detection Function - identify positions of fingertips.
-    // Initialize OpenCV Fret and String Detection Function
-    // Pass detected note & possible string/fret positions from getFrequency.
-    // Map positions of fingertips obtained from MediaPipe and OpenCV positional information
-    // --> Once Above complete:
-    // Logic to deduce the fret and string position based on fingertip position and the detected lines.
-    // This will involve spatial comparisons to see which two detected lines the fingertip is between.
-    // Additionally, recognize which string the fingertip is closest to.
   }
 
   componentWillUnmount() {
@@ -122,22 +108,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
     // Assuming you have a function called `stopListeningForNotes` to stop listening for notes
     // !!!! UNCOMMENT POST TESTING !!!!
     // this.stopListeningForNotes();
-
-    if (this.videoRef.current && this.videoRef.current.srcObject) {
-      let stream = this.videoRef.current.srcObject as MediaStream;
-      let tracks = stream.getTracks();
-
-      tracks.forEach((track) => {
-        track.stop();
-      });
-
-      this.videoRef.current.srcObject = null;
-    }
-
-    // Remove event listener
-    this.videoRef.current.removeEventListener('loadeddata', this.predictWebcam);
-    // window.initializeOpenCV = null;
-    // window.audioFileKeyDetectionInstance = null;
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
@@ -215,7 +185,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
           const audioElement = this.createAudioElement(); // Create the audio element here
 
           const processFilePromise = axios
-            .post('http://localhost:5000/api/process-audio', formData, {
+            .post('http://localhost:4000/api/process-audio', formData, {
               headers: {
                 'Content-Type': 'audio/mpeg',
               },
@@ -370,30 +340,39 @@ class AudioFileKeyDetection extends Component<Props, State> {
   handleNoteDetection = (frequency: number | null) => {
     if (frequency !== null) {
       const potentialMatches = this.getNoteFromFrequency(frequency);
+      console.log('potentialmatches', potentialMatches);
+      console.log('Calculated Frequency: ', potentialMatches);
 
-      // Using the hand position to filter the potential matches.
-      const probableMatch = potentialMatches.filter((entry) => {
-        return (
-          entry.fret >= this.state.handPositionRange.start &&
-          entry.fret <= this.state.handPositionRange.end
-        );
-      });
+      let probableMatch;
 
-      if (probableMatch.length === 1) {
+      // If there's only one match, select it.
+      if (potentialMatches.length === 1) {
+        probableMatch = potentialMatches[0];
+      }
+      // If there are multiple matches, use context (last detected fret) to select one.
+      else if (potentialMatches.length > 1) {
+        probableMatch = potentialMatches.sort((a, b) => {
+          return (
+            Math.abs(this.state.detectedFret - a.fret) -
+            Math.abs(this.state.detectedFret - b.fret)
+          );
+        })[0];
+      }
+      console.log('probableMatch,', probableMatch);
+      // If a probable match is found, update the state and highlight the fretboard.
+      if (probableMatch) {
         this.setState({
-          detectedNote: probableMatch[0].note,
-          detectedFret: probableMatch[0].fret,
+          detectedNote: probableMatch.note,
+          detectedFret: probableMatch.fret,
         });
-        this.updateFretboardHighlights(
-          probableMatch[0].note,
-          probableMatch[0].fret
-        );
+        this.updateFretboardHighlights(probableMatch.note, probableMatch.fret);
       } else {
-        // This means there's an ambiguity or an error.
+        // No match found or there's an ambiguity/error in detection.
         console.error('Ambiguous match or error in fret detection');
         this.setState({ detectedNote: '', detectedFret: null });
       }
     } else {
+      // No frequency detected.
       this.setState({ detectedNote: '', detectedFret: null });
     }
   };
@@ -427,6 +406,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
   };
 
   updateFretboardHighlights = (detectedNote, detectedFret) => {
+    console.log('dNote dFret', detectedNote, detectedFret);
     // Unhighlight all notes
     const allCircleElements = document.querySelectorAll('.fretboard circle');
     allCircleElements.forEach((circleElement) => {
@@ -499,66 +479,54 @@ class AudioFileKeyDetection extends Component<Props, State> {
   // };
 
   startListeningForNotes() {
-    // Set up the event listener or initialize the note detection system
-    const audioContext = new AudioContext();
-    const analyserNode = audioContext.createAnalyser();
+    console.log('in startListeningForNotes');
 
-    // Dynamically import the PitchDetector from the pitchyModule.js
-    import('./pitchyModule.js')
-      .then(({ PitchDetector }) => {
-        navigator.mediaDevices
-          .getUserMedia({ audio: true })
-          .then((stream) => {
-            audioContext.createMediaStreamSource(stream).connect(analyserNode);
+    var worker = new Worker('/dist/pitchWorker.js', { type: 'module' });
+    console.log('Worker initialized.');
 
-            // Create the pitch detector
-            const detector = PitchDetector.forFloat32Array(
-              analyserNode.fftSize
-            );
+    worker.onmessage = function (event) {
+      if (event.data.pitch !== undefined) {
+        const pitch = event.data.pitch;
+        if (pitch) {
+          console.log('pitch', pitch);
+          this.handleNoteDetection(pitch);
+        } else {
+          this.handleNoteDetection(null);
+        }
+      } else if (event.data.error) {
+        console.error(event.data.error);
+      }
+    }.bind(this);
 
-            const input = new Float32Array(detector.inputLength);
+    worker.onerror = function (event) {
+      console.error('Error in worker:', event);
+    };
 
-            const SILENCE_THRESHOLD = 0.25; // Adjust this threshold value as needed
+    // Dynamically import the PitchDetector isn't necessary in main thread now,
+    // as it's done within the worker. So, we directly proceed with setting up the audio stream.
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        console.log('Microphone access granted.');
 
-            const processAudioData = () => {
-              analyserNode.getFloatTimeDomainData(input);
+        const audioContext = new AudioContext();
+        console.log('AudioContext created.');
 
-              // Calculate the maximum amplitude of the input signal
-              let maxAmplitude = -Infinity;
-              for (let i = 0; i < input.length; i++) {
-                if (input[i] > maxAmplitude) {
-                  maxAmplitude = input[i];
-                }
-              }
-              if (maxAmplitude > SILENCE_THRESHOLD) {
-                // Detect pitch and clarity using pitchy
-                const [pitch] = detector.findPitch(
-                  input,
-                  audioContext.sampleRate
-                );
+        const analyserNode = audioContext.createAnalyser();
+        console.log('AnalyserNode created.');
 
-                if (typeof pitch === 'number') {
-                  // Use state values for detected string and fret
-                  this.handleNoteDetection(pitch);
-                } else {
-                  this.handleNoteDetection(null);
-                }
-              } else {
-                this.handleNoteDetection(null);
-              }
+        audioContext.createMediaStreamSource(stream).connect(analyserNode);
+        console.log('MediaStreamSource connected to AnalyserNode.');
 
-              requestAnimationFrame(processAudioData);
-            };
+        // Notify the worker to start processing
+        worker.postMessage({ command: 'initialize' });
+        console.log("Message 'initialize' sent to worker.");
 
-            // Start processing the audio data
-            processAudioData();
-          })
-          .catch((error) => {
-            console.error('Error accessing microphone:', error);
-          });
+        worker.postMessage({ command: 'start' });
+        console.log("Message 'start' sent to worker.");
       })
       .catch((error) => {
-        console.error('Error importing PitchDetector:', error);
+        console.error('Error accessing microphone:', error);
       });
   }
 
@@ -779,30 +747,24 @@ class AudioFileKeyDetection extends Component<Props, State> {
   // pass updated note mapping state back to updateFretboard Highlight
   getNoteFromFrequency = (
     frequency: number
-  ): Array<{ note: string; fret: number; string: number }> => {
+  ): Array<{ note: string; fret: number }> => {
     const freq =
       typeof frequency === 'string' ? parseFloat(frequency) : frequency;
-    const potentialMatches: Array<{
-      note: string;
-      fret: number;
-      string: number;
-    }> = [];
+    const potentialMatches: Array<{ note: string; fret: number }> = [];
 
     for (const note in this.noteMappings) {
       const noteData = this.noteMappings[note];
       noteData.forEach((data) => {
         const difference = Math.abs(freq - data.frequency);
         if (difference < 5) {
-          // some threshold of your choosing
+          // Threshold can be adjusted as needed
           potentialMatches.push({
             note: note,
             fret: data.fret,
-            string: data.string,
           });
         }
       });
     }
-
     return potentialMatches;
   };
 
@@ -1078,22 +1040,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
     }
   };
 
-  // todo initialize worker function
-  //   worker.onmessage = (e) => {
-  //     if (e.data.type === 'handLandmarkerCreated') {
-  //         this.setState({
-  //             // update the state as required
-  //         });
-  //     } else if (e.data.type === 'landmarks') {
-  //         // Use the landmarks to draw on the canvas
-  //         const landmarks = e.data.landmarks;
-  //         // Your drawing logic here
-  //     } else if (e.data.type === 'error') {
-  //         console.error(e.data.message, e.data.error);
-  //     }
-  //     // Handle other types as required
-  // };
-
   activateWebcam = async (isCalibrationMode = false) => {
     try {
       if (!this.opencvIsReady.current) {
@@ -1108,40 +1054,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
       console.error('Error in activateWebcam:', error);
     }
   };
-
-  convertedConnections = [];
-
-  // createHandLandmarker = async () => {
-  //   console.log('passed from activateWebcam to createHandLandmarker');
-
-  //   try {
-  //     // Dynamic import for the vision tasks.
-  //     const { HandLandmarker, FilesetResolver } = await import(
-  //       './visionModule.js'
-  //     );
-
-  //     const vision = await FilesetResolver.forVisionTasks(
-  //       'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm'
-  //     );
-  //     const handLandmarker = await HandLandmarker.createFromOptions(vision, {
-  //       baseOptions: {
-  //         modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
-  //         delegate: 'GPU',
-  //       },
-  //       runningMode: this.state.runningMode,
-  //       numHands: 2,
-  //     });
-
-  //     this.setState({
-  //       handLandmarker,
-  //       handConnections: HandLandmarker.HAND_CONNECTIONS,
-  //     });
-
-  //     console.log('State after createHandLandmarker:', this.state);
-  //   } catch (error) {
-  //     console.error('Error in createHandLandmarker:', error);
-  //   }
-  // };
 
   enableCam = async () => {
     console.log('in enableCam');
@@ -1164,6 +1076,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (this.videoRef.current) {
         this.videoRef.current.srcObject = stream;
+        this.videoRef.current.play();
       }
       if (this.videoRef.current && this.canvasRef.current) {
         this.videoRef.current.onloadedmetadata = () => {
@@ -1174,9 +1087,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
         };
       }
       if (this.videoRef.current) {
+        console.log('calling showGuitarPrompt');
         this.videoRef.current.addEventListener(
           'loadeddata',
-          this.processOpenCV // This replaces predictWebcam
+          this.showGuitarPrompt // This replaces predictWebcam
         );
       }
 
@@ -1186,8 +1100,29 @@ class AudioFileKeyDetection extends Component<Props, State> {
     }
   };
 
+  showGuitarPrompt = () => {
+    console.log('showGuitarPrompt..');
+    this.setState({ showGuitarPrompt: true }, () => {
+      console.log('showGuitarPrompt state: ', this.state.showGuitarPrompt);
+    });
+    if (this.videoRef.current) {
+      this.videoRef.current.removeEventListener(
+        'loadeddata',
+        this.showGuitarPrompt
+      );
+    }
+  };
+
+  proceedWithProcessing = () => {
+    console.log(
+      'User confirmed guitar positioning. Proceeding with processing...'
+    );
+    this.processOpenCV();
+  };
+
   processOpenCV = () => {
     try {
+      console.log('Starting processOpenCV...');
       const video = this.videoRef.current;
       const canvas = this.canvasRef.current;
       const ctx = canvas.getContext('2d');
@@ -1201,17 +1136,67 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
       // Pre-process the image (grayscale & edge detection)
       cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
-      cv.Canny(dst, dst, 50, 150, 3, false); // You can play with these parameters
+      // Contrast Enhancement
+      let clahe = new cv.CLAHE(5, new cv.Size(16, 16));
+      clahe.apply(dst, dst);
+
+      // Morphological Operations
+      let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(1, 7));
+      cv.morphologyEx(dst, dst, cv.MORPH_GRADIENT, kernel);
+
+      cv.Canny(dst, dst, 90, 300, 3, false); // You can play with these parameters
+      // After cv.Canny
+      const canvasDebug = this.debugCanvasRef.current;
+      const ctxDebug = canvasDebug?.getContext('2d');
+      if (canvasDebug instanceof HTMLCanvasElement && ctxDebug) {
+        cv.imshow(canvasDebug, dst);
+      } else {
+        console.error("Canvas is not valid or context couldn't be fetched");
+      }
 
       // Detect frets
       const lines = new cv.Mat();
-      cv.HoughLinesP(dst, lines, 1, Math.PI / 180, 50, 50, 10); // Params can be tuned
+      // threshold - Reduce detect more line, increase strict: current 150
+      // min line length - increase to remove smaller noisy lines
+      // max line gap - gap between segements to consider them as a line.
+      cv.HoughLinesP(dst, lines, 1, Math.PI / 180, 150, 200, 50); // Params can be tuned
+
+      if (lines.data32S.length < lines.rows * lines.cols) {
+        console.error('Detected lines data is incomplete.');
+        return; // Or handle in a way you deem fit.
+      }
+
+      // Filter for vertical lines
+      let verticalLinesArray = [];
+      for (let i = 0; i < lines.rows; i++) {
+        const x1 = lines.data32S[i * lines.cols];
+        const y1 = lines.data32S[i * lines.cols + 1];
+        const x2 = lines.data32S[i * lines.cols + 2];
+        const y2 = lines.data32S[i * lines.cols + 3];
+        const angle = (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI;
+        if (Math.abs(angle) > 80 && Math.abs(angle) < 100) {
+          verticalLinesArray.push(lines.row(i).data32S);
+        }
+      }
+
+      let verticalLines = cv.matFromArray(
+        verticalLinesArray.length,
+        lines.cols,
+        cv.CV_32S,
+        [].concat(...verticalLinesArray)
+      );
+
+      console.log(`processOpenCV: Detected ${lines.rows} lines.`);
 
       if (this.state.calibrationMode) {
-        const averageFretDistance = this.calibrateFretDistance(lines);
+        const averageFretDistance = this.calibrateFretDistance(verticalLines);
+        console.log(
+          `processOpenCV: Calibrated average fret distance: ${averageFretDistance}`
+        );
         this.setState({
           fretDistance: averageFretDistance,
           calibrationMode: false,
+          isCalibrated: true,
         });
         if (
           this.videoRef.current &&
@@ -1223,8 +1208,13 @@ class AudioFileKeyDetection extends Component<Props, State> {
         alert('Fret Calibration Successful!');
       } else {
         // Analyze gaps
-        const handPositionRange = this.analyzeGaps(lines);
+        const handPositionRange = this.analyzeGaps(verticalLines);
         if (handPositionRange) {
+          console.log(
+            `processOpenCV: Determined hand position range: ${JSON.stringify(
+              handPositionRange
+            )}`
+          );
           this.setState({ handPositionRange });
         }
       }
@@ -1239,6 +1229,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
   analyzeGaps = (lines) => {
     const threshold = this.state.fretDistance * 1.5; // Assuming a 50% increase is significant
+    console.log(`analyzeGaps: Gap detection threshold: ${threshold}`);
+
     let possibleStart = null;
 
     for (let i = 0; i < lines.rows - 1; i++) {
@@ -1256,14 +1248,25 @@ class AudioFileKeyDetection extends Component<Props, State> {
       if (gap > threshold && possibleStart === null) {
         // We start detecting a possible hand position here
         possibleStart = i + 1;
+        console.log(
+          `analyzeGaps: Possible hand position started at line: ${possibleStart}`
+        );
       } else if (gap <= this.state.fretDistance && possibleStart !== null) {
         // End of possible hand position, so we return the range
+        console.log(
+          `analyzeGaps: Possible hand position detected from line ${possibleStart} to ${
+            i + 1
+          }`
+        );
         return { start: possibleStart, end: i + 1 };
       }
     }
 
     // If we reach here without finding the end, then it's possible the hand covers till the last detected fret
     if (possibleStart !== null) {
+      console.log(
+        `analyzeGaps: Hand covers till the last detected fret. Start line: ${possibleStart}`
+      );
       return { start: possibleStart, end: lines.rows };
     }
 
@@ -1273,19 +1276,44 @@ class AudioFileKeyDetection extends Component<Props, State> {
   calibrateFretDistance = (lines) => {
     let totalDistance = 0;
     for (let i = 0; i < lines.rows - 1; i++) {
-      const start1 = lines.data32S[i * lines.cols];
-      const end1 = lines.data32S[i * lines.cols + 2];
+      const start1_x = lines.data32S[i * lines.cols];
+      const start1_y = lines.data32S[i * lines.cols + 1];
+      const end1_x = lines.data32S[i * lines.cols + 2];
+      const end1_y = lines.data32S[i * lines.cols + 3];
 
-      const start2 = lines.data32S[(i + 1) * lines.cols];
-      const end2 = lines.data32S[(i + 1) * lines.cols + 2];
+      const start2_x = lines.data32S[(i + 1) * lines.cols];
+      const start2_y = lines.data32S[(i + 1) * lines.cols + 1];
+      const end2_x = lines.data32S[(i + 1) * lines.cols + 2];
+      const end2_y = lines.data32S[(i + 1) * lines.cols + 3];
 
-      const avgY1 = (start1.y + end1.y) / 2;
-      const avgY2 = (start2.y + end2.y) / 2;
+      if (
+        typeof start1_y === 'undefined' ||
+        typeof end1_y === 'undefined' ||
+        typeof start2_y === 'undefined' ||
+        typeof end2_y === 'undefined'
+      ) {
+        console.error(
+          `Error in line extraction for line ${i} or ${
+            i + 1
+          }. Check the data structure.`
+        );
+        console.log(
+          `Raw data for lines ${i} and ${i + 1}:`,
+          lines.data32S.slice(i * lines.cols, (i + 2) * lines.cols)
+        );
+        continue; // Skip to next iteration
+      }
 
-      totalDistance += avgY2 - avgY1;
+      const avgY1 = (start1_y + end1_y) / 2;
+      const avgY2 = (start2_y + end2_y) / 2;
+
+      const gap = avgY2 - avgY1;
+      console.log(`Detected gap between line ${i} and line ${i + 1}: ${gap}`);
+      totalDistance += gap;
     }
-
-    return totalDistance / (lines.rows - 1); // average distance between frets
+    const average = totalDistance / (lines.rows - 1);
+    console.log(`Overall average fret distance: ${average}`);
+    return average;
   };
 
   /// !!! Outdated code below !!!! ///    /// !!! Outdated code below !!!! ///    /// !!! Outdated code below !!!! ///
@@ -1641,6 +1669,24 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 <canvas ref={this.canvasRef} />
               </div>
               <canvas id="tempCanvas" style={{ display: 'none' }}></canvas>
+              <canvas
+                ref={this.debugCanvasRef}
+                className="debug-canvas"
+                width="640"
+                height="480"
+              ></canvas>
+              {this.state.showGuitarPrompt ? (
+                <div className="overlay">
+                  <div className="modal">
+                    <p>
+                      Please position your guitar correctly within the frame.
+                    </p>
+                    <button onClick={this.proceedWithProcessing}>
+                      Confirm & Proceed
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </main>
