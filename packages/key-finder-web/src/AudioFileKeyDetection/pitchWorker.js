@@ -1,42 +1,36 @@
 // Since 'import' syntax doesn't work in a worker context directly (as of my last training data),
 // we will use importScripts to import the pitchyModule.
-// importScripts('./pitchyModule.js');
+import { PitchDetector } from 'pitchy';
 
-let audioContext = null;
-let analyserNode = null;
 let detector = null;
-
-const SILENCE_THRESHOLD = 0.2;
+const SILENCE_THRESHOLD = 0.1;
 
 self.onmessage = function (event) {
   switch (event.data.command) {
     case 'initialize':
-      audioContext = new AudioContext();
-      analyserNode = audioContext.createAnalyser();
-      detector = PitchDetector.forFloat32Array(analyserNode.fftSize);
+      detector = PitchDetector.forFloat32Array(event.data.fftSize);
       break;
-    case 'start':
-      processAudioData();
+    case 'process':
+      processAudioData(event.data.audioData, event.data.sampleRate);
       break;
     default:
       console.error('Unknown command:', event.data.command);
   }
 };
 
-function processAudioData() {
+function processAudioData(input, sampleRate) {
   try {
-    const input = new Float32Array(detector.inputLength);
-    analyserNode.getFloatTimeDomainData(input);
-
     let maxAmplitude = -Infinity;
     for (let i = 0; i < input.length; i++) {
       if (input[i] > maxAmplitude) {
         maxAmplitude = input[i];
       }
     }
+
     if (maxAmplitude > SILENCE_THRESHOLD) {
-      const [pitch] = detector.findPitch(input, audioContext.sampleRate);
+      const [pitch] = detector.findPitch(input, sampleRate);
       if (typeof pitch === 'number') {
+        console.log('Sending pitch: ', pitch); // Add this line
         self.postMessage({ pitch: pitch });
       } else {
         self.postMessage({ pitch: null });
@@ -46,7 +40,10 @@ function processAudioData() {
     }
   } catch (error) {
     self.postMessage({ error: 'Error in processAudioData: ' + error.message });
-  } finally {
-    requestAnimationFrame(processAudioData);
   }
 }
+
+// {
+//   targetPlatform: 'browser',
+//   pattern: /pitchWorker\.js$/,
+// }

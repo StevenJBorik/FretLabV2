@@ -480,8 +480,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
   startListeningForNotes() {
     console.log('in startListeningForNotes');
-
-    var worker = new Worker('/dist/pitchWorker.js', { type: 'module' });
+    console.log(window.location.origin + '/pitchWorker.js');
+    const worker = new Worker('/pitchWorker.js');
     console.log('Worker initialized.');
 
     worker.onmessage = function (event) {
@@ -518,12 +518,28 @@ class AudioFileKeyDetection extends Component<Props, State> {
         audioContext.createMediaStreamSource(stream).connect(analyserNode);
         console.log('MediaStreamSource connected to AnalyserNode.');
 
-        // Notify the worker to start processing
-        worker.postMessage({ command: 'initialize' });
+        // Initialize the worker with the fftSize
+        const fftSize = analyserNode.fftSize;
+        worker.postMessage({ command: 'initialize', fftSize: fftSize });
         console.log("Message 'initialize' sent to worker.");
 
-        worker.postMessage({ command: 'start' });
-        console.log("Message 'start' sent to worker.");
+        // Function to continuously fetch audio data and send to the worker
+        function fetchAndSendAudioData() {
+          const audioData = new Float32Array(fftSize);
+          analyserNode.getFloatTimeDomainData(audioData);
+
+          worker.postMessage({
+            command: 'process',
+            audioData: audioData,
+            sampleRate: audioContext.sampleRate,
+          });
+
+          // Using setTimeout to mimic requestAnimationFrame's behavior (about 60 times per second)
+          setTimeout(fetchAndSendAudioData, 16);
+        }
+
+        // Start the audio data fetching loop
+        fetchAndSendAudioData();
       })
       .catch((error) => {
         console.error('Error accessing microphone:', error);

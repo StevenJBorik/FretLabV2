@@ -20,3 +20,12 @@ declare interface RecorderWorkletNode
   extends Omit<AudioWorkletNode, 'parameters'> {
   parameters: RecorderWorkletAudioParamMap;
 }
+
+declare var MyWorker: {
+  prototype: Worker;
+  new (stringUrl: string, options?: WorkerOptions): Worker;
+};
+
+interface ImportMeta {
+  url: string;
+}
