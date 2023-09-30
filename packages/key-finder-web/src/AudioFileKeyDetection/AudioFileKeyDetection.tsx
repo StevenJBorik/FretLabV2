@@ -339,9 +339,16 @@ class AudioFileKeyDetection extends Component<Props, State> {
   // Method to handle note detection for lighting up notes on fretboard
   handleNoteDetection = (frequency: number | null) => {
     if (frequency !== null) {
-      const potentialMatches = this.getNoteFromFrequency(frequency);
+      let potentialMatches = this.getNoteFromFrequency(frequency);
       console.log('potentialmatches', potentialMatches);
       console.log('Calculated Frequency: ', potentialMatches);
+
+      potentialMatches = potentialMatches.filter((match) => {
+        return (
+          match.fret >= this.state.startFret &&
+          match.fret <= this.state.startFret + this.state.frets
+        );
+      });
 
       let probableMatch;
 
@@ -359,6 +366,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
         })[0];
       }
       console.log('probableMatch,', probableMatch);
+
       // If a probable match is found, update the state and highlight the fretboard.
       if (probableMatch) {
         this.setState({
@@ -368,12 +376,15 @@ class AudioFileKeyDetection extends Component<Props, State> {
         this.updateFretboardHighlights(probableMatch.note, probableMatch.fret);
       } else {
         // No match found or there's an ambiguity/error in detection.
+        // Just log the error, but do NOT reset the state values.
         console.error('Ambiguous match or error in fret detection');
-        this.setState({ detectedNote: '', detectedFret: null });
       }
-    } else {
-      // No frequency detected.
-      this.setState({ detectedNote: '', detectedFret: null });
+    }
+    // If frequency is null, you can decide if you want to reset or not. If you want to retain
+    // the previous note, you can comment out the following setState.
+    else {
+      // No frequency detecfted. Comment the following if you want to retain the last known value.
+      // this.setState({ detectedNote: '', detectedFret: null });
     }
   };
 
@@ -423,6 +434,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
         noteData.forEach((data) => {
           if (data.fret === detectedFret) {
             const fretPosition = this.fretPositions[detectedFret];
+            console.log('Expected fretPosition:', fretPosition);
             const matchingCircle = Array.from(allCircleElements).find(
               (circleElement) => {
                 return (
@@ -433,8 +445,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 );
               }
             );
-
+            console.log('Matching Circle:', matchingCircle);
             if (matchingCircle instanceof SVGElement) {
+              console.log('Found circle to highlight: ', matchingCircle);
               matchingCircle.classList.add('highlight');
               matchingCircle.style.fill = 'green';
             }
@@ -535,7 +548,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
           });
 
           // Using setTimeout to mimic requestAnimationFrame's behavior (about 60 times per second)
-          setTimeout(fetchAndSendAudioData, 16);
+          requestAnimationFrame(fetchAndSendAudioData);
         }
 
         // Start the audio data fetching loop

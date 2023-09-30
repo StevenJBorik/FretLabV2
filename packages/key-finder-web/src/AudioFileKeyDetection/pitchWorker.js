@@ -3,12 +3,14 @@
 import { PitchDetector } from 'pitchy';
 
 let detector = null;
-const SILENCE_THRESHOLD = 0.1;
+const SILENCE_THRESHOLD = 0.05;
 
 self.onmessage = function (event) {
   switch (event.data.command) {
     case 'initialize':
-      detector = PitchDetector.forFloat32Array(event.data.fftSize);
+      if (!detector) {
+        detector = PitchDetector.forFloat32Array(event.data.fftSize);
+      }
       break;
     case 'process':
       processAudioData(event.data.audioData, event.data.sampleRate);
