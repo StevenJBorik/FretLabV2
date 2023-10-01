@@ -416,48 +416,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
     24: 1237.5,
   };
 
-  updateFretboardHighlights = (detectedNote, detectedFret) => {
-    console.log('dNote dFret', detectedNote, detectedFret);
-    // Unhighlight all notes
-    const allCircleElements = document.querySelectorAll('.fretboard circle');
-    allCircleElements.forEach((circleElement) => {
-      if (circleElement instanceof SVGElement) {
-        circleElement.classList.remove('highlight');
-        circleElement.style.fill = 'white'; // Reset fill color
-      }
-    });
-
-    // Highlight the detected note's position
-    if (detectedNote && detectedFret) {
-      const noteData = this.noteMappings[detectedNote];
-      if (noteData) {
-        noteData.forEach((data) => {
-          if (data.fret === detectedFret) {
-            const fretPosition = this.fretPositions[detectedFret];
-            console.log('Expected fretPosition:', fretPosition);
-            const matchingCircle = Array.from(allCircleElements).find(
-              (circleElement) => {
-                return (
-                  parseFloat(circleElement.getAttribute('cx')) ===
-                    fretPosition &&
-                  circleElement.querySelector('title').textContent.trim() ===
-                    detectedNote
-                );
-              }
-            );
-            console.log('Matching Circle:', matchingCircle);
-            if (matchingCircle instanceof SVGElement) {
-              console.log('Found circle to highlight: ', matchingCircle);
-              matchingCircle.classList.add('highlight');
-              matchingCircle.style.fill = 'green';
-            }
-          }
-        });
-      }
-    }
-  };
-
   // updateFretboardHighlights = (detectedNote, detectedFret) => {
+  //   console.log('dNote dFret', detectedNote, detectedFret);
   //   // Unhighlight all notes
   //   const allCircleElements = document.querySelectorAll('.fretboard circle');
   //   allCircleElements.forEach((circleElement) => {
@@ -474,14 +434,20 @@ class AudioFileKeyDetection extends Component<Props, State> {
   //       noteData.forEach((data) => {
   //         if (data.fret === detectedFret) {
   //           const fretPosition = this.fretPositions[detectedFret];
-  //           const matchingCircle = Array.from(allCircleElements).find((circleElement) => {
-  //             return (
-  //               parseFloat(circleElement.getAttribute('cx')) === fretPosition &&
-  //               circleElement.querySelector('title').textContent.trim() === detectedNote
-  //             );
-  //           });
-
+  //           console.log('Expected fretPosition:', fretPosition);
+  //           const matchingCircle = Array.from(allCircleElements).find(
+  //             (circleElement) => {
+  //               return (
+  //                 parseFloat(circleElement.getAttribute('cx')) ===
+  //                   fretPosition &&
+  //                 circleElement.querySelector('title').textContent.trim() ===
+  //                   detectedNote
+  //               );
+  //             }
+  //           );
+  //           console.log('Matching Circle:', matchingCircle);
   //           if (matchingCircle instanceof SVGElement) {
+  //             console.log('Found circle to highlight: ', matchingCircle);
   //             matchingCircle.classList.add('highlight');
   //             matchingCircle.style.fill = 'green';
   //           }
@@ -490,6 +456,90 @@ class AudioFileKeyDetection extends Component<Props, State> {
   //     }
   //   }
   // };
+
+  // updateFretboardHighlights = (detectedNote, detectedFret) => {
+  //   console.log('dNote dFret', detectedNote, detectedFret);
+
+  //   // Unhighlight all notes
+  //   const allCircleElements = document.querySelectorAll('.fretboard circle');
+  //   console.log(allCircleElements); // Log all circles for debugging
+
+  //   allCircleElements.forEach((circleElement) => {
+  //     if (circleElement instanceof SVGElement) {
+  //       circleElement.classList.remove('highlight');
+  //       circleElement.style.fill = 'white'; // Reset fill color
+  //     }
+  //   });
+
+  //   // Highlight the detected note's position
+  //   if (detectedNote && detectedFret) {
+  //     const noteData = this.noteMappings[detectedNote];
+  //     if (noteData) {
+  //       noteData.forEach((data) => {
+  //         if (data.fret === detectedFret) {
+  //           const fretPosition = this.fretPositions[detectedFret];
+  //           console.log('Expected fretPosition:', fretPosition);
+
+  //           const matchingCircle = Array.from(allCircleElements).find((circleElement) => {
+  //             // Additional debugging logs
+  //             const expectedCX = parseFloat(circleElement.getAttribute('cx'));
+  //             const expectedNote = circleElement.querySelector('title').textContent.trim();
+  //             console.log(`For Circle - cx: ${expectedCX}, Note: ${expectedNote}`);
+  //             console.log(`Looking for - cx: ${fretPosition}, Note: ${detectedNote}`);
+
+  //             return expectedCX === fretPosition && expectedNote === detectedNote;
+  //           });
+
+  //           console.log('Matching Circle:', matchingCircle);
+
+  //           if (matchingCircle instanceof SVGElement) {
+  //             console.log('Found circle to highlight: ', matchingCircle);
+  //             matchingCircle.classList.add('highlight');
+  //             matchingCircle.style.fill = 'green';
+  //           }
+  //         }
+  //       });
+  //     }
+  //   }
+  // };
+
+  updateFretboardHighlights = (detectedNote, detectedFret) => {
+    // Unhighlight all notes
+    const allCircleElements = document.querySelectorAll('.fretboard circle');
+    allCircleElements.forEach((circleElement) => {
+      if (circleElement instanceof SVGElement) {
+        circleElement.classList.remove('highlight');
+        circleElement.style.fill = 'white'; // Reset fill color
+      }
+    });
+
+    // Highlight the detected note's position
+    if (detectedNote && detectedFret) {
+      const noteData = this.noteMappings[detectedNote];
+      if (noteData) {
+        noteData.forEach((data) => {
+          if (data.fret === detectedFret) {
+            const fretPosition = this.fretPositions[detectedFret];
+            const matchingCircle = Array.from(allCircleElements).find(
+              (circleElement) => {
+                return (
+                  parseFloat(circleElement.getAttribute('cx')) ===
+                    fretPosition &&
+                  circleElement.querySelector('title').textContent.trim() ===
+                    detectedNote
+                );
+              }
+            );
+
+            if (matchingCircle instanceof SVGElement) {
+              matchingCircle.classList.add('highlight');
+              matchingCircle.style.fill = 'green';
+            }
+          }
+        });
+      }
+    }
+  };
 
   startListeningForNotes() {
     console.log('in startListeningForNotes');
