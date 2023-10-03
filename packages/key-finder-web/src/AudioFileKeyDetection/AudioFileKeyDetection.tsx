@@ -8,6 +8,7 @@ import { FileItem } from './AudioFileItem'; // Import the FileItem interface
 import './AudioFileKeyDetection.css';
 import Essentia from 'essentia.js/dist/essentia.js-core.es.js';
 import { EssentiaWASM } from 'essentia.js/dist/essentia-wasm.es.js';
+import { PitchDetector } from 'pitchy';
 
 declare var cv: any;
 
@@ -63,6 +64,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
   audioElement: HTMLAudioElement | null = null;
   opencvIsReady = createRef<boolean>();
   debugCanvasRef = createRef<HTMLCanvasElement>();
+  cachedCircles: SVGCircleElement[] = [];
+  currentHighlightedCircle: SVGCircleElement | null = null; // Add this line
 
   state: State = {
     files: [],
@@ -99,6 +102,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
     if (this.canvasRef.current) {
       this.canvasCtx = this.canvasRef.current.getContext('2d');
     }
+
+    this.cachedCircles = Array.from(
+      document.querySelectorAll('.fretboard circle')
+    );
 
     this.startListeningForNotes();
   }
@@ -340,8 +347,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
   handleNoteDetection = (frequency: number | null) => {
     if (frequency !== null) {
       let potentialMatches = this.getNoteFromFrequency(frequency);
-      console.log('potentialmatches', potentialMatches);
-      console.log('Calculated Frequency: ', potentialMatches);
+      // console.log('potentialmatches', potentialMatches);
+      // console.log('Calculated Frequency: ', potentialMatches);
 
       potentialMatches = potentialMatches.filter((match) => {
         return (
@@ -365,7 +372,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
           );
         })[0];
       }
-      console.log('probableMatch,', probableMatch);
+      // console.log('probableMatch,', probableMatch);
 
       // If a probable match is found, update the state and highlight the fretboard.
       if (probableMatch) {
@@ -377,7 +384,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
       } else {
         // No match found or there's an ambiguity/error in detection.
         // Just log the error, but do NOT reset the state values.
-        console.error('Ambiguous match or error in fret detection');
+        // console.error('Ambiguous match or error in fret detection');
       }
     }
     // If frequency is null, you can decide if you want to reset or not. If you want to retain
@@ -502,106 +509,141 @@ class AudioFileKeyDetection extends Component<Props, State> {
   //     }
   //   }
   // };
+  // updateFretboardHighlights = (detectedNote, detectedFret) => {
+  //   // Unhighlight all notes
+  //   const allCircleElements = document.querySelectorAll('.fretboard circle');
+  //   allCircleElements.forEach((circleElement) => {
+  //     if (circleElement instanceof SVGElement) {
+  //       circleElement.classList.remove('highlight');
+  //       circleElement.style.fill = 'white'; // Reset fill color
+  //     }
+  //   });
 
-  updateFretboardHighlights = (detectedNote, detectedFret) => {
-    // Unhighlight all notes
-    const allCircleElements = document.querySelectorAll('.fretboard circle');
-    allCircleElements.forEach((circleElement) => {
-      if (circleElement instanceof SVGElement) {
-        circleElement.classList.remove('highlight');
-        circleElement.style.fill = 'white'; // Reset fill color
-      }
-    });
+  //   // Highlight the detected note's position
+  //   if (detectedNote && detectedFret !== undefined) { // Using !== undefined just in case detectedFret is 0
+  //     const noteData = this.noteMappings[detectedNote];
+  //     if (noteData) {
+  //       noteData.forEach((data) => {
+  //         if (data.fret === detectedFret) {
+  //           let matchingCircle;
 
-    // Highlight the detected note's position
-    if (detectedNote && detectedFret) {
-      const noteData = this.noteMappings[detectedNote];
-      if (noteData) {
-        noteData.forEach((data) => {
-          if (data.fret === detectedFret) {
-            const fretPosition = this.fretPositions[detectedFret];
-            const matchingCircle = Array.from(allCircleElements).find(
-              (circleElement) => {
-                return (
-                  parseFloat(circleElement.getAttribute('cx')) ===
-                    fretPosition &&
-                  circleElement.querySelector('title').textContent.trim() ===
-                    detectedNote
-                );
-              }
-            );
+  //           if (detectedFret === 0) {
+  //             // If fret is 0, we just use the title (detectedNote) for finding the circle
+  //             matchingCircle = Array.from(allCircleElements).find((circleElement) => {
+  //               const titleElement = circleElement.querySelector('title');
+  //               return titleElement && titleElement.textContent.trim() === detectedNote;
+  //             });
+  //           } else {
+  //             // For other frets, we use your existing logic
+  //             const fretPosition = this.fretPositions[detectedFret];
+  //             matchingCircle = Array.from(allCircleElements).find((circleElement) => {
+  //               return (
+  //                 parseFloat(circleElement.getAttribute('cx')) === fretPosition &&
+  //                 circleElement.querySelector('title').textContent.trim() === detectedNote
+  //               );
+  //             });
+  //           }
 
-            if (matchingCircle instanceof SVGElement) {
-              matchingCircle.classList.add('highlight');
-              matchingCircle.style.fill = 'green';
-            }
-          }
-        });
-      }
+  //           if (matchingCircle instanceof SVGElement) {
+  //             matchingCircle.classList.add('highlight');
+  //             matchingCircle.style.fill = 'green';
+  //           }
+  //         }
+  //       });
+  //     }
+  //   }
+  // };
+
+  updateFretboardHighlights(detectedNote, detectedFret) {
+    // Unhighlight the previously highlighted note
+    if (this.currentHighlightedCircle) {
+      this.currentHighlightedCircle.classList.remove('highlight');
+      this.currentHighlightedCircle.style.fill = 'white';
+      this.currentHighlightedCircle = null;
     }
-  };
+
+    // Find the new circle to highlight
+    const matchingCircle = this.findMatchingCircle(detectedNote, detectedFret);
+
+    if (matchingCircle) {
+      matchingCircle.classList.add('highlight');
+      matchingCircle.style.fill = 'green';
+      this.currentHighlightedCircle = matchingCircle;
+    }
+  }
+
+  findMatchingCircle(detectedNote, detectedFret) {
+    if (detectedFret === 0) {
+      return this.cachedCircles.find(
+        (circle) =>
+          circle.querySelector('title').textContent.trim() === detectedNote
+      );
+    } else {
+      const fretPosition = this.fretPositions[detectedFret];
+      return this.cachedCircles.find(
+        (circle) =>
+          parseFloat(circle.getAttribute('cx')) === fretPosition &&
+          circle.querySelector('title').textContent.trim() === detectedNote
+      );
+    }
+  }
 
   startListeningForNotes() {
-    console.log('in startListeningForNotes');
-    console.log(window.location.origin + '/pitchWorker.js');
-    const worker = new Worker('/pitchWorker.js');
-    console.log('Worker initialized.');
+    // Initialize the PitchDetector directly in the main thread
+    const SILENCE_THRESHOLD = 0.05;
+    let detector;
+    const SKIP_FRAMES = 3; // Process audio data every 3rd frame
+    let frameCounter = 0;
 
-    worker.onmessage = function (event) {
-      if (event.data.pitch !== undefined) {
-        const pitch = event.data.pitch;
-        if (pitch) {
-          console.log('pitch', pitch);
-          this.handleNoteDetection(pitch);
+    function processAudioData(input, sampleRate) {
+      try {
+        let maxAmplitude = -Infinity;
+        for (let i = 0; i < input.length; i++) {
+          if (input[i] > maxAmplitude) {
+            maxAmplitude = input[i];
+          }
+        }
+
+        if (maxAmplitude > SILENCE_THRESHOLD) {
+          const [pitch] = detector.findPitch(input, sampleRate);
+          if (typeof pitch === 'number') {
+            this.handleNoteDetection(pitch);
+          } else {
+            this.handleNoteDetection(null);
+          }
         } else {
           this.handleNoteDetection(null);
         }
-      } else if (event.data.error) {
-        console.error(event.data.error);
+      } catch (error) {
+        console.error('Error in processAudioData: ', error);
       }
-    }.bind(this);
+    }
 
-    worker.onerror = function (event) {
-      console.error('Error in worker:', event);
-    };
+    const boundProcessAudioData = processAudioData.bind(this);
 
-    // Dynamically import the PitchDetector isn't necessary in main thread now,
-    // as it's done within the worker. So, we directly proceed with setting up the audio stream.
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
-        console.log('Microphone access granted.');
-
         const audioContext = new AudioContext();
-        console.log('AudioContext created.');
-
         const analyserNode = audioContext.createAnalyser();
-        console.log('AnalyserNode created.');
+        analyserNode.fftSize = 1024; // Reduced FFT size for faster processing
 
         audioContext.createMediaStreamSource(stream).connect(analyserNode);
-        console.log('MediaStreamSource connected to AnalyserNode.');
 
-        // Initialize the worker with the fftSize
-        const fftSize = analyserNode.fftSize;
-        worker.postMessage({ command: 'initialize', fftSize: fftSize });
-        console.log("Message 'initialize' sent to worker.");
+        detector = PitchDetector.forFloat32Array(analyserNode.fftSize);
 
-        // Function to continuously fetch audio data and send to the worker
         function fetchAndSendAudioData() {
-          const audioData = new Float32Array(fftSize);
-          analyserNode.getFloatTimeDomainData(audioData);
+          frameCounter++;
+          if (frameCounter % SKIP_FRAMES === 0) {
+            const fftSize = analyserNode.fftSize;
+            const audioData = new Float32Array(fftSize);
+            analyserNode.getFloatTimeDomainData(audioData);
+            boundProcessAudioData(audioData, audioContext.sampleRate);
+          }
 
-          worker.postMessage({
-            command: 'process',
-            audioData: audioData,
-            sampleRate: audioContext.sampleRate,
-          });
-
-          // Using setTimeout to mimic requestAnimationFrame's behavior (about 60 times per second)
           requestAnimationFrame(fetchAndSendAudioData);
         }
 
-        // Start the audio data fetching loop
         fetchAndSendAudioData();
       })
       .catch((error) => {

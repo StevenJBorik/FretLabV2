@@ -3,7 +3,7 @@
 import { PitchDetector } from 'pitchy';
 
 let detector = null;
-const SILENCE_THRESHOLD = 0.05;
+const SILENCE_THRESHOLD = 0.06;
 
 self.onmessage = function (event) {
   switch (event.data.command) {
