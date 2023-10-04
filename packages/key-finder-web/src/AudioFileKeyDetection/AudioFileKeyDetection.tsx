@@ -448,7 +448,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     });
 
     console.log('Detected Note:', detectedNote, 'Detected Fret:', detectedFret);
-
+    // test comment
     if (detectedNote && detectedFret !== undefined) {
       const noteData = this.noteMappings[detectedNote];
       if (noteData) {
