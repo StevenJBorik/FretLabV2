@@ -108,20 +108,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
     this.startListeningForNotes();
   }
-  //   componentDidUpdate(prevProps, prevState) {
-  //     console.log('prevState.frets:', prevState.frets, 'currentState.frets:', this.state.frets);
-  //     if ((prevState.frets !== this.state.frets || !prevState.isFileUploaded && this.state.isFileUploaded) && !this.cachedCircles.length) {
-  //         this.cachedCircles = Array.from(document.querySelectorAll('.fretboard circle'));
-  //         console.log(`Number of cached circles: ${this.cachedCircles.length}`);
-  //     }
-  // }
 
-  componentWillUnmount() {
-    // Clean up event listener when the component is unmounted
-    // Assuming you have a function called `stopListeningForNotes` to stop listening for notes
-    // !!!! UNCOMMENT POST TESTING !!!!
-    // this.stopListeningForNotes();
-  }
+  componentWillUnmount() {}
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     // Check if any changes in state or props that would trigger a re-render
@@ -133,6 +121,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
       this.state.incrementFactor !== nextState.incrementFactor
       // Add more checks here if needed for other props or state properties
     ) {
+      console.log('rerendering AudioFileKeyDetection component..');
       return true; // Allow re-render
     }
     return false; // Prevent re-render
@@ -342,14 +331,14 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
   // method to update the startFret state
   updateStartFret = (startFret: number): void => {
-    console.log('updating Start Fret to: ', startFret);
     this.setState({ startFret });
+    console.log('Parent state after updating start Fret: ', startFret);
   };
 
   // method to update the startFret state
   updateFretSpan = (frets: number): void => {
-    console.log('updating end fret to: ', frets);
     this.setState({ frets });
+    console.log('Parent state after updating end Fret: ', frets);
   };
 
   // Method to handle note detection for lighting up notes on fretboard
@@ -1776,8 +1765,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
           <AudioFileItem
             key={fileItem.id}
             fileItem={fileItem}
-            frets={fileItem.frets} // Pass the user-defined frets value to the AudioFileItem component
-            startFret={fileItem.startFret} // Pass the user-defined startFret value to the AudioFileItem component
+            frets={this.state.frets} // Pass the user-defined frets value to the AudioFileItem component
+            startFret={this.state.startFret} // Pass the user-defined startFret value to the AudioFileItem component
             order={fileItem.order} // Pass the user-defined order value to the AudioFileItem component
             incrementFactor={fileItem.incrementFactor}
             normalizedResult={fileItem.normalizedResult} // Pass the normalizedResult here
