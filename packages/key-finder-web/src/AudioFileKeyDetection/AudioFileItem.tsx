@@ -32,8 +32,7 @@ interface Props {
   sectionBoundaries: string[][] | null;
   normalizedResult: string;
   getCurrentTimestamp: () => number; // Include the getCurrentTimestamp function in Props
-  updateStartFret: (startFret: number) => void; // Add updateStartFret function to Props
-  updateFretSpan: (frets: number) => void;
+  onFretUpdate: (startFret: number, frets: number) => void;
   handleNoteDetection: (frequency: number) => void; // Adjust the type of 'note' accordingly
   isReadyToPlay: boolean; // Include the 'isReadyToPlay' prop
   detectedNote: string | null; // Add detectedNote property to the props
@@ -53,14 +52,15 @@ interface State {
   currentTime: number;
   lastPlayedPosition: number | null;
   isReadyToPlay: boolean;
-  // frets: number | null;
-  // startFret: number | null;
+  frets: number | null;
+  startFret: number | null;
   order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
   incrementFactor: number | null;
   files: Array<FileItem>;
   normalizedResult: string | null;
   lastMatchedBoundary: string[] | null;
   detectedNote: string | null;
+  isWaiting: boolean | null;
 }
 
 class AudioFileItem extends Component<Props, State> {
@@ -81,14 +81,15 @@ class AudioFileItem extends Component<Props, State> {
     currentTime: 0,
     isReadyToPlay: false,
     lastPlayedPosition: null,
-    // frets: this.props.frets,
-    // startFret: this.props.startFret,
+    frets: this.props.frets,
+    startFret: this.props.startFret,
     order: this.props.order, // Add order property to store user-defined order value
     incrementFactor: this.props.incrementFactor,
     files: [],
     normalizedResult: this.props.normalizedResult || '', // Initialize with an empty string if not provided
     lastMatchedBoundary: [],
     detectedNote: null,
+    isWaiting: false,
   };
 
   audioContext: AudioContext | null = null;
@@ -139,87 +140,133 @@ class AudioFileItem extends Component<Props, State> {
   //   }
   // }
 
-  componentDidUpdate(prevProps: Props) {
-    // Check if the fileItem.id has changed before initializing audio
-    if (prevProps.fileItem.id !== this.props.fileItem.id) {
-      console.log('AudioFileItem - componentDidUpdate');
-      this.initAudio(this.props.fileItem);
-    }
-    console.log('componentdidupdate..');
-    console.log(
-      'prevProps.fileItem.id vs this.props.fileItem.id: ',
-      prevProps.fileItem.id,
-      this.props.fileItem.id
-    );
-    console.log(
-      'prevProps.frets vs this.props.frets: ',
-      prevProps.frets,
-      this.props.frets
-    );
-    console.log(
-      'prevProps.startFret vs this.props.startFret: ',
-      prevProps.startFret,
-      this.props.startFret
-    );
-    console.log(
-      'prevProps.order vs this.props.order: ',
-      prevProps.order,
-      this.props.order
-    );
-    console.log(
-      'prevProps.incrementFactor vs this.props.incrementFactor: ',
-      prevProps.incrementFactor,
-      this.props.incrementFactor
-    );
-    console.log(
-      'prevProps.normalizedResult vs this.props.normalizedResult: ',
-      prevProps.normalizedResult,
-      this.props.normalizedResult
-    );
+  // componentDidUpdate(prevProps: Props) {
+  //   console.log('Current props:', this.props);
+  //   console.log('Previous props:', prevProps);
 
-    const stateUpdates: Partial<State> = {};
+  //   // Check if the fileItem.id has changed before initializing audio
+  //   if (prevProps.fileItem.id !== this.props.fileItem.id) {
+  //     console.log('AudioFileItem - componentDidUpdate');
+  //     this.initAudio(this.props.fileItem);
+  //   }
 
-    // Only setting state if the value has actually changed.
-    if (prevProps.order !== this.props.order) {
-      stateUpdates.order = this.props.order;
-    }
+  //   // // Render fretboard scale if necessary. No state/prop changes should happen here.
+  //   // if (this.props.startFret !== prevProps.startFret || this.props.frets !== prevProps.frets) {
+  //   //   this.renderFretboardScale();
+  //   // }
+  // }
 
-    if (prevProps.incrementFactor !== this.props.incrementFactor) {
-      stateUpdates.incrementFactor = this.props.incrementFactor;
-    }
+  // componentDidUpdate(prevProps: Props) {
+  //   // Check if the fileItem.id has changed before initalizing audio
+  //   if (prevProps.fileItem.id !== this.props.fileItem.id) {
+  //     console.log('AudioFileItem - componentDidUpdate');
+  //     this.initAudio(this.props.fileItem);
+  //   }
 
-    if (prevProps.normalizedResult !== this.props.normalizedResult) {
-      stateUpdates.normalizedResult = this.props.normalizedResult;
-    }
-
-    // If there are any updates, apply them all at once.
-    if (Object.keys(stateUpdates).length > 0) {
-      this.setState(stateUpdates);
-    }
-  }
+  //   // Check if frets, startFret, or order have changed to update the state and re-render the fretboard scale
+  //   if (
+  //     prevProps.frets !== this.props.frets ||
+  //     prevProps.startFret !== this.props.startFret ||
+  //     prevProps.order !== this.props.order ||
+  //     prevProps.incrementFactor !== this.props.incrementFactor ||
+  //     prevProps.normalizedResult !== this.props.normalizedResult
+  //   ) {
+  //     this.setState(
+  //       {
+  //         frets: this.props.frets,
+  //         startFret: this.props.startFret,
+  //         order: this.props.order,
+  //         incrementFactor: this.props.incrementFactor,
+  //         normalizedResult: this.props.normalizedResult, // Add normalizedResult to the state
+  //       }
+  //     );
+  //   }
+  // }
 
   // shouldComponentUpdate(nextProps: Props, nextState: State) {
   //   console.log("should component update..")
 
-  //   if (this.state.files !== nextState.files) console.log("state.files changed");
-  //   if (this.state.currentTime !== nextState.currentTime) console.log("state.currentTime changed");
-  //   if (this.props.frets !== nextProps.frets) console.log("props.frets changed");
-  //   if (this.props.startFret !== nextProps.startFret) console.log("props.startFret changed");
-  //   if (this.props.order !== nextProps.order) console.log("props.order changed");
-  //   if (this.props.incrementFactor !== nextProps.incrementFactor) console.log("props.incrementFactor changed");
-  //   if (this.props.normalizedResult !== nextProps.normalizedResult) console.log("props.normalizedResult changed");
-
   //   return (
   //     this.state.files !== nextState.files ||
   //     this.state.currentTime !== nextState.currentTime ||
-  //     // this.props.frets !== nextProps.frets ||
-  //     // this.props.startFret !== nextProps.startFret ||
+  //     this.state.lastMatchedBoundary !== nextState.lastMatchedBoundary ||
   //     this.props.order !== nextProps.order ||
   //     this.props.incrementFactor !== nextProps.incrementFactor ||
-  //     this.props.normalizedResult !== nextProps.normalizedResult
-  //     // Include other props/state checks if necessary
-  //   );
+  //     this.props.normalizedResult !== nextProps.normalizedResult ||
+  //     this.props.startFret !== nextProps.startFret ||
+  //     this.props.frets !== nextProps.frets
+  //     );
   // }
+  // shouldComponentUpdate(nextProps: Props, nextState: State) {
+  //   // Check if any changes in state or props that would trigger a re-render
+  //   if (
+  //     this.state.files !== nextState.files ||
+  //     this.state.currentTime !== nextState.currentTime
+  //   ) {
+  //     return true; // Allow re-render
+  //   }
+  //   return false;
+  // }
+
+  componentDidUpdate(prevProps: Props) {
+    console.log('AudioFileItem - componentDidUpdate started');
+    console.log(
+      'Previous startFret:',
+      prevProps.startFret,
+      'Current startFret:',
+      this.props.startFret
+    );
+    console.log(
+      'Previous frets:',
+      prevProps.frets,
+      'Current frets:',
+      this.props.frets
+    );
+
+    if (prevProps.fileItem.id !== this.props.fileItem.id) {
+      console.log('AudioFileItem - componentDidUpdate: fileItem.id changed');
+      this.initAudio(this.props.fileItem);
+    }
+
+    if (
+      prevProps.frets !== this.props.frets ||
+      prevProps.startFret !== this.props.startFret
+    ) {
+      console.log(
+        'AudioFileItem componentDidupdate - startFret/frets prop changed, rerendering fretboard.'
+      );
+      this.renderFretboardScale();
+    } else {
+      console.log(
+        'AudioFileItem - componentDidUpdate: startFret/frets did not change'
+      );
+    }
+  }
+
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
+    console.log('AudioFileKeyDetection - shouldComponentUpdate');
+    console.log(
+      'Previous startFret:',
+      this.props.startFret,
+      'Next startFret:',
+      nextProps.startFret
+    );
+    console.log(
+      'Previous frets:',
+      this.props.frets,
+      'Next frets:',
+      nextProps.frets
+    );
+    return (
+      this.state.files !== nextState.files ||
+      this.state.currentTime !== nextState.currentTime ||
+      this.props.frets !== nextProps.frets ||
+      this.props.startFret !== nextProps.startFret ||
+      this.props.order !== nextProps.order ||
+      this.props.incrementFactor !== nextProps.incrementFactor ||
+      this.props.normalizedResult !== nextProps.normalizedResult
+    );
+  }
 
   componentWillUnmount() {
     console.log('AudioFileItem component is unmounted. ');
@@ -419,6 +466,12 @@ class AudioFileItem extends Component<Props, State> {
   renderFretboardScale() {
     const { normalizedResult, order } = this.state;
     const { frets, startFret } = this.props;
+
+    console.log(
+      'renderFretboardScale - props values for startFret/frets: ',
+      startFret,
+      frets
+    );
     console.log(
       'in renderFretboardScale method, passed key is: ',
       normalizedResult
@@ -453,9 +506,12 @@ class AudioFileItem extends Component<Props, State> {
       startFret: startFret,
       showTitle: true,
     });
-    // console.log('frets: ', frets);
-    // console.log('startFret: ', startFret);
 
+    console.log(
+      'renderFretboardScale - rendering fretboard with frets/startFret: ',
+      frets,
+      startFret
+    );
     fb.add(normalizedResult).paint();
   }
 
@@ -527,15 +583,20 @@ class AudioFileItem extends Component<Props, State> {
   handleAudioTimeUpdate = () => {
     console.log('in handleAudioTimeUpdate method');
     const audioElement = this.audioElement;
-    // console.log('audio element log: ', audioElement);
+    console.log('audio element log: ', audioElement);
     if (!audioElement) return;
+
+    this.setState({ isWaiting: true });
+    setTimeout(() => this.setState({ isWaiting: false }), 1000);
+
+    console.log('Current time:', audioElement.currentTime);
 
     // Round the current timestamp to match the section boundaries
     const currentTimestamp = Math.round(audioElement.currentTime);
 
     // Convert the current timestamp to a string in the minute:second format
     const formattedTime = this.convertSecondsToMinuteSecond(currentTimestamp);
-    // console.log('current time stamp: ', formattedTime);
+    console.log('Formatted time: ', formattedTime);
 
     console.log('handleAudioTimeUpdate method: checking if boundary matches..');
     // Check if the current timestamp matches any of the section boundaries
@@ -543,14 +604,22 @@ class AudioFileItem extends Component<Props, State> {
       boundary.includes(formattedTime)
     );
 
-    // console.log('section boundaries from props', this.props.sectionBoundaries);
-
+    console.log('section boundaries from props', this.props.sectionBoundaries);
+    console.log(
+      'matchedBoundary || this.state.lastmatchedBoundary',
+      matchedBoundary,
+      this.state.lastMatchedBoundary
+    );
+    //matchedBoundary Undefined?
     if (matchedBoundary && matchedBoundary !== this.state.lastMatchedBoundary) {
-      // console.log("we've got a match!", matchedBoundary);
+      console.log("we've got a match!", matchedBoundary);
 
       // Update the fretboard scale based on the rounded current time
       this.updateFretboardScale(currentTimestamp);
 
+      console.log(
+        'handleAudioTimeUpdate method: setting matched boundary state..'
+      );
       // Set the last matched boundary to the current matched boundary
       this.setState({ lastMatchedBoundary: matchedBoundary });
     }
@@ -600,13 +669,17 @@ class AudioFileItem extends Component<Props, State> {
       }
     }
 
+    console.log('updateFretboardScale - nextStartFret: ', nextStartFret);
+    console.log('updateFretboardScale - nextFretSpan: ', nextFretSpan);
+    console.log('updateFretboardScale - currentFretSpan: ', currentStartFret);
+    console.log('updateFretboardScale - currentFrets: ', currentFrets);
     // Check if an update is required before calling setState
     if (nextStartFret !== currentStartFret || nextFretSpan !== currentFrets) {
       console.log(
         'updating startFret and frets in updateFretboardScale method..'
       );
-      this.props.updateStartFret(nextStartFret);
-      this.props.updateFretSpan(nextFretSpan);
+      this.props.onFretUpdate(nextStartFret, nextFretSpan);
+      // this.renderFretboardScale();
     } else {
       // If startFret is not changed, no need to update the state; just render the fretboard scale
       this.renderFretboardScale();
@@ -616,6 +689,8 @@ class AudioFileItem extends Component<Props, State> {
   render() {
     const { fileItem } = this.props;
     const { analyzing, result } = this.state;
+
+    // #1
     console.log('Child props startFret:', this.props.startFret);
     console.log('Child props end Fret:', this.props.frets);
 

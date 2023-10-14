@@ -28,7 +28,10 @@ declare var cv: any;
 
 // import * as DrawingUtils from '@mediapipe/drawing_utils/drawing_utils.js';
 
-interface Props {}
+interface Props {
+  frets?: number; // Add frets property to store user-defined frets value
+  startFret?: number; // Add startFret property to store user-defined startFret value
+}
 
 interface State {
   files: Array<FileItem>;
@@ -112,11 +115,23 @@ class AudioFileKeyDetection extends Component<Props, State> {
   componentWillUnmount() {}
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
-    // Check if any changes in state or props that would trigger a re-render
+    console.log('AudioFileKeyDetection - shouldComponentUpdate');
+    console.log(
+      'Previous startFret:',
+      this.props.startFret,
+      'Next startFret:',
+      nextProps.startFret
+    );
+    console.log(
+      'Previous frets:',
+      this.props.frets,
+      'Next frets:',
+      nextProps.frets
+    );
     if (
       this.state.files !== nextState.files ||
-      this.state.frets !== nextState.frets ||
-      this.state.startFret !== nextState.startFret ||
+      this.props.frets !== nextProps.frets ||
+      this.props.startFret !== nextProps.startFret ||
       this.state.order !== nextState.order ||
       this.state.incrementFactor !== nextState.incrementFactor
       // Add more checks here if needed for other props or state properties
@@ -328,19 +343,17 @@ class AudioFileKeyDetection extends Component<Props, State> {
     const incrementFactor = Number((event.target as HTMLInputElement).value);
     this.setState({ incrementFactor });
   };
-
-  // method to update the startFret state
-  updateStartFret = (startFret: number): void => {
-    this.setState({ startFret });
-    console.log('Parent state after updating start Fret: ', startFret);
+  handleFretUpdate = (startFret: number, frets: number): void => {
+    console.log(
+      'handleFretUpdate - initialized from AudioFileItem, setting new startFret/frets state. '
+    );
+    this.setState({ startFret, frets });
+    console.log(
+      'handleFretUpdate values for startFret/frets: ',
+      startFret,
+      frets
+    );
   };
-
-  // method to update the startFret state
-  updateFretSpan = (frets: number): void => {
-    this.setState({ frets });
-    console.log('Parent state after updating end Fret: ', frets);
-  };
-
   // Method to handle note detection for lighting up notes on fretboard
   handleNoteDetection(frequency: number | null): void {
     if (frequency !== null) {
@@ -1776,8 +1789,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
             updateResult={this.updateResult}
             audioElement={this.audioElement} // Pass the audioElement to the child component
             isReadyToPlay={this.state.isReadyToPlay}
-            updateStartFret={this.updateStartFret} // Pass the updateStartFret method as a prop
-            updateFretSpan={this.updateFretSpan}
+            onFretUpdate={this.handleFretUpdate}
             handleNoteDetection={this.debouncedHandleNoteDetection} // Include handleNoteDetection in the props passed to the child component
             detectedNote={this.state.detectedNote} // Pass the detected note to the child component
           />
