@@ -130,13 +130,15 @@ class AudioFileKeyDetection extends Component<Props, State> {
     );
     if (
       this.state.files !== nextState.files ||
-      this.props.frets !== nextProps.frets ||
-      this.props.startFret !== nextProps.startFret ||
+      // this.state.frets !== nextState.frets ||
+      // this.state.startFret !== nextState.startFret ||
       this.state.order !== nextState.order ||
       this.state.incrementFactor !== nextState.incrementFactor
       // Add more checks here if needed for other props or state properties
     ) {
-      console.log('rerendering AudioFileKeyDetection component..');
+      console.log(
+        'parent component AudioFilekeyDetection returned true -- rerendering AudioFileKeyDetection component..'
+      );
       return true; // Allow re-render
     }
     return false; // Prevent re-render
@@ -343,6 +345,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     const incrementFactor = Number((event.target as HTMLInputElement).value);
     this.setState({ incrementFactor });
   };
+
   handleFretUpdate = (startFret: number, frets: number): void => {
     console.log(
       'handleFretUpdate - initialized from AudioFileItem, setting new startFret/frets state. '
