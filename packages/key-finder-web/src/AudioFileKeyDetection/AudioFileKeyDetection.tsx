@@ -43,7 +43,8 @@ interface State {
   incrementFactor: number;
   detectedNote: string;
   detectedFret: number;
-  detectedString: string;
+  detectedString: number;
+  lastPlayedFret: number | null;
   handLandmarker?: any; // Your hand landmarking model
   handConnections: any;
   runningMode: 'IMAGE' | 'VIDEO'; // Only two modes according to your code
@@ -82,7 +83,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     incrementFactor: 3,
     detectedNote: '',
     detectedFret: 0,
-    detectedString: '',
+    detectedString: 0,
     handLandmarker: null,
     handConnections: null,
     runningMode: 'IMAGE',
@@ -95,6 +96,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     isCalibrated: false,
     showGuitarPrompt: false,
     isFileUploaded: false,
+    lastPlayedFret: null,
   };
 
   componentDidMount() {
@@ -116,18 +118,18 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     console.log('AudioFileKeyDetection - shouldComponentUpdate');
-    console.log(
-      'Previous startFret:',
-      this.props.startFret,
-      'Next startFret:',
-      nextProps.startFret
-    );
-    console.log(
-      'Previous frets:',
-      this.props.frets,
-      'Next frets:',
-      nextProps.frets
-    );
+    // console.log(
+    //   'Previous startFret:',
+    //   this.props.startFret,
+    //   'Next startFret:',
+    //   nextProps.startFret
+    // );
+    // console.log(
+    //   'Previous frets:',
+    //   this.props.frets,
+    //   'Next frets:',
+    //   nextProps.frets
+    // );
     if (
       this.state.files !== nextState.files ||
       // this.state.frets !== nextState.frets ||
@@ -357,70 +359,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
       frets
     );
   };
-  // Method to handle note detection for lighting up notes on fretboard
-  // handleNoteDetection(frequency: number | null): void {
-  //   if (frequency !== null) {
-  //     let potentialMatches = this.getNoteFromFrequency(frequency);
 
-  //     console.log('Detected Frequency: ', frequency);
-  //     console.log('Potential Matches before filtering: ', potentialMatches);
-
-  //     // Special logic for B3 note on frets 0 and 4
-  //     const b3Fret0Match = potentialMatches.find(
-  //       (match) => match.note === 'B3' && match.fret === 0
-  //     );
-  //     const b3Fret4Match = potentialMatches.find(
-  //       (match) => match.note === 'B3' && match.fret === 4
-  //     );
-
-  //     if (b3Fret0Match && b3Fret4Match) {
-  //       if (frequency < 246.94) {
-  //         potentialMatches = [b3Fret0Match]; // Prioritize B3 on fret 0
-  //       } else {
-  //         potentialMatches = [b3Fret4Match]; // Prioritize B3 on fret 4
-  //       }
-  //     }
-  //     console.log(
-  //       'beginning fret before getting matches ',
-  //       this.state.startFret
-  //     );
-  //     console.log('ending fret before getting matches ', this.state.frets);
-  //     potentialMatches = potentialMatches.filter((match) => {
-  //       return (
-  //         match.fret >= this.state.startFret &&
-  //         match.fret <= this.state.startFret + this.state.frets
-  //       );
-  //     });
-
-  //     console.log('Potential Matches after filtering: ', potentialMatches);
-
-  //     let probableMatch;
-
-  //     if (potentialMatches.length === 1) {
-  //       probableMatch = potentialMatches[0];
-  //     } else if (potentialMatches.length > 1) {
-  //       // Prioritize matches that are closest to the last detected fret
-  //       probableMatch = potentialMatches.sort((a, b) => {
-  //         return (
-  //           Math.abs(this.state.detectedFret - a.fret) -
-  //           Math.abs(this.state.detectedFret - b.fret)
-  //         );
-  //       })[0];
-  //     }
-
-  //     console.log('Probable Match:', probableMatch);
-
-  //     if (probableMatch) {
-  //       this.setState({
-  //         detectedNote: probableMatch.note,
-  //         detectedFret: probableMatch.fret,
-  //       });
-  //       this.updateFretboardHighlights(probableMatch.note, probableMatch.fret);
-  //     } else if (this.state.detectedNote) {
-  //       this.setState({ detectedNote: '', detectedFret: null });
-  //     }
-  //   }
-  // }
   handleNoteDetection(frequency: number | null): void {
     if (frequency !== null) {
       let potentialMatches = this.getNoteFromFrequency(frequency);
@@ -450,42 +389,13 @@ class AudioFileKeyDetection extends Component<Props, State> {
         );
       });
 
-      console.log('Potential Matches after filtering: ', potentialMatches);
+      const distanceToLastFret = (match) =>
+        Math.abs(this.state.detectedFret - match.fret);
+      potentialMatches.sort(
+        (a, b) => distanceToLastFret(a) - distanceToLastFret(b)
+      );
 
-      let probableMatch;
-
-      if (potentialMatches.length === 1) {
-        probableMatch = potentialMatches[0];
-      } else if (potentialMatches.length > 1) {
-        // Step 1: Filter those on the same fret as the last detected fret.
-        const sameFretMatches = potentialMatches.filter(
-          (match) => match.fret === this.state.detectedFret
-        );
-
-        if (sameFretMatches.length === 1) {
-          probableMatch = sameFretMatches[0];
-        } else if (sameFretMatches.length > 1) {
-          // Step 2: Prioritize based on string using the last detected note's string.
-          const lastDetectedString =
-            this.noteMappings[this.state.detectedNote]?.string;
-          const sameStringMatches = sameFretMatches.filter(
-            (match) => match.string === lastDetectedString
-          );
-
-          probableMatch =
-            sameStringMatches.length > 0
-              ? sameStringMatches[0]
-              : sameFretMatches[0];
-        } else {
-          // Step 3: If none on the same fret, then sort based on closeness to the last detected fret.
-          probableMatch = potentialMatches.sort((a, b) => {
-            return (
-              Math.abs(this.state.detectedFret - a.fret) -
-              Math.abs(this.state.detectedFret - b.fret)
-            );
-          })[0];
-        }
-      }
+      let probableMatch = potentialMatches[0];
 
       console.log('Probable Match:', probableMatch);
 
@@ -493,13 +403,98 @@ class AudioFileKeyDetection extends Component<Props, State> {
         this.setState({
           detectedNote: probableMatch.note,
           detectedFret: probableMatch.fret,
+          detectedString: probableMatch.string,
         });
         this.updateFretboardHighlights(probableMatch.note, probableMatch.fret);
       } else if (this.state.detectedNote) {
-        this.setState({ detectedNote: '', detectedFret: null });
+        this.setState({
+          detectedNote: '',
+          detectedFret: null,
+          detectedString: null,
+        });
       }
     }
   }
+
+  // handleNoteDetection(frequency: number | null): void {
+  //   if (frequency !== null) {
+  //     let potentialMatches = this.getNoteFromFrequency(frequency);
+  //     console.log('Detected Frequency: ', frequency);
+  //     console.log('Potential Matches before filtering: ', potentialMatches);
+
+  //     // Special logic for B3 note on frets 0 and 4
+  //     const b3Fret0Match = potentialMatches.find(
+  //       (match) => match.note === 'B3' && match.fret === 0
+  //     );
+  //     const b3Fret4Match = potentialMatches.find(
+  //       (match) => match.note === 'B3' && match.fret === 4
+  //     );
+
+  //     if (b3Fret0Match && b3Fret4Match) {
+  //       if (frequency < 246.94) {
+  //         potentialMatches = [b3Fret0Match]; // Prioritize B3 on fret 0
+  //       } else {
+  //         potentialMatches = [b3Fret4Match]; // Prioritize B3 on fret 4
+  //       }
+  //     }
+
+  //     potentialMatches = potentialMatches.filter((match) => {
+  //       return (
+  //         match.fret >= this.state.startFret &&
+  //         match.fret <= this.state.startFret + this.state.frets
+  //       );
+  //     });
+
+  //     console.log('Potential Matches after filtering: ', potentialMatches);
+
+  //     let probableMatch;
+
+  //     if (potentialMatches.length === 1) {
+  //       probableMatch = potentialMatches[0];
+  //     } else if (potentialMatches.length > 1) {
+  //       // Step 1: Filter those on the same fret as the last detected fret.
+  //       const sameFretMatches = potentialMatches.filter(
+  //         (match) => match.fret === this.state.detectedFret
+  //       );
+
+  //       if (sameFretMatches.length === 1) {
+  //         probableMatch = sameFretMatches[0];
+  //       } else if (sameFretMatches.length > 1) {
+  //         // Step 2: Prioritize based on string using the last detected note's string.
+  //         const lastDetectedString =
+  //           this.noteMappings[this.state.detectedNote]?.string;
+  //         const sameStringMatches = sameFretMatches.filter(
+  //           (match) => match.string === lastDetectedString
+  //         );
+
+  //         probableMatch =
+  //           sameStringMatches.length > 0
+  //             ? sameStringMatches[0]
+  //             : sameFretMatches[0];
+  //       } else {
+  //         // Step 3: If none on the same fret, then sort based on closeness to the last detected fret.
+  //         probableMatch = potentialMatches.sort((a, b) => {
+  //           return (
+  //             Math.abs(this.state.detectedFret - a.fret) -
+  //             Math.abs(this.state.detectedFret - b.fret)
+  //           );
+  //         })[0];
+  //       }
+  //     }
+
+  //     console.log('Probable Match:', probableMatch);
+
+  //     if (probableMatch) {
+  //       this.setState({
+  //         detectedNote: probableMatch.note,
+  //         detectedFret: probableMatch.fret,
+  //       });
+  //       this.updateFretboardHighlights(probableMatch.note, probableMatch.fret);
+  //     } else if (this.state.detectedNote) {
+  //       this.setState({ detectedNote: '', detectedFret: null });
+  //     }
+  //   }
+  // }
 
   fretPositions = {
     0: 37.5,
@@ -539,7 +534,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     const allCircleElements =
       fretboardContainer.querySelectorAll('circle.note'); // targeting circles with class 'note'
 
-    console.log('Total circles:', allCircleElements.length);
+    // console.log('Total circles:', allCircleElements.length);
 
     allCircleElements.forEach((circleElement) => {
       if (circleElement instanceof SVGElement) {
@@ -561,14 +556,14 @@ class AudioFileKeyDetection extends Component<Props, State> {
             );
             const relativeFret = detectedFret - this.state.startFret;
             const fretPosition = this.fretPositions[relativeFret];
-            console.log(
-              'updateFretboardHighlights - relative fret: ',
-              relativeFret
-            );
-            console.log(
-              'updateFretboardHighlights - fretPosition ',
-              fretPosition
-            );
+            // console.log(
+            //   'updateFretboardHighlights - relative fret: ',
+            //   relativeFret
+            // );
+            // console.log(
+            //   'updateFretboardHighlights - fretPosition ',
+            //   fretPosition
+            // );
 
             let matchingCircle;
 
@@ -612,17 +607,17 @@ class AudioFileKeyDetection extends Component<Props, State> {
                   detectedNote
             );
 
-            console.log(
-              'Circles matching cx attribute:',
-              cxMatchingCircles.length
-            );
-            console.log(
-              'Circles matching detected note:',
-              noteMatchingCircles.length
-            );
+            // console.log(
+            //   'Circles matching cx attribute:',
+            //   cxMatchingCircles.length
+            // );
+            // console.log(
+            //   'Circles matching detected note:',
+            //   noteMatchingCircles.length
+            // );
 
-            console.log('cxMatchingCircles:', cxMatchingCircles);
-            console.log('noteMatchingCircles:', noteMatchingCircles);
+            // console.log('cxMatchingCircles:', cxMatchingCircles);
+            // console.log('noteMatchingCircles:', noteMatchingCircles);
           }
         });
       }
@@ -1485,92 +1480,92 @@ class AudioFileKeyDetection extends Component<Props, State> {
   lastVideoTime = -1;
   // results = undefined;
 
-  predictWebcam = async () => {
-    console.log('inpredictcam');
-    if (!this.opencvIsReady.current) {
-      console.log('predictWebcam: OpenCV is not ready yet.');
-      return;
-    }
+  // predictWebcam = async () => {
+  //   console.log('inpredictcam');
+  //   if (!this.opencvIsReady.current) {
+  //     console.log('predictWebcam: OpenCV is not ready yet.');
+  //     return;
+  //   }
 
-    const { DrawingUtils } = await import('./visionModule.js');
-    const drawingUtils = new DrawingUtils(this.canvasCtx);
+  //   const { DrawingUtils } = await import('./visionModule.js');
+  //   const drawingUtils = new DrawingUtils(this.canvasCtx);
 
-    if (this.state.runningMode === 'IMAGE') {
-      await this.state.handLandmarker.setOptions({ runningMode: 'VIDEO' });
-      this.setState({ runningMode: 'VIDEO' });
-    }
+  //   if (this.state.runningMode === 'IMAGE') {
+  //     await this.state.handLandmarker.setOptions({ runningMode: 'VIDEO' });
+  //     this.setState({ runningMode: 'VIDEO' });
+  //   }
 
-    let startTimeMs = performance.now();
-    if (this.state.lastVideoTime !== this.videoRef.current.currentTime) {
-      const currentVideoTime = this.videoRef.current.currentTime;
-      const results = await this.state.handLandmarker.detectForVideo(
-        this.videoRef.current,
-        startTimeMs
-      );
-      this.setState({
-        lastVideoTime: currentVideoTime,
-        results,
-      });
-    }
+  //   let startTimeMs = performance.now();
+  //   if (this.state.lastVideoTime !== this.videoRef.current.currentTime) {
+  //     const currentVideoTime = this.videoRef.current.currentTime;
+  //     const results = await this.state.handLandmarker.detectForVideo(
+  //       this.videoRef.current,
+  //       startTimeMs
+  //     );
+  //     this.setState({
+  //       lastVideoTime: currentVideoTime,
+  //       results,
+  //     });
+  //   }
 
-    this.canvasCtx.save();
-    this.canvasCtx.clearRect(
-      0,
-      0,
-      this.canvasRef.current.width,
-      this.canvasRef.current.height
-    );
+  //   this.canvasCtx.save();
+  //   this.canvasCtx.clearRect(
+  //     0,
+  //     0,
+  //     this.canvasRef.current.width,
+  //     this.canvasRef.current.height
+  //   );
 
-    if (this.state.results && this.state.results.landmarks) {
-      // Directly convert canvas to OpenCV Mat
-      const imageData = this.canvasCtx.getImageData(
-        0,
-        0,
-        this.canvasRef.current.width,
-        this.canvasRef.current.height
-      );
-      const canvasSrc = cv.matFromImageData(imageData);
+  //   if (this.state.results && this.state.results.landmarks) {
+  //     // Directly convert canvas to OpenCV Mat
+  //     const imageData = this.canvasCtx.getImageData(
+  //       0,
+  //       0,
+  //       this.canvasRef.current.width,
+  //       this.canvasRef.current.height
+  //     );
+  //     const canvasSrc = cv.matFromImageData(imageData);
 
-      // Perform OpenCV operations once for the frame
-      const edges = this.preprocessImage(canvasSrc);
-      const stringsYPositions = this.detectStrings(edges);
-      const fretsXPositions = this.detectFrets(edges);
+  //     // Perform OpenCV operations once for the frame
+  //     const edges = this.preprocessImage(canvasSrc);
+  //     const stringsYPositions = this.detectStrings(edges);
+  //     const fretsXPositions = this.detectFrets(edges);
 
-      for (const landmarks of this.state.results.landmarks) {
-        const detectedString = this.determineStringFromLandmarks(
-          landmarks,
-          stringsYPositions
-        );
-        const detectedFret = this.determineFretFromLandmarks(
-          landmarks,
-          fretsXPositions
-        );
+  //     for (const landmarks of this.state.results.landmarks) {
+  //       const detectedString = this.determineStringFromLandmarks(
+  //         landmarks,
+  //         stringsYPositions
+  //       );
+  //       const detectedFret = this.determineFretFromLandmarks(
+  //         landmarks,
+  //         fretsXPositions
+  //       );
 
-        this.setState({
-          detectedString: String(detectedString), // convert to string if needed
-          detectedFret: Number(detectedFret),
-        });
+  //       this.setState({
+  //         detectedString: String(detectedString), // convert to string if needed
+  //         detectedFret: Number(detectedFret),
+  //       });
 
-        console.log('Detected String:', detectedString);
-        console.log('Detected Fret:', detectedFret);
+  //       console.log('Detected String:', detectedString);
+  //       console.log('Detected Fret:', detectedFret);
 
-        drawingUtils.drawConnectors(landmarks, this.state.handConnections, {
-          color: '#00FF00',
-          lineWidth: 5,
-        });
-        drawingUtils.drawLandmarks(landmarks, {
-          color: '#FF0000',
-          lineWidth: 2,
-        });
-      }
-    }
+  //       drawingUtils.drawConnectors(landmarks, this.state.handConnections, {
+  //         color: '#00FF00',
+  //         lineWidth: 5,
+  //       });
+  //       drawingUtils.drawLandmarks(landmarks, {
+  //         color: '#FF0000',
+  //         lineWidth: 2,
+  //       });
+  //     }
+  //   }
 
-    this.canvasCtx.restore();
+  //   this.canvasCtx.restore();
 
-    if (this.state.webcamRunning === true) {
-      window.requestAnimationFrame(this.predictWebcam);
-    }
-  };
+  //   if (this.state.webcamRunning === true) {
+  //     window.requestAnimationFrame(this.predictWebcam);
+  //   }
+  // };
 
   preprocessImage(image) {
     // Convert to grayscale
