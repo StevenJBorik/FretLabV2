@@ -57,6 +57,9 @@ interface State {
   isCalibrated: boolean;
   showGuitarPrompt: boolean;
   isFileUploaded: boolean;
+  lastValidNote: string;
+  lastValidFret: number;
+  lastValidString: number;
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -72,6 +75,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
   cachedCircles: SVGCircleElement[] = [];
   currentHighlightedCircle: SVGCircleElement | null = null; // Add this line
   debouncedHandleNoteDetection = this.debounce(this.handleNoteDetection, 150);
+  thresholds: { [key: number]: { min: number; max: number } } = {};
 
   state: State = {
     files: [],
@@ -97,6 +101,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
     showGuitarPrompt: false,
     isFileUploaded: false,
     lastPlayedFret: null,
+    lastValidNote: '',
+    lastValidFret: 0,
+    lastValidString: 0,
   };
 
   componentDidMount() {
@@ -110,7 +117,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     if (this.canvasRef.current) {
       this.canvasCtx = this.canvasRef.current.getContext('2d');
     }
-
+    this.computeThresholds();
     this.startListeningForNotes();
   }
 
@@ -144,6 +151,37 @@ class AudioFileKeyDetection extends Component<Props, State> {
       return true; // Allow re-render
     }
     return false; // Prevent re-render
+  }
+
+  computeThresholds() {
+    let frequencies = [];
+    for (let note in this.noteMappings) {
+      for (let mapping of this.noteMappings[note]) {
+        if (!frequencies.includes(mapping.frequency)) {
+          frequencies.push(mapping.frequency);
+        }
+      }
+    }
+    frequencies.sort((a, b) => a - b);
+    let midpoints = [];
+    for (let i = 0; i < frequencies.length - 1; i++) {
+      midpoints.push((frequencies[i] + frequencies[i + 1]) / 2);
+    }
+    for (let i = 0; i < frequencies.length; i++) {
+      if (i === 0) {
+        this.thresholds[frequencies[i]] = { min: 0, max: midpoints[i] };
+      } else if (i === frequencies.length - 1) {
+        this.thresholds[frequencies[i]] = {
+          min: midpoints[i - 1],
+          max: Infinity,
+        };
+      } else {
+        this.thresholds[frequencies[i]] = {
+          min: midpoints[i - 1],
+          max: midpoints[i],
+        };
+      }
+    }
   }
 
   handleOpenCVReady = () => {
@@ -404,13 +442,16 @@ class AudioFileKeyDetection extends Component<Props, State> {
           detectedNote: probableMatch.note,
           detectedFret: probableMatch.fret,
           detectedString: probableMatch.string,
+          lastValidNote: probableMatch.note, // Update the last valid values here
+          lastValidFret: probableMatch.fret,
+          lastValidString: probableMatch.string,
         });
         this.updateFretboardHighlights(probableMatch.note, probableMatch.fret);
       } else if (this.state.detectedNote) {
         this.setState({
-          detectedNote: '',
-          detectedFret: null,
-          detectedString: null,
+          detectedNote: this.state.lastValidNote,
+          detectedFret: this.state.lastValidFret,
+          detectedString: this.state.lastValidString,
         });
       }
     }
@@ -625,13 +666,17 @@ class AudioFileKeyDetection extends Component<Props, State> {
   };
 
   startListeningForNotes() {
-    // Initialize the PitchDetector directly in the main thread
-    const SILENCE_THRESHOLD = 0.05;
+    const SILENCE_THRESHOLD = 0.09;
     let detector;
-    const SKIP_FRAMES = 6; // Process audio data every 3rd frame
     let frameCounter = 0;
     let lastProcessedTime = 0;
-    const PROCESS_INTERVAL = 200;
+    const PROCESS_INTERVAL = 50;
+    const HOLD_TIME = 150; // Change as per your needs
+    let lastDetectedPitchTime = 0;
+    let lastDetectedPitch = null;
+
+    let previousPitches = [];
+    const MAX_PITCHES = 2; // Number of pitches to store for averaging and buffering
 
     function processAudioData(input, sampleRate) {
       try {
@@ -644,8 +689,34 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
         if (maxAmplitude > SILENCE_THRESHOLD) {
           const [pitch] = detector.findPitch(input, sampleRate);
+
           if (typeof pitch === 'number') {
-            this.handleNoteDetection(pitch);
+            // Smoothing
+            previousPitches.push(pitch);
+            if (previousPitches.length > MAX_PITCHES) {
+              previousPitches.shift();
+            }
+            const averagePitch =
+              previousPitches.reduce((a, b) => a + b) / previousPitches.length;
+
+            // Buffering
+            const meanPitch =
+              previousPitches.reduce((a, b) => a + b) / previousPitches.length;
+            const pitchDifference = Math.abs(meanPitch - pitch);
+
+            if (pitchDifference < 20 || previousPitches.length < MAX_PITCHES) {
+              // 5 can be tweaked
+              // Hold Time
+              const currentTime = Date.now();
+              if (
+                currentTime - lastDetectedPitchTime > HOLD_TIME ||
+                !lastDetectedPitch
+              ) {
+                this.handleNoteDetection(averagePitch);
+                lastDetectedPitch = averagePitch;
+                lastDetectedPitchTime = currentTime;
+              }
+            }
           } else {
             this.handleNoteDetection(null);
           }
@@ -664,10 +735,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
       .then((stream) => {
         const audioContext = new AudioContext();
         const analyserNode = audioContext.createAnalyser();
-        analyserNode.fftSize = 1024; // Reduced FFT size for faster processing
+        analyserNode.fftSize = 1024;
 
         audioContext.createMediaStreamSource(stream).connect(analyserNode);
-
         detector = PitchDetector.forFloat32Array(analyserNode.fftSize);
 
         function fetchAndSendAudioData() {
@@ -917,7 +987,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
   ): Array<{ note: string; fret: number; string: number }> => {
     const MIN_FREQUENCY = 80;
     const MAX_FREQUENCY = 850;
-
     const freq =
       typeof frequency === 'string' ? parseFloat(frequency) : frequency;
 
@@ -935,9 +1004,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
     for (const note in this.noteMappings) {
       const noteData = this.noteMappings[note];
       noteData.forEach((data) => {
-        const difference = Math.abs(freq - data.frequency);
-        if (difference < 5) {
-          // Threshold can be adjusted as needed
+        const { min, max } = this.thresholds[data.frequency];
+        if (freq >= min && freq <= max) {
           potentialMatches.push({
             note: note,
             fret: data.fret,
