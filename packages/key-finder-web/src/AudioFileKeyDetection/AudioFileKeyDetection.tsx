@@ -212,6 +212,37 @@ class AudioFileKeyDetection extends Component<Props, State> {
     )}`;
   };
 
+  handleYouTubeLink = async () => {
+    const youtubeLinkElement = document.querySelector(
+      '.youtube-link-input'
+    ) as HTMLInputElement;
+    const youtubeLink = youtubeLinkElement?.value;
+
+    if (youtubeLink) {
+      const response = await axios.post(
+        'http://localhost:4000/api/process-youtube-link',
+        { link: youtubeLink }
+      );
+
+      if (response.data && response.data.mp3) {
+        // Convert the MP3 data to a File object and trigger handleFileInput logic
+        const mp3File = new File([response.data.mp3], 'youtube-audio.mp3', {
+          type: 'audio/mpeg',
+        });
+        const mockEvent = {
+          target: {
+            files: [mp3File],
+            value: '',
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispatchEvent: (event: Event) => true,
+          } as any,
+        };
+        this.handleFileInput(mockEvent as any);
+      }
+    }
+  };
+
   handleFileInput = (event: Event): void => {
     console.log('AudioFileKeyDetection - handleFileInput');
     const fileList = (event.target as HTMLInputElement).files;
@@ -1806,6 +1837,16 @@ class AudioFileKeyDetection extends Component<Props, State> {
           </header>
           <div style={{ paddingTop: '1rem' }}>
             <div style={{ marginBottom: '2rem' }}>
+              <div class="youtube-link-container">
+                <input
+                  class="youtube-link-input"
+                  type="text"
+                  placeholder="Paste YouTube Link Here"
+                />
+                <button onClick={this.handleYouTubeLink}>
+                  Convert & Process
+                </button>
+              </div>
               <label for="load-a-track" style={{ paddingRight: '1rem' }}>
                 Load a track:
               </label>

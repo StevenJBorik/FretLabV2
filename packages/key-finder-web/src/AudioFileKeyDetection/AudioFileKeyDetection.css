@@ -101,3 +101,16 @@
   flex-direction: column;
   gap: 10px;
 }
+
+.youtube-link-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.youtube-link-input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 20px; /* Rounded edges */
+}
