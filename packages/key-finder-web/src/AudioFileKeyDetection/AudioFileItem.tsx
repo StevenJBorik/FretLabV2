@@ -449,16 +449,49 @@ class AudioFileItem extends Component<Props, State> {
   };
 
   getKeySignatureNumericValue(result: string | null) {
-    // console.log('AudioFileItem - getKeySignatureNumericValue');
     if (!result) {
       return null;
     }
 
     const normalizedResult = result.toLowerCase();
-    // const normalizedResult = "\"" + rawResult + "\"";
+    const parts = normalizedResult.split(' '); // split based on space
+
+    if (parts.length > 1 && parts[1] === 'minor') {
+      parts[1] = 'aeolian'; // replace minor with aeolian
+      return parts.join(' '); // rejoin to form "e aeolian" or "a aeolian"
+    }
 
     return normalizedResult;
   }
+
+  getScaleOptions(scale: string) {
+    console.log('in getScaleOptions..');
+    console.log('resulting scale: ', scale);
+
+    const majorOptions = ['ionian', 'lydian', 'mixolydian'];
+    const minorOptions = [
+      'aeolian',
+      'dorian',
+      'phrygian',
+      'harmonic minor',
+      'melodic minor',
+    ];
+
+    if (scale === 'major') {
+      return majorOptions;
+    } else if (scale === 'minor' || scale === 'aeolian') {
+      return minorOptions;
+    } else {
+      return []; // or handle other scales as needed
+    }
+  }
+
+  changeScale = (selectedScale: string) => {
+    console.log('in changeScale...');
+    this.setState({ normalizedResult: selectedScale }, () => {
+      this.renderFretboardScale(); // re-render fretboard with the new scale
+    });
+  };
 
   arrayBufferToHex(buffer: ArrayBuffer): string {
     const hashArray = Array.from(new Uint8Array(buffer));
@@ -467,7 +500,7 @@ class AudioFileItem extends Component<Props, State> {
 
   renderFretboardScale() {
     const { normalizedResult, order } = this.state;
-    const { frets, startFret } = this.props;
+    const { frets, startFret, isReadyToPlay } = this.props;
 
     console.log(
       'renderFretboardScale - props values for startFret/frets: ',
@@ -478,7 +511,7 @@ class AudioFileItem extends Component<Props, State> {
       'in renderFretboardScale method, passed key is: ',
       normalizedResult
     );
-    if (!normalizedResult) {
+    if (!normalizedResult && !isReadyToPlay) {
       return;
     }
 
@@ -700,6 +733,7 @@ class AudioFileItem extends Component<Props, State> {
   render() {
     const { fileItem } = this.props;
     const { analyzing, result } = this.state;
+    const scaleOptions = this.getScaleOptions(result); // Gets scale options based on result
 
     // #1
     console.log('Child props startFret:', this.props.startFret);
@@ -714,6 +748,13 @@ class AudioFileItem extends Component<Props, State> {
             <div>
               Result: {result}
               {/* ... (existing code) */}
+              <div>
+                {scaleOptions.map((scale) => (
+                  <button onClick={() => this.changeScale(scale)}>
+                    {scale}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
