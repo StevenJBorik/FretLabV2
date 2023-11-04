@@ -244,6 +244,9 @@ class AudioFileItem extends Component<Props, State> {
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
+    const stateChanged =
+      this.state.analyzing !== nextState.analyzing ||
+      this.state.result !== nextState.result;
     console.log('AudioFileItem - shouldComponentUpdate');
     console.log(
       'Previous startFret:',
@@ -257,7 +260,7 @@ class AudioFileItem extends Component<Props, State> {
       'Next frets:',
       nextProps.frets
     );
-    return false;
+    return stateChanged;
     // return (
     //   this.state.files !== nextState.files ||
     //   this.state.currentTime !== nextState.currentTime ||
@@ -301,6 +304,7 @@ class AudioFileItem extends Component<Props, State> {
   };
 
   initAudio = (fileItem) => {
+    console.log('Initializing audio with file:', fileItem);
     const audioElement = this.props.audioElement; // Use the audioElement from props
     audioElement.src = URL.createObjectURL(fileItem.file);
     console.log('initializing event listeners..');
@@ -313,6 +317,7 @@ class AudioFileItem extends Component<Props, State> {
   };
 
   handleFileLoad = async (event: ProgressEvent<FileReader>): Promise<void> => {
+    console.log('File load started');
     const context = audioUtils.createAudioContext();
     const digest = await crypto.subtle.digest(
       'SHA-256',
@@ -337,8 +342,7 @@ class AudioFileItem extends Component<Props, State> {
   };
 
   handleAudioFile = async (buffer: AudioBuffer) => {
-    // console.log('AudioFileItem - handleAudioFile');
-
+    console.log('Handling audio file with buffer:', buffer);
     this.setState({
       analyzing: true,
     });
@@ -367,9 +371,9 @@ class AudioFileItem extends Component<Props, State> {
         const result = keyFinderUtils.extractResultFromByteArray(
           event.data.data
         );
-        console.log(result);
+        console.log('handleAudioFile result:', result);
         const normalizedResult = this.getKeySignatureNumericValue(result);
-        console.log(normalizedResult);
+        console.log('handleAudioFile normalizedResult:', normalizedResult);
 
         // Check if the callback function exists and invoke it with the key
         if (this.keyObtainedCallback) {
@@ -385,6 +389,7 @@ class AudioFileItem extends Component<Props, State> {
               normalizedResult,
             },
             () => {
+              console.log('State updated with result:', result);
               this.props.updateResult(this.props.fileItem.id, result);
               worker.terminate();
               this.renderFretboardScale();
@@ -433,6 +438,7 @@ class AudioFileItem extends Component<Props, State> {
       buffer.numberOfChannels,
       0
     );
+    console.log('File load completed');
   };
 
   // Function to handle the key obtained callback
@@ -440,6 +446,7 @@ class AudioFileItem extends Component<Props, State> {
 
   // Method to set the key obtained callback
   setKeyObtainedCallback = (callback: (key: string) => void) => {
+    console.log('Key obtained callback set');
     this.keyObtainedCallback = callback;
 
     // Call the renderFretboardScale method if the key is already available
@@ -731,9 +738,17 @@ class AudioFileItem extends Component<Props, State> {
   };
 
   render() {
+    console.log('Render method invoked with state:', this.state);
     const { fileItem } = this.props;
-    const { analyzing, result } = this.state;
-    const scaleOptions = this.getScaleOptions(result); // Gets scale options based on result
+    const { analyzing, result, normalizedResult } = this.state;
+    console.log('Value of result before getScaleOptions:', result);
+    console.log(
+      'Value of normalizedResult before getScaleOptions:',
+      normalizedResult
+    );
+
+    // Initialize scaleOptions only if result is not null
+    const scaleOptions = result ? this.getScaleOptions(normalizedResult) : [];
 
     // #1
     console.log('Child props startFret:', this.props.startFret);
@@ -741,7 +756,7 @@ class AudioFileItem extends Component<Props, State> {
 
     return (
       <div class="file-item__container">
-        {/* ... (existing code) , fix innerhtml not rendering 7.20*/}
+        {/* ... (existing code) */}
         <div class="file-item__rendered-fretboard">
           {analyzing && <div>Analyzing...</div>}
           {result && (
@@ -749,11 +764,13 @@ class AudioFileItem extends Component<Props, State> {
               Result: {result}
               {/* ... (existing code) */}
               <div>
-                {scaleOptions.map((scale) => (
-                  <button onClick={() => this.changeScale(scale)}>
-                    {scale}
-                  </button>
-                ))}
+                {/* Render scale options buttons only if scaleOptions is not empty */}
+                {scaleOptions.length > 0 &&
+                  scaleOptions.map((scale) => (
+                    <button key={scale} onClick={() => this.changeScale(scale)}>
+                      {scale}
+                    </button>
+                  ))}
               </div>
             </div>
           )}
@@ -766,7 +783,7 @@ class AudioFileItem extends Component<Props, State> {
               <audio
                 src={URL.createObjectURL(fileItem.file)}
                 ref={(el) => (this.props.audioElement = el)}
-                controls={true} // Disable default controls
+                controls={true}
               />
             )}
             <button onClick={() => this.handleAudioPlayPause()}>
