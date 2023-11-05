@@ -24,14 +24,14 @@ interface Props {
   fileItem: FileItem;
   updateDigest: (uuid: string, digest: string) => void;
   updateResult: (uuid: string, result: string) => void;
-  audioElement: HTMLAudioElement | null; // Pass the audio element from the parent component
+  // audioElement: HTMLAudioElement | null; // Pass the audio element from the parent component
   frets: number; // Add frets property to store user-defined frets value
   startFret: number; // Add startFret property to store user-defined startFret value
   order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
   incrementFactor: number;
   sectionBoundaries: string[][] | null;
   normalizedResult: string;
-  getCurrentTimestamp: () => number; // Include the getCurrentTimestamp function in Props
+  // getCurrentTimestamp: () => number; // Include the getCurrentTimestamp function in Props
   onFretUpdate: (startFret: number, frets: number) => void;
   handleNoteDetection: (frequency: number) => void; // Adjust the type of 'note' accordingly
   isReadyToPlay: boolean; // Include the 'isReadyToPlay' prop
@@ -92,6 +92,7 @@ class AudioFileItem extends Component<Props, State> {
     isWaiting: false,
   };
 
+  audioRef = createRef<HTMLAudioElement>();
   audioContext: AudioContext | null = null;
   audioSource: AudioBufferSourceNode | null = null;
   originalSource: AudioBufferSourceNode | null = null;
@@ -100,12 +101,13 @@ class AudioFileItem extends Component<Props, State> {
   isReadyToPlay: boolean = false;
   mounted = false;
   fretboardContainerRef = createRef<HTMLDivElement>();
-  audioElement: HTMLAudioElement | null; // New property to store the audio element
+  // audioElement: HTMLAudioElement | null; // New property to store the audio element
 
   componentDidMount() {
     console.log('in componentDidMount method');
     this.mounted = true;
-    this.audioElement = this.props.audioElement; // Assign the prop value to the class property
+    // this.audioElement = this.props.audioElement; // Assign the prop value to the class property
+    // this.audioElement = this.audioRef.current;
     this.initAudio(this.props.fileItem);
   }
 
@@ -276,11 +278,19 @@ class AudioFileItem extends Component<Props, State> {
     console.log('AudioFileItem component is unmounted. ');
     this.mounted = false; // Set to false when the component is unmounted
     this.worker?.terminate();
-    this.props.audioElement?.removeEventListener(
+    // this.props.audioElement?.removeEventListener(
+    //   'canplaythrough',
+    //   this.handleAudioCanPlay
+    // );
+    // this.props.audioElement?.removeEventListener(
+    //   'timeupdate',
+    //   this.handleAudioTimeUpdate
+    // );
+    this.audioRef.current?.removeEventListener(
       'canplaythrough',
       this.handleAudioCanPlay
     );
-    this.props.audioElement?.removeEventListener(
+    this.audioRef.current?.removeEventListener(
       'timeupdate',
       this.handleAudioTimeUpdate
     );
@@ -305,7 +315,8 @@ class AudioFileItem extends Component<Props, State> {
 
   initAudio = (fileItem) => {
     console.log('Initializing audio with file:', fileItem);
-    const audioElement = this.props.audioElement; // Use the audioElement from props
+    // const audioElement = this.props.audioElement; // Use the audioElement from props
+    const audioElement = this.audioRef.current; // Use the audioElement from props
     audioElement.src = URL.createObjectURL(fileItem.file);
     console.log('initializing event listeners..');
     audioElement.addEventListener('timeupdate', this.handleAudioTimeUpdate);
@@ -314,6 +325,10 @@ class AudioFileItem extends Component<Props, State> {
     const reader = new FileReader();
     reader.onload = this.handleFileLoad;
     reader.readAsArrayBuffer(fileItem.file);
+  };
+
+  getCurrentTime = () => {
+    return this.audioRef.current?.currentTime || 0;
   };
 
   handleFileLoad = async (event: ProgressEvent<FileReader>): Promise<void> => {
@@ -331,7 +346,7 @@ class AudioFileItem extends Component<Props, State> {
     // Set getCurrentTimestamp method in fileItem
     const updatedFileItem = {
       ...this.props.fileItem,
-      getCurrentTimestamp: this.props.getCurrentTimestamp,
+      getCurrentTimestamp: this.getCurrentTime, // this would be a method in AudioFileItem now
     };
 
     this.props.updateDigest(updatedFileItem.id, hashHex);
@@ -484,9 +499,9 @@ class AudioFileItem extends Component<Props, State> {
       'melodic minor',
     ];
 
-    if (scale === 'major') {
+    if (scale.includes('Major')) {
       return majorOptions;
-    } else if (scale === 'minor' || scale === 'aeolian') {
+    } else if (scale.includes('Minor') || scale.includes('aeolian')) {
       return minorOptions;
     } else {
       return []; // or handle other scales as needed
@@ -495,7 +510,7 @@ class AudioFileItem extends Component<Props, State> {
 
   changeScale = (selectedScale: string) => {
     console.log('in changeScale...');
-    this.setState({ normalizedResult: selectedScale }, () => {
+    this.setState({ result: selectedScale }, () => {
       this.renderFretboardScale(); // re-render fretboard with the new scale
     });
   };
@@ -582,31 +597,48 @@ class AudioFileItem extends Component<Props, State> {
     this.setState({ analyzing: false });
     console.log('this.props.isReadyToPlay: ', this.props.isReadyToPlay);
     if (this.props.isReadyToPlay) {
-      const audioElement = this.props.audioElement;
+      const audioElement = this.audioRef.current;
       if (audioElement) {
-        audioElement.currentTime = this.state.lastPlayedPosition || 0;
+        // Only set currentTime if lastPlayedPosition has been initialized properly
+        if (
+          this.state.lastPlayedPosition !== undefined &&
+          this.state.lastPlayedPosition !== null
+        ) {
+          audioElement.currentTime = this.state.lastPlayedPosition;
+        }
         audioElement.play();
       }
     }
   };
 
   handleAudioPlayPause = () => {
-    console.log('AudioFileItem - handleAudioPlayPuase');
-    const audioElement = this.props.audioElement;
+    console.log('AudioFileItem - handleAudioPlayPause');
+    const audioElement = this.audioRef.current;
     if (!audioElement) return;
 
     if (audioElement.paused) {
+      // If the audio is paused and there's a lastPlayedPosition, start from there
+      if (
+        this.state.lastPlayedPosition !== undefined &&
+        this.state.lastPlayedPosition !== null
+      ) {
+        audioElement.currentTime = this.state.lastPlayedPosition;
+      }
       audioElement.play();
     } else {
+      // If the audio is playing, pause it and remember the position
+      this.setState({ lastPlayedPosition: audioElement.currentTime });
       audioElement.pause();
     }
 
+    // Toggle the isPlaying state
     this.setState((prevState) => ({ isPlaying: !prevState.isPlaying }));
   };
 
   handleAudioSeek = (event: Event) => {
     console.log('AudioFileiTem - handleAudioSeek');
-    const audioElement = this.props.audioElement; // Use the audioElement from props
+    // const audioElement = this.props.audioElement; // Use the audioElement from props
+    const audioElement = this.audioRef.current;
     if (!audioElement || !Number.isFinite(audioElement.duration)) return;
 
     const seekTime = (event.target as HTMLInputElement).valueAsNumber;
@@ -626,7 +658,8 @@ class AudioFileItem extends Component<Props, State> {
 
   handleAudioTimeUpdate = () => {
     console.log('in handleAudioTimeUpdate method');
-    const audioElement = this.audioElement;
+    // const audioElement = this.audioElement;
+    const audioElement = this.audioRef.current;
     console.log('audio element log: ', audioElement);
     if (!audioElement) return;
 
@@ -748,7 +781,7 @@ class AudioFileItem extends Component<Props, State> {
     );
 
     // Initialize scaleOptions only if result is not null
-    const scaleOptions = result ? this.getScaleOptions(normalizedResult) : [];
+    const scaleOptions = result ? this.getScaleOptions(result) : [];
 
     // #1
     console.log('Child props startFret:', this.props.startFret);
@@ -782,19 +815,24 @@ class AudioFileItem extends Component<Props, State> {
             {fileItem.file && (
               <audio
                 src={URL.createObjectURL(fileItem.file)}
-                ref={(el) => (this.props.audioElement = el)}
+                // ref={(el) => (this.props.audioElement = el)}
+                // ref={(el) => (this.audioRef.current = el)}
+                ref={this.audioRef}
                 controls={true}
               />
             )}
             <button onClick={() => this.handleAudioPlayPause()}>
-              {this.props.audioElement?.paused ? 'Play' : 'Pause'}
+              {/* {this.props.audioElement?.paused ? 'Play' : 'Pause'} */}
+              {this.audioRef.current?.paused ? 'Play' : 'Pause'}
             </button>
             {fileItem.file && (
               <input
                 type="range"
                 min={0}
-                max={this.props.audioElement?.duration || 0}
-                value={this.props.audioElement?.currentTime || 0}
+                // max={this.props.audioElement?.duration || 0}
+                // value={this.props.audioElement?.currentTime || 0}
+                max={this.audioRef.current?.duration || 0}
+                value={this.audioRef.current?.currentTime || 0}
                 onInput={this.handleAudioSeek}
               />
             )}

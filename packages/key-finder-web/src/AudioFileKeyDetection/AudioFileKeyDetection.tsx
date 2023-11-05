@@ -191,17 +191,17 @@ class AudioFileKeyDetection extends Component<Props, State> {
   };
 
   // Inside AudioFileKeyDetection class
-  getCurrentTimestamp = (): number => {
-    const audioElement = this.audioElement;
-    if (!audioElement) return 0;
-    return audioElement.currentTime;
-  };
+  // getCurrentTimestamp = (): number => {
+  //   const audioElement = this.audioElement;
+  //   if (!audioElement) return 0;
+  //   return audioElement.currentTime;
+  // };
 
-  createAudioElement = (): HTMLAudioElement => {
-    this.audioElement = new Audio(); // Assign the created audio element to the reference
-    // Add event listeners, if needed
-    return this.audioElement;
-  };
+  // createAudioElement = (): HTMLAudioElement => {
+  //   this.audioElement = new Audio(); // Assign the created audio element to the reference
+  //   // Add event listeners, if needed
+  //   return this.audioElement;
+  // };
 
   secondsToTime = (totalSeconds) => {
     const minutes = Math.floor(totalSeconds / 60);
@@ -2103,10 +2103,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
             incrementFactor={fileItem.incrementFactor}
             normalizedResult={fileItem.normalizedResult} // Pass the normalizedResult here
             sectionBoundaries={this.state.sectionBoundaries}
-            getCurrentTimestamp={this.getCurrentTimestamp} // Pass the prop here
+            // getCurrentTimestamp={this.getCurrentTimestamp} // Pass the prop here
             updateDigest={this.updateDigest}
             updateResult={this.updateResult}
-            audioElement={this.audioElement} // Pass the audioElement to the child component
+            // audioElement={this.audioElement} // Pass the audioElement to the child component
             isReadyToPlay={this.state.isReadyToPlay}
             onFretUpdate={this.handleFretUpdate}
             handleNoteDetection={this.debouncedHandleNoteDetection} // Include handleNoteDetection in the props passed to the child component
