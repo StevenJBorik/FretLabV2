@@ -61,6 +61,8 @@ interface State {
   lastMatchedBoundary: string[] | null;
   detectedNote: string | null;
   isWaiting: boolean | null;
+  displayedScale: string | null;
+  detectedKey: string | null;
 }
 
 class AudioFileItem extends Component<Props, State> {
@@ -90,6 +92,8 @@ class AudioFileItem extends Component<Props, State> {
     lastMatchedBoundary: [],
     detectedNote: null,
     isWaiting: false,
+    displayedScale: null,
+    detectedKey: null,
   };
 
   audioRef = createRef<HTMLAudioElement>();
@@ -388,11 +392,16 @@ class AudioFileItem extends Component<Props, State> {
         );
         console.log('handleAudioFile result:', result);
         const normalizedResult = this.getKeySignatureNumericValue(result);
+        this.setState({
+          detectedKey: normalizedResult,
+          displayedScale: normalizedResult,
+          analyzing: false,
+        });
         console.log('handleAudioFile normalizedResult:', normalizedResult);
 
         // Check if the callback function exists and invoke it with the key
         if (this.keyObtainedCallback) {
-          this.keyObtainedCallback(normalizedResult);
+          this.keyObtainedCallback(this.state.displayedScale);
           this.keyObtainedCallback = undefined; // Reset the callback
         }
 
@@ -465,7 +474,7 @@ class AudioFileItem extends Component<Props, State> {
     this.keyObtainedCallback = callback;
 
     // Call the renderFretboardScale method if the key is already available
-    if (this.state.normalizedResult) {
+    if (this.state.displayedScale) {
       this.renderFretboardScale();
     }
   };
@@ -508,10 +517,20 @@ class AudioFileItem extends Component<Props, State> {
     }
   }
 
-  changeScale = (selectedScale: string) => {
+  changeScale = (selectedScaleType: string) => {
     console.log('in changeScale...');
-    this.setState({ result: selectedScale }, () => {
-      this.renderFretboardScale(); // re-render fretboard with the new scale
+
+    let rootNote = this.state.displayedScale.split(' ')[0]; // Gets 'E' from 'E Aeolian'
+
+    // Capitalize the first letter of the root note if it is not already capitalized
+    rootNote = rootNote.charAt(0).toUpperCase() + rootNote.slice(1);
+
+    // Combine the root note with the selected scale type without changing its case
+    const newScale = `${rootNote} ${selectedScaleType}`;
+
+    this.setState({ displayedScale: newScale }, () => {
+      console.log('New scale for rendering:', newScale);
+      this.renderFretboardScale(); // re-render fretboard with the new full scale name
     });
   };
 
@@ -521,7 +540,7 @@ class AudioFileItem extends Component<Props, State> {
   }
 
   renderFretboardScale() {
-    const { normalizedResult, order } = this.state;
+    const { displayedScale } = this.state;
     const { frets, startFret, isReadyToPlay } = this.props;
 
     console.log(
@@ -531,9 +550,9 @@ class AudioFileItem extends Component<Props, State> {
     );
     console.log(
       'in renderFretboardScale method, passed key is: ',
-      normalizedResult
+      displayedScale
     );
-    if (!normalizedResult && !isReadyToPlay) {
+    if (!displayedScale && !isReadyToPlay) {
       return;
     }
 
@@ -542,7 +561,7 @@ class AudioFileItem extends Component<Props, State> {
 
     // If the key is available, directly invoke the callback
     if (this.keyObtainedCallback) {
-      this.keyObtainedCallback(normalizedResult);
+      this.keyObtainedCallback(displayedScale);
       this.keyObtainedCallback = undefined; // Reset the callback
     }
 
@@ -569,7 +588,7 @@ class AudioFileItem extends Component<Props, State> {
       this.state.frets,
       this.state.startFret
     );
-    fb.add(normalizedResult).paint();
+    fb.add(displayedScale).paint();
   }
 
   advanceSegmentCount = (
