@@ -422,7 +422,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
         if (canProcess) {
           const formData = new FormData();
           formData.append('file', fileList[fileIdx]);
-
+          console.log('handleFileInput: sending file to api..');
           const processFilePromise = axios
             .post('http://localhost:4000/api/process-audio', formData, {
               headers: {
@@ -445,7 +445,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
                     return formattedTime;
                   }
                 );
-
+                console.log(
+                  'parsed sectionBoundaries after API returns boundaries: ',
+                  parsedSectionBoundaries
+                );
                 parsedSectionBoundaries.push(...parsedSectionBoundariesForFile);
               } catch (error) {
                 console.error('Error parsing section boundaries:', error);
@@ -496,6 +499,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
       return {
         files: newFiles,
         isFileUploaded: true,
+        sectionBoundaries: parsedSectionBoundaries,
       };
     });
   };

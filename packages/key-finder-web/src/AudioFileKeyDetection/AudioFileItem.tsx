@@ -504,8 +504,8 @@ class AudioFileItem extends Component<Props, State> {
       'aeolian',
       'dorian',
       'phrygian',
-      'harmonic minor',
-      'melodic minor',
+      'harmonic-minor',
+      'melodic-minor',
     ];
 
     if (scale.includes('Major')) {
