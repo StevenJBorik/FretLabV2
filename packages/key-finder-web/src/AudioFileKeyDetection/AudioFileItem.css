@@ -108,3 +108,18 @@ progress::-moz-progress-bar {
   border-radius: 0.2rem;
   background: var(--primary-darker-color);
 }
+
+.file-item__container button {
+  padding: 0.5rem 1rem; /* Button padding */
+  margin-right: 0.5rem; /* Space between buttons */
+  background-color: #0047ab; /* Cobalt blue background */
+  color: white; /* White text */
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease; /* Transition for hover effect */
+  border-radius: 0.25rem; /* Rounded corners for a modern look */
+}
+
+.file-item__container button:hover {
+  background-color: #003366; /* A darker shade when hovered */
+}

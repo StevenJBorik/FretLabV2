@@ -17,7 +17,7 @@ export interface FileItem {
   order: 'ascending' | 'descending' | 'random'; // Add order property to store user-defined order value
   incrementFactor: number;
   normalizedResult: string;
-  sectionBoundaries: string[][]; // Add sectionBoundaries property to store the section boundaries
+  sectionBoundaries: string[]; // Add sectionBoundaries property to store the section boundaries
 }
 
 interface Props {
@@ -29,13 +29,14 @@ interface Props {
   startFret: number; // Add startFret property to store user-defined startFret value
   order: 'ascending' | 'descending' | 'random'; // Update the type to match the FileItem interface
   incrementFactor: number;
-  sectionBoundaries: string[][] | null;
+  sectionBoundaries: string[] | null;
   normalizedResult: string;
   // getCurrentTimestamp: () => number; // Include the getCurrentTimestamp function in Props
   onFretUpdate: (startFret: number, frets: number) => void;
   handleNoteDetection: (frequency: number) => void; // Adjust the type of 'note' accordingly
   isReadyToPlay: boolean; // Include the 'isReadyToPlay' prop
   detectedNote: string | null; // Add detectedNote property to the props
+  onUpdateSectionBoundaries: (newBoundaries: string[]) => void;
 }
 
 interface State {
@@ -58,11 +59,14 @@ interface State {
   incrementFactor: number | null;
   files: Array<FileItem>;
   normalizedResult: string | null;
-  lastMatchedBoundary: string[] | null;
+  lastMatchedBoundary: string | null;
   detectedNote: string | null;
   isWaiting: boolean | null;
   displayedScale: string | null;
   detectedKey: string | null;
+  editableBoundaries: string[] | null;
+  tempBoundaries: string[] | null;
+  newUserBoundary: string | null;
 }
 
 class AudioFileItem extends Component<Props, State> {
@@ -89,11 +93,14 @@ class AudioFileItem extends Component<Props, State> {
     incrementFactor: this.props.incrementFactor,
     files: [],
     normalizedResult: this.props.normalizedResult || '', // Initialize with an empty string if not provided
-    lastMatchedBoundary: [],
+    lastMatchedBoundary: '',
     detectedNote: null,
     isWaiting: false,
     displayedScale: null,
     detectedKey: null,
+    editableBoundaries: this.props.sectionBoundaries || [],
+    tempBoundaries: [],
+    newUserBoundary: '',
   };
 
   audioRef = createRef<HTMLAudioElement>();
@@ -110,9 +117,19 @@ class AudioFileItem extends Component<Props, State> {
   componentDidMount() {
     console.log('in componentDidMount method');
     this.mounted = true;
+    console.log(
+      'this.props.sectionBoundaries in componentDidmount..: ',
+      this.props.sectionBoundaries
+    );
     // this.audioElement = this.props.audioElement; // Assign the prop value to the class property
     // this.audioElement = this.audioRef.current;
     this.initAudio(this.props.fileItem);
+    this.setState({ editableBoundaries: this.props.sectionBoundaries }, () => {
+      console.log(
+        'editable boundaries after setState:',
+        this.state.editableBoundaries
+      );
+    });
   }
 
   // componentDidUpdate(prevProps: Props) {
@@ -214,8 +231,10 @@ class AudioFileItem extends Component<Props, State> {
   //   return false;
   // }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     console.log('AudioFileItem - componentDidUpdate started');
+    console.log('prevState', prevState);
+    console.log('current state', this.state);
     console.log(
       'Previous startFret:',
       prevProps.startFret,
@@ -232,6 +251,22 @@ class AudioFileItem extends Component<Props, State> {
     if (prevProps.fileItem.id !== this.props.fileItem.id) {
       console.log('AudioFileItem - componentDidUpdate: fileItem.id changed');
       this.initAudio(this.props.fileItem);
+    }
+
+    if (prevState.editableBoundaries !== this.state.editableBoundaries) {
+      console.log(
+        'editable boundaries have been updated:',
+        this.state.editableBoundaries
+      );
+    }
+
+    // Check if sectionBoundaries have been updated
+    if (this.props.sectionBoundaries !== prevProps.sectionBoundaries) {
+      // Update editableBoundaries state with the new props
+      this.setState(
+        { editableBoundaries: this.props.sectionBoundaries },
+        () => {}
+      );
     }
 
     if (
@@ -266,7 +301,12 @@ class AudioFileItem extends Component<Props, State> {
       'Next frets:',
       nextProps.frets
     );
-    return stateChanged;
+    const boundariesChanged =
+      JSON.stringify(this.state.editableBoundaries) !==
+      JSON.stringify(nextState.editableBoundaries);
+    console.log('stateChanged - ', stateChanged);
+    console.log('boundariesChanged - ', boundariesChanged);
+    return stateChanged || boundariesChanged;
     // return (
     //   this.state.files !== nextState.files ||
     //   this.state.currentTime !== nextState.currentTime ||
@@ -696,11 +736,11 @@ class AudioFileItem extends Component<Props, State> {
 
     console.log('handleAudioTimeUpdate method: checking if boundary matches..');
     // Check if the current timestamp matches any of the section boundaries
-    const matchedBoundary = this.props.sectionBoundaries.find((boundary) =>
+    const matchedBoundary = this.state.editableBoundaries.find((boundary) =>
       boundary.includes(formattedTime)
     );
 
-    console.log('section boundaries from props', this.props.sectionBoundaries);
+    console.log('editable section boundaries', this.state.editableBoundaries);
     console.log(
       'matchedBoundary || this.state.lastmatchedBoundary',
       matchedBoundary,
@@ -789,6 +829,41 @@ class AudioFileItem extends Component<Props, State> {
     }
   };
 
+  handleAddBoundary = () => {
+    this.setState((prevState) => ({
+      tempBoundaries: [...prevState.tempBoundaries, prevState.newUserBoundary],
+      newUserBoundary: '', // Reset input
+    }));
+  };
+
+  handleRemoveBoundary = (index) => {
+    this.setState(
+      (prevState) => ({
+        editableBoundaries: prevState.editableBoundaries.filter(
+          (_, i) => i !== index
+        ),
+      }),
+      () => {
+        this.props.onUpdateSectionBoundaries(this.state.editableBoundaries);
+      }
+    );
+  };
+
+  handleSaveBoundaries = () => {
+    this.setState(
+      (prevState) => ({
+        editableBoundaries: [
+          ...prevState.editableBoundaries,
+          ...prevState.tempBoundaries,
+        ],
+        tempBoundaries: [],
+      }),
+      () => {
+        this.props.onUpdateSectionBoundaries(this.state.editableBoundaries);
+      }
+    );
+  };
+
   render() {
     console.log('Render method invoked with state:', this.state);
     const { fileItem } = this.props;
@@ -808,7 +883,30 @@ class AudioFileItem extends Component<Props, State> {
 
     return (
       <div class="file-item__container">
-        {/* ... (existing code) */}
+        <input
+          type="text"
+          value={this.state.newUserBoundary}
+          onChange={(e: Event) =>
+            this.setState({
+              newUserBoundary: (e.target as HTMLInputElement).value,
+            })
+          }
+          placeholder="Add new boundary (e.g., 1:23)"
+        />
+        <button onClick={this.handleAddBoundary}>Add Boundary</button>
+        <button onClick={this.handleSaveBoundaries}>Save Boundaries</button>
+        <ul>
+          {this.state.editableBoundaries
+            .concat(this.state.tempBoundaries)
+            .map((boundary, index) => (
+              <li key={index}>
+                {boundary}{' '}
+                <button onClick={() => this.handleRemoveBoundary(index)}>
+                  Remove
+                </button>
+              </li>
+            ))}
+        </ul>
         <div class="file-item__rendered-fretboard">
           {analyzing && <div>Analyzing...</div>}
           {result && (
