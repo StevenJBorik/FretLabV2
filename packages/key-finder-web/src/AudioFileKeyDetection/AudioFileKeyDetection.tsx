@@ -60,6 +60,8 @@ interface State {
   lastValidNote: string;
   lastValidFret: number;
   lastValidString: number;
+  selectedTuning: string;
+  selectedGuitarType: string;
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -104,6 +106,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
     lastValidNote: '',
     lastValidFret: 0,
     lastValidString: 0,
+    selectedGuitarType: 'guitar6',
+    selectedTuning: 'standard',
   };
 
   componentDidMount() {
@@ -2112,7 +2116,41 @@ class AudioFileKeyDetection extends Component<Props, State> {
   /// !!! Outdated code above !!!! ///     /// !!! Outdated code above !!!! ///     /// !!! Outdated code above !!!! ///
   /// !!! Outdated code above !!!! ///     /// !!! Outdated code above !!!! ///     /// !!! Outdated code above !!!! ///
 
+  handleTuningChange = (event) => {
+    this.setState({ selectedTuning: event.target.value });
+  };
+
+  handleGuitarTypeChange = (event) => {
+    const newGuitarType = event.target.value;
+    console.log('Guitar type changed to:', newGuitarType);
+
+    // Set a default tuning based on the guitar type
+    const defaultTuningForType = {
+      bass4: 'standard',
+      guitar6: 'standard',
+      guitar7: 'standard',
+    };
+
+    this.setState(
+      {
+        selectedGuitarType: newGuitarType,
+        selectedTuning: defaultTuningForType[newGuitarType] || 'standard',
+      },
+      () => {
+        console.log('State updated to:', this.state);
+      }
+    );
+  };
+
   render(props) {
+    const tuningsMap = {
+      bass4: ['standard'],
+      guitar6: ['standard', 'E_4ths', 'Drop_D', 'G_open', 'DADGAD'],
+      guitar7: ['standard', 'E_4ths'],
+    };
+
+    console.log('Rendering tunings for:', this.state.selectedGuitarType);
+
     console.log('AudioFileKeyDetection - render');
     const { files, frets, startFret, order, incrementFactor } = this.state;
     console.log(
@@ -2148,6 +2186,31 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 multiple={true}
                 onChange={async (event) => await this.handleFileInput(event)}
               />
+              <br />
+              <label htmlFor="guitar-type-select">Select Guitar Type:</label>
+              <select
+                id="guitar-type-select"
+                value={this.state.selectedGuitarType}
+                onChange={this.handleGuitarTypeChange}
+              >
+                <option value="bass4">Bass (4-string)</option>
+                <option value="guitar6">Guitar (6-string)</option>
+                <option value="guitar7">Guitar (7-string)</option>
+              </select>
+
+              <label htmlFor="tuning-select">Select Tuning:</label>
+              <select
+                id="tuning-select"
+                value={this.state.selectedTuning}
+                onChange={this.handleTuningChange}
+              >
+                {tuningsMap[this.state.selectedGuitarType].map((tuning) => (
+                  <option key={tuning} value={tuning}>
+                    {tuning.replace(/_/g, ' ')}
+                  </option>
+                ))}
+              </select>
+              <br />
               <label for="frets">End Fret:</label>
               <input
                 id="frets"
@@ -2265,6 +2328,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
             onFretUpdate={this.handleFretUpdate}
             handleNoteDetection={this.debouncedHandleNoteDetection} // Include handleNoteDetection in the props passed to the child component
             detectedNote={this.state.detectedNote} // Pass the detected note to the child component
+            selectedGuitarType={this.state.selectedGuitarType}
+            selectedTuning={this.state.selectedTuning}
           />
         ))}
       </>

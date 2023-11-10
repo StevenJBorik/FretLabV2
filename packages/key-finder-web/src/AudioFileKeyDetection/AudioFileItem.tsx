@@ -37,6 +37,8 @@ interface Props {
   isReadyToPlay: boolean; // Include the 'isReadyToPlay' prop
   detectedNote: string | null; // Add detectedNote property to the props
   onUpdateSectionBoundaries: (newBoundaries: string[]) => void;
+  selectedGuitarType: string;
+  selectedTuning: string;
 }
 
 interface State {
@@ -271,7 +273,9 @@ class AudioFileItem extends Component<Props, State> {
 
     if (
       prevProps.frets !== this.props.frets ||
-      prevProps.startFret !== this.props.startFret
+      prevProps.startFret !== this.props.startFret ||
+      (prevProps.selectedGuitarType !== this.props.selectedGuitarType &&
+        prevProps.selectedTuning !== this.props.selectedTuning)
     ) {
       console.log(
         'AudioFileItem componentDidupdate - startFret/frets prop changed, rerendering fretboard.'
@@ -581,8 +585,32 @@ class AudioFileItem extends Component<Props, State> {
 
   renderFretboardScale() {
     const { displayedScale } = this.state;
-    const { frets, startFret, isReadyToPlay } = this.props;
+    const {
+      frets,
+      startFret,
+      isReadyToPlay,
+      selectedGuitarType,
+      selectedTuning,
+    } = this.props;
 
+    const fullTuningsMap = {
+      bass4: {
+        standard: ['e1', 'a1', 'd2', 'g2', 'b2', 'e3'],
+      },
+      guitar6: {
+        standard: ['e2', 'a2', 'd3', 'g3', 'b3', 'e4'],
+        E_4ths: ['e2', 'a2', 'd3', 'g3', 'c4', 'f4'],
+        Drop_D: ['d2', 'a2', 'd3', 'g3', 'b3', 'e4'],
+        G_open: ['d2', 'g2', 'd3', 'g3', 'b3', 'd4'],
+        DADGAD: ['d2', 'a2', 'd3', 'g3', 'a3', 'd4'],
+      },
+      guitar7: {
+        standard: ['b2', 'e2', 'a2', 'd3', 'g3', 'b3', 'e4'],
+        E_4ths: ['b2', 'e2', 'a2', 'd3', 'g3', 'c3', 'f4'],
+      },
+    };
+
+    const currentTuning = fullTuningsMap[selectedGuitarType][selectedTuning];
     console.log(
       'renderFretboardScale - props values for startFret/frets: ',
       startFret,
@@ -618,6 +646,7 @@ class AudioFileItem extends Component<Props, State> {
     });
 
     const fb = fretboards.Fretboard({
+      tuning: currentTuning,
       frets: this.state.frets,
       startFret: this.state.startFret,
       showTitle: true,
