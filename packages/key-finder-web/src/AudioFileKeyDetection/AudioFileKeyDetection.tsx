@@ -167,12 +167,18 @@ class AudioFileKeyDetection extends Component<Props, State> {
     const sectionBoundariesChanged =
       JSON.stringify(this.state.sectionBoundaries) !==
       JSON.stringify(nextState.sectionBoundaries);
+    const guitarTypeChanged =
+      this.state.selectedGuitarType !== nextState.selectedGuitarType;
+    const tuningChanged =
+      this.state.selectedTuning !== nextState.selectedTuning;
 
     if (
       filesChanged ||
       orderChanged ||
       incrementFactorChanged ||
-      sectionBoundariesChanged
+      sectionBoundariesChanged ||
+      guitarTypeChanged ||
+      tuningChanged
     ) {
       console.log(
         'parent component AudioFileKeyDetection returned true -- rerendering'

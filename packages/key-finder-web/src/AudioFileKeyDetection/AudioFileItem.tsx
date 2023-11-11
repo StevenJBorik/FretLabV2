@@ -273,9 +273,7 @@ class AudioFileItem extends Component<Props, State> {
 
     if (
       prevProps.frets !== this.props.frets ||
-      prevProps.startFret !== this.props.startFret ||
-      (prevProps.selectedGuitarType !== this.props.selectedGuitarType &&
-        prevProps.selectedTuning !== this.props.selectedTuning)
+      prevProps.startFret !== this.props.startFret
     ) {
       console.log(
         'AudioFileItem componentDidupdate - startFret/frets prop changed, rerendering fretboard.'
@@ -286,12 +284,27 @@ class AudioFileItem extends Component<Props, State> {
         'AudioFileItem - componentDidUpdate: startFret/frets did not change'
       );
     }
+
+    if (
+      prevProps.selectedGuitarType !== this.props.selectedGuitarType ||
+      prevProps.selectedTuning !== this.props.selectedTuning
+    ) {
+      this.renderFretboardScale();
+    }
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     const stateChanged =
       this.state.analyzing !== nextState.analyzing ||
       this.state.result !== nextState.result;
+    const boundariesChanged =
+      JSON.stringify(this.state.editableBoundaries) !==
+      JSON.stringify(nextState.editableBoundaries);
+    const tuningChanged =
+      this.props.selectedTuning !== nextProps.selectedTuning;
+    const guitarTypeChanged =
+      this.props.selectedGuitarType !== nextProps.selectedGuitarType;
+
     console.log('AudioFileItem - shouldComponentUpdate');
     console.log(
       'Previous startFret:',
@@ -305,21 +318,14 @@ class AudioFileItem extends Component<Props, State> {
       'Next frets:',
       nextProps.frets
     );
-    const boundariesChanged =
-      JSON.stringify(this.state.editableBoundaries) !==
-      JSON.stringify(nextState.editableBoundaries);
     console.log('stateChanged - ', stateChanged);
     console.log('boundariesChanged - ', boundariesChanged);
-    return stateChanged || boundariesChanged;
-    // return (
-    //   this.state.files !== nextState.files ||
-    //   this.state.currentTime !== nextState.currentTime ||
-    //   this.state.frets !== nextState.frets ||
-    //   this.state.startFret !== nextState.startFret ||
-    //   this.props.order !== nextProps.order ||
-    //   this.props.incrementFactor !== nextProps.incrementFactor ||
-    //   this.props.normalizedResult !== nextProps.normalizedResult
-    // );
+    console.log('tuningChanged - ', tuningChanged);
+    console.log('guitarTypeChanged - ', guitarTypeChanged);
+
+    return (
+      stateChanged || boundariesChanged || tuningChanged || guitarTypeChanged
+    );
   }
 
   componentWillUnmount() {
@@ -593,24 +599,6 @@ class AudioFileItem extends Component<Props, State> {
       selectedTuning,
     } = this.props;
 
-    const fullTuningsMap = {
-      bass4: {
-        standard: ['e1', 'a1', 'd2', 'g2', 'b2', 'e3'],
-      },
-      guitar6: {
-        standard: ['e2', 'a2', 'd3', 'g3', 'b3', 'e4'],
-        E_4ths: ['e2', 'a2', 'd3', 'g3', 'c4', 'f4'],
-        Drop_D: ['d2', 'a2', 'd3', 'g3', 'b3', 'e4'],
-        G_open: ['d2', 'g2', 'd3', 'g3', 'b3', 'd4'],
-        DADGAD: ['d2', 'a2', 'd3', 'g3', 'a3', 'd4'],
-      },
-      guitar7: {
-        standard: ['b2', 'e2', 'a2', 'd3', 'g3', 'b3', 'e4'],
-        E_4ths: ['b2', 'e2', 'a2', 'd3', 'g3', 'c3', 'f4'],
-      },
-    };
-
-    const currentTuning = fullTuningsMap[selectedGuitarType][selectedTuning];
     console.log(
       'renderFretboardScale - props values for startFret/frets: ',
       startFret,
@@ -645,8 +633,20 @@ class AudioFileItem extends Component<Props, State> {
       container.parentNode.removeChild(container);
     });
 
+    const currentTuning =
+      fretboards.Tunings[selectedGuitarType][selectedTuning];
+
+    const stringCountMap = {
+      bass4: 4,
+      guitar6: 6,
+      guitar7: 7,
+    };
+
+    const stringCount = stringCountMap[selectedGuitarType] || 6; // Default to 6 strings if not specified
+
     const fb = fretboards.Fretboard({
       tuning: currentTuning,
+      strings: stringCount,
       frets: this.state.frets,
       startFret: this.state.startFret,
       showTitle: true,
