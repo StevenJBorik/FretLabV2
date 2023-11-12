@@ -62,6 +62,7 @@ interface State {
   lastValidString: number;
   selectedTuning: string;
   selectedGuitarType: string;
+  highlightNotes: boolean | true;
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -108,6 +109,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     lastValidString: 0,
     selectedGuitarType: 'guitar6',
     selectedTuning: 'standard',
+    highlightNotes: true,
   };
 
   componentDidMount() {
@@ -894,119 +896,140 @@ class AudioFileKeyDetection extends Component<Props, State> {
   };
 
   updateFretboardHighlights = (detectedNote, detectedFret) => {
-    const fretboardContainer = document.querySelector('.fretboard');
+    if (this.state.highlightNotes) {
+      const fretboardContainer = document.querySelector('.fretboard');
 
-    if (!fretboardContainer) {
-      console.error('Fretboard container not found');
-      return;
-    }
-    const allCircleElements =
-      fretboardContainer.querySelectorAll('circle.note'); // targeting circles with class 'note'
-
-    // console.log('Total circles:', allCircleElements.length);
-
-    allCircleElements.forEach((circleElement) => {
-      if (circleElement instanceof SVGElement) {
-        circleElement.classList.remove('highlight');
-        circleElement.style.fill = 'white';
+      if (!fretboardContainer) {
+        console.error('Fretboard container not found');
+        return;
       }
-    });
+      const allCircleElements =
+        fretboardContainer.querySelectorAll('circle.note'); // targeting circles with class 'note'
 
-    console.log('Detected Note:', detectedNote, 'Detected Fret:', detectedFret);
+      // console.log('Total circles:', allCircleElements.length);
 
-    if (detectedNote && detectedFret !== undefined) {
-      const noteData = this.noteMappings[detectedNote];
-      if (noteData) {
-        noteData.forEach((data) => {
-          if (data.fret === detectedFret) {
-            console.log(
-              'updateFretboardHighlights - this.state.startFret',
-              this.state.startFret
-            );
-            const relativeFret = detectedFret - this.state.startFret;
-            const fretPosition = this.fretPositions[relativeFret];
-            // console.log(
-            //   'updateFretboardHighlights - relative fret: ',
-            //   relativeFret
-            // );
-            // console.log(
-            //   'updateFretboardHighlights - fretPosition ',
-            //   fretPosition
-            // );
+      allCircleElements.forEach((circleElement) => {
+        if (circleElement instanceof SVGElement) {
+          circleElement.classList.remove('highlight');
+          circleElement.style.fill = 'white';
+        }
+      });
 
-            let matchingCircle;
+      console.log(
+        'Detected Note:',
+        detectedNote,
+        'Detected Fret:',
+        detectedFret
+      );
 
-            if (detectedFret === 0) {
-              matchingCircle = Array.from(allCircleElements).find(
-                (circleElement) =>
-                  circleElement instanceof SVGElement &&
-                  circleElement.firstElementChild.textContent.trim() ===
-                    detectedNote
+      if (detectedNote && detectedFret !== undefined) {
+        const noteData = this.noteMappings[detectedNote];
+        if (noteData) {
+          noteData.forEach((data) => {
+            if (data.fret === detectedFret) {
+              console.log(
+                'updateFretboardHighlights - this.state.startFret',
+                this.state.startFret
               );
-            } else {
-              matchingCircle = Array.from(allCircleElements).find(
+              const relativeFret = detectedFret - this.state.startFret;
+              const fretPosition = this.fretPositions[relativeFret];
+              // console.log(
+              //   'updateFretboardHighlights - relative fret: ',
+              //   relativeFret
+              // );
+              // console.log(
+              //   'updateFretboardHighlights - fretPosition ',
+              //   fretPosition
+              // );
+
+              let matchingCircle;
+
+              if (detectedFret === 0) {
+                matchingCircle = Array.from(allCircleElements).find(
+                  (circleElement) =>
+                    circleElement instanceof SVGElement &&
+                    circleElement.firstElementChild.textContent.trim() ===
+                      detectedNote
+                );
+              } else {
+                matchingCircle = Array.from(allCircleElements).find(
+                  (circleElement) =>
+                    circleElement instanceof SVGElement &&
+                    parseFloat(circleElement.getAttribute('cx')) ===
+                      fretPosition &&
+                    circleElement.firstElementChild &&
+                    circleElement.firstElementChild.textContent.trim() ===
+                      detectedNote
+                );
+              }
+
+              console.log('Matching Circle Element:', matchingCircle);
+
+              if (matchingCircle && matchingCircle instanceof SVGElement) {
+                matchingCircle.classList.add('highlight');
+                matchingCircle.style.fill = 'green';
+              }
+
+              const cxMatchingCircles = Array.from(allCircleElements).filter(
                 (circleElement) =>
                   circleElement instanceof SVGElement &&
-                  parseFloat(circleElement.getAttribute('cx')) ===
-                    fretPosition &&
+                  parseFloat(circleElement.getAttribute('cx')) === fretPosition
+              );
+
+              const noteMatchingCircles = Array.from(allCircleElements).filter(
+                (circleElement) =>
+                  circleElement instanceof SVGElement &&
                   circleElement.firstElementChild &&
                   circleElement.firstElementChild.textContent.trim() ===
                     detectedNote
               );
+
+              // console.log(
+              //   'Circles matching cx attribute:',
+              //   cxMatchingCircles.length
+              // );
+              // console.log(
+              //   'Circles matching detected note:',
+              //   noteMatchingCircles.length
+              // );
+
+              // console.log('cxMatchingCircles:', cxMatchingCircles);
+              // console.log('noteMatchingCircles:', noteMatchingCircles);
             }
-
-            console.log('Matching Circle Element:', matchingCircle);
-
-            if (matchingCircle && matchingCircle instanceof SVGElement) {
-              matchingCircle.classList.add('highlight');
-              matchingCircle.style.fill = 'green';
-            }
-
-            const cxMatchingCircles = Array.from(allCircleElements).filter(
-              (circleElement) =>
-                circleElement instanceof SVGElement &&
-                parseFloat(circleElement.getAttribute('cx')) === fretPosition
-            );
-
-            const noteMatchingCircles = Array.from(allCircleElements).filter(
-              (circleElement) =>
-                circleElement instanceof SVGElement &&
-                circleElement.firstElementChild &&
-                circleElement.firstElementChild.textContent.trim() ===
-                  detectedNote
-            );
-
-            // console.log(
-            //   'Circles matching cx attribute:',
-            //   cxMatchingCircles.length
-            // );
-            // console.log(
-            //   'Circles matching detected note:',
-            //   noteMatchingCircles.length
-            // );
-
-            // console.log('cxMatchingCircles:', cxMatchingCircles);
-            // console.log('noteMatchingCircles:', noteMatchingCircles);
-          }
-        });
+          });
+        }
       }
+    }
+    // think of a better solution later since this is getting called to lagging green notes if this is not there after toggle button.
+    else {
+      const fretboardContainer = document.querySelector('.fretboard');
+      const allCircleElements =
+        fretboardContainer.querySelectorAll('circle.note'); // targeting circles with class 'note'
+
+      // console.log('Total circles:', allCircleElements.length);
+
+      allCircleElements.forEach((circleElement) => {
+        if (circleElement instanceof SVGElement) {
+          circleElement.classList.remove('highlight');
+          circleElement.style.fill = 'white';
+        }
+      });
     }
   };
 
-  startListeningForNotes() {
+  startListeningForNotes = () => {
     const SILENCE_THRESHOLD = 0.09;
     let detector;
-    let frameCounter = 0;
     let lastProcessedTime = 0;
     const PROCESS_INTERVAL = 50;
-    const HOLD_TIME = 150; // Change as per your needs
+    const HOLD_TIME = 150;
     let lastDetectedPitchTime = 0;
     let lastDetectedPitch = null;
 
     let previousPitches = [];
-    const MAX_PITCHES = 2; // Number of pitches to store for averaging and buffering
+    const MAX_PITCHES = 2;
 
-    function processAudioData(input, sampleRate) {
+    const processAudioData = (input, sampleRate) => {
       try {
         let maxAmplitude = -Infinity;
         for (let i = 0; i < input.length; i++) {
@@ -1019,7 +1042,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
           const [pitch] = detector.findPitch(input, sampleRate);
 
           if (typeof pitch === 'number') {
-            // Smoothing
             previousPitches.push(pitch);
             if (previousPitches.length > MAX_PITCHES) {
               previousPitches.shift();
@@ -1027,23 +1049,14 @@ class AudioFileKeyDetection extends Component<Props, State> {
             const averagePitch =
               previousPitches.reduce((a, b) => a + b) / previousPitches.length;
 
-            // Buffering
-            const meanPitch =
-              previousPitches.reduce((a, b) => a + b) / previousPitches.length;
-            const pitchDifference = Math.abs(meanPitch - pitch);
-
-            if (pitchDifference < 20 || previousPitches.length < MAX_PITCHES) {
-              // 5 can be tweaked
-              // Hold Time
-              const currentTime = Date.now();
-              if (
-                currentTime - lastDetectedPitchTime > HOLD_TIME ||
-                !lastDetectedPitch
-              ) {
-                this.handleNoteDetection(averagePitch);
-                lastDetectedPitch = averagePitch;
-                lastDetectedPitchTime = currentTime;
-              }
+            const currentTime = Date.now();
+            if (
+              currentTime - lastDetectedPitchTime > HOLD_TIME ||
+              !lastDetectedPitch
+            ) {
+              this.handleNoteDetection(averagePitch);
+              lastDetectedPitch = averagePitch;
+              lastDetectedPitchTime = currentTime;
             }
           } else {
             this.handleNoteDetection(null);
@@ -1054,9 +1067,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
       } catch (error) {
         console.error('Error in processAudioData: ', error);
       }
-    }
-
-    const boundProcessAudioData = processAudioData.bind(this);
+    };
 
     navigator.mediaDevices
       .getUserMedia({ audio: true })
@@ -1068,26 +1079,26 @@ class AudioFileKeyDetection extends Component<Props, State> {
         audioContext.createMediaStreamSource(stream).connect(analyserNode);
         detector = PitchDetector.forFloat32Array(analyserNode.fftSize);
 
-        function fetchAndSendAudioData() {
+        const fetchAndSendAudioData = () => {
           const currentTime = Date.now();
           if (currentTime - lastProcessedTime > PROCESS_INTERVAL) {
             const fftSize = analyserNode.fftSize;
             const audioData = new Float32Array(fftSize);
             analyserNode.getFloatTimeDomainData(audioData);
-            boundProcessAudioData(audioData, audioContext.sampleRate);
+            processAudioData(audioData, audioContext.sampleRate);
 
             lastProcessedTime = currentTime;
           }
 
           requestAnimationFrame(fetchAndSendAudioData);
-        }
+        };
 
         fetchAndSendAudioData();
       })
       .catch((error) => {
         console.error('Error accessing microphone:', error);
       });
-  }
+  };
 
   debounce(func, delay) {
     let debounceTimer;
@@ -2148,6 +2159,12 @@ class AudioFileKeyDetection extends Component<Props, State> {
     );
   };
 
+  toggleHighlight = () => {
+    this.setState((prevState) => ({
+      highlightNotes: !prevState.highlightNotes,
+    }));
+  };
+
   render(props) {
     const tuningsMap = {
       bass4: ['standard'],
@@ -2257,6 +2274,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
                 <option value="descending">Descending</option>
                 <option value="random">Random</option>
               </select>
+              <button onClick={this.toggleHighlight}>
+                Toggle Note Highlighting
+              </button>
               <label for="calibration">Calibration:</label>
               <button
                 id="start-calibration"
