@@ -1,8 +1,9 @@
 .links-container {
   display: flex;
+  align-items: center; /* Align items vertically */
 }
 
-.navigation-wrapper button {
+.navigation-wrapper button:not(.auth-toggle) {
   display: none;
   border: none;
 }
@@ -40,9 +41,28 @@
   text-decoration: none;
   text-align: center;
   padding: 0.7rem 2rem 0.3rem 2rem;
-  font-size: 1.1rem;
+  font-size: 0.6rem;
 }
 
 .links-container > a.active {
   border-bottom: 2px solid var(--primary-darker-color);
+}
+
+.auth-toggle {
+  background: none;
+  border: none;
+  color: inherit; /* Use the same font color as other links */
+  font: inherit; /* Use the same font settings as other links */
+  cursor: pointer;
+  padding: 0.7rem 2rem 0.3rem 2rem; /* Similar padding to other links */
+  text-decoration: none; /* No underline */
+  display: inline-block; /* Display inline like links */
+  margin: 0; /* No additional margin */
+  font-size: 0.6rem;
+}
+
+.auth-toggle:hover,
+.auth-toggle:focus {
+  text-decoration: underline; /* Underline on hover/focus for visual feedback */
+  outline: none; /* Remove focus outline */
 }

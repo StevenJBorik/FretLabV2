@@ -1,0 +1,75 @@
+.auth-modal {
+  background: white;
+  width: 400px;
+  margin: 0 auto;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  z-index: 1000;
+  box-sizing: border-box;
+}
+
+.auth-form h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.input-group {
+  margin-bottom: 15px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.input-group .error {
+  color: red;
+  font-size: 0.8rem;
+  margin-top: 5px;
+}
+
+.input-group input.input-error {
+  border-color: red;
+}
+
+.login-btn,
+.create-account-btn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  color: white;
+}
+
+.login-btn {
+  background-color: #008cba;
+}
+
+.create-account-btn {
+  background-color: #4caf50;
+}
+
+.toggle-form-btn {
+  background: none;
+  border: none;
+  color: #0077cc;
+  cursor: pointer;
+  display: block;
+  margin: 20px auto 0;
+  text-decoration: underline;
+}
+
+.login-btn:hover,
+.create-account-btn:hover,
+.toggle-form-btn:hover {
+  opacity: 0.9;
+}
