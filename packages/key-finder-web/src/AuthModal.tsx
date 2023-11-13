@@ -1,4 +1,5 @@
 import { h, Component } from 'preact';
+import { route } from 'preact-router';
 import './AuthModal.css';
 
 interface AuthModalState {
@@ -10,7 +11,9 @@ interface AuthModalState {
     username: string;
     password: string;
     email: string;
+    form?: string;
   };
+  loading: boolean;
 }
 
 class AuthModal extends Component<{}, AuthModalState> {
@@ -23,7 +26,9 @@ class AuthModal extends Component<{}, AuthModalState> {
       username: '',
       password: '',
       email: '',
+      form: '',
     },
+    loading: false,
   };
 
   validateEmail = (email: string): boolean => {
@@ -33,7 +38,8 @@ class AuthModal extends Component<{}, AuthModalState> {
 
   validatePassword = (password: string): boolean => {
     // Example: Minimum eight characters, at least one letter and one number
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    const passwordRegex =
+      /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
     return passwordRegex.test(password);
   };
 
@@ -43,7 +49,8 @@ class AuthModal extends Component<{}, AuthModalState> {
     this.setState({ [name]: value } as any);
   };
 
-  handleSubmit = (event: Event) => {
+  handleSubmit = async (event: Event) => {
+    // Mark the function as async
     event.preventDefault();
     const { username, password, email, isLogin } = this.state;
 
@@ -75,8 +82,51 @@ class AuthModal extends Component<{}, AuthModalState> {
       return;
     }
 
-    // Process form submission
-    // TODO: Integrate with backend for authentication
+    this.setState({ loading: true });
+
+    const endpoint = isLogin
+      ? 'http://localhost:8080/login'
+      : 'http://localhost:8080/register';
+
+    try {
+      // Send a POST request to the server
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          password,
+          ...(isLogin ? {} : { email }),
+        }),
+      });
+
+      // Parse JSON response
+      const result = await response.json();
+
+      if (response.ok) {
+        // Handle successful login/signup
+        console.log('Success:', result);
+        localStorage.setItem('token', result.token); // Save the token
+        route('/'); // Navigate to the main page
+      } else {
+        // Handle server errors
+        console.error('Server Error:', result);
+        this.setState({ errors: { ...this.state.errors, ...result.errors } });
+      }
+    } catch (error) {
+      // Handle network errors
+      console.error('Network Error:', error);
+      this.setState({
+        errors: {
+          ...this.state.errors,
+          form: 'Network error, please try again later.',
+        },
+      });
+    } finally {
+      this.setState({ loading: false });
+    }
   };
 
   toggleForm = () => {
@@ -84,58 +134,62 @@ class AuthModal extends Component<{}, AuthModalState> {
   };
 
   render() {
-    const { isLogin, errors } = this.state;
+    const { isLogin, errors, loading } = this.state;
 
     return (
       <div className="auth-modal">
-        <form onSubmit={this.handleSubmit} className="auth-form">
-          <h2>{isLogin ? 'Log in' : 'Create account'}</h2>
+        {loading ? (
+          <div>Loading...</div>
+        ) : (
+          <form onSubmit={this.handleSubmit} className="auth-form">
+            <h2>{isLogin ? 'Log in' : 'Create account'}</h2>
 
-          <div className="input-group">
-            <input
-              type="text"
-              name="username"
-              value={this.state.username}
-              onChange={this.handleChange}
-              placeholder="Username (required)"
-              className={errors.username ? 'input-error' : ''}
-            />
-            {errors.username && <p className="error">{errors.username}</p>}
-          </div>
-
-          <div className="input-group">
-            <input
-              type="password"
-              name="password"
-              value={this.state.password}
-              onChange={this.handleChange}
-              placeholder="Password (required)"
-              className={errors.password ? 'input-error' : ''}
-            />
-            {errors.password && <p className="error">{errors.password}</p>}
-          </div>
-
-          {!isLogin && (
             <div className="input-group">
               <input
-                type="email"
-                name="email"
-                value={this.state.email}
+                type="text"
+                name="username"
+                value={this.state.username}
                 onChange={this.handleChange}
-                placeholder="Email address (required)"
-                className={errors.email ? 'input-error' : ''}
+                placeholder="Username (required)"
+                className={errors.username ? 'input-error' : ''}
               />
-              {errors.email && <p className="error">{errors.email}</p>}
+              {errors.username && <p className="error">{errors.username}</p>}
             </div>
-          )}
 
-          <button
-            type="submit"
-            className={isLogin ? 'login-btn' : 'create-account-btn'}
-          >
-            {isLogin ? 'Log in' : 'Create account'}
-          </button>
-        </form>
+            <div className="input-group">
+              <input
+                type="password"
+                name="password"
+                value={this.state.password}
+                onChange={this.handleChange}
+                placeholder="Password (required)"
+                className={errors.password ? 'input-error' : ''}
+              />
+              {errors.password && <p className="error">{errors.password}</p>}
+            </div>
+
+            {!isLogin && (
+              <div className="input-group">
+                <input
+                  type="email"
+                  name="email"
+                  value={this.state.email}
+                  onChange={this.handleChange}
+                  placeholder="Email address (required)"
+                  className={errors.email ? 'input-error' : ''}
+                />
+                {errors.email && <p className="error">{errors.email}</p>}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className={isLogin ? 'login-btn' : 'create-account-btn'}
+            >
+              {isLogin ? 'Log in' : 'Create account'}
+            </button>
+          </form>
+        )}
         <button onClick={this.toggleForm} className="toggle-form-btn">
           {isLogin ? 'Create an account' : 'Have an account? Log in'}
         </button>
