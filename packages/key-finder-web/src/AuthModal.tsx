@@ -3,19 +3,22 @@ import { route } from 'preact-router';
 import './AuthModal.css';
 import { jwtVerify } from 'jose';
 
-const SECRET_KEY = 'gKHSkyVrtO9a2xm2/tnXIvHaGefr3fSU';
-const secretKeyBuffer = Buffer.from(SECRET_KEY, 'base64');
+const SECRET_KEY_BASE64 = 'gKHSkyVrtO9a2xm2/tnXIvHaGefr3fSU';
+const secretKeyBinaryString = atob(SECRET_KEY_BASE64);
 const secretKeyUint8Array = new Uint8Array(
-  secretKeyBuffer.buffer,
-  secretKeyBuffer.byteOffset,
-  secretKeyBuffer.byteLength / Uint8Array.BYTES_PER_ELEMENT
+  new ArrayBuffer(secretKeyBinaryString.length)
 );
+
+for (let i = 0; i < secretKeyBinaryString.length; i++) {
+  secretKeyUint8Array[i] = secretKeyBinaryString.charCodeAt(i);
+}
 
 interface AuthModalState {
   isLogin: boolean;
   username: string;
   password: string;
   email: string;
+  usernameOrEmail: string;
   currentPassword: string;
   newPassword: string;
   isChangingPassword: boolean;
@@ -24,6 +27,7 @@ interface AuthModalState {
     username: string;
     password: string;
     email: string;
+    usernameOrEmail: string;
     form?: string;
     currentPassword?: string;
     newPassword?: string;
@@ -37,6 +41,7 @@ class AuthModal extends Component<{}, AuthModalState> {
     username: '',
     password: '',
     email: '',
+    usernameOrEmail: '',
     currentPassword: '',
     newPassword: '',
     isChangingPassword: false,
@@ -44,6 +49,7 @@ class AuthModal extends Component<{}, AuthModalState> {
     errors: {
       username: '',
       password: '',
+      usernameOrEmail: '',
       email: '',
       form: '',
     },
@@ -78,21 +84,36 @@ class AuthModal extends Component<{}, AuthModalState> {
       return null;
     }
   };
-
   handleSubmit = async (event: Event) => {
     event.preventDefault();
-    const { username, password, email, isLogin } = this.state;
+    const { username, password, email, usernameOrEmail, isLogin } = this.state;
+
+    const token = localStorage.getItem('token');
+    if (token && (await this.getUserIdFromToken(token))) {
+      this.setState({ message: 'Already logged in.' });
+      return;
+    }
 
     this.setState({
-      errors: { username: '', password: '', email: '' },
+      errors: { username: '', password: '', email: '', usernameOrEmail: '' },
       loading: true,
     });
 
     let isValid = true;
-    const errors = { username: '', password: '', email: '' };
+    const errors = {
+      username: '',
+      password: '',
+      email: '',
+      usernameOrEmail: '',
+    };
 
-    if (!username) {
-      errors.username = 'Username is required';
+    // if (!username) {
+    //   errors.username = 'Username is required';
+    //   isValid = false;
+    // }
+
+    if (!usernameOrEmail) {
+      errors.usernameOrEmail = 'Username or Email is required';
       isValid = false;
     }
 
@@ -122,9 +143,8 @@ class AuthModal extends Component<{}, AuthModalState> {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username,
+          usernameOrEmail,
           password,
-          ...(isLogin ? {} : { email }),
         }),
       });
 
@@ -276,13 +296,15 @@ class AuthModal extends Component<{}, AuthModalState> {
         <div className="input-group">
           <input
             type="text"
-            name="username"
-            value={username}
+            name="usernameOrEmail"
+            value={this.state.usernameOrEmail} // You'll need to add this state variable
             onChange={this.handleChange}
-            placeholder="Username (required)"
-            className={errors.username ? 'input-error' : ''}
+            placeholder="Username or Email"
+            className={errors.usernameOrEmail ? 'input-error' : ''} // Update the error state variable as needed
           />
-          {errors.username && <p className="error">{errors.username}</p>}
+          {errors.usernameOrEmail && (
+            <p className="error">{errors.usernameOrEmail}</p>
+          )}
         </div>
         <div className="input-group">
           <input
@@ -320,22 +342,24 @@ class AuthModal extends Component<{}, AuthModalState> {
     return (
       <div className="auth-modal">
         {loading && <div>Loading...</div>}
-        {!loading && message && <div className="message">{message}</div>}
+        {message && <div className="message">{message}</div>}
+        {!loading && !message && !isChangingPassword && renderLoginForm()}
         {!loading && isChangingPassword && renderChangePasswordForm()}
-        {!loading && !isChangingPassword && renderLoginForm()}
-        {!loading && !isChangingPassword && !isLogin && (
-          <button
-            onClick={this.initiatePasswordChange}
-            className="change-password-init-btn"
-          >
-            Change Password
-          </button>
-        )}
-        {!loading && !isChangingPassword && (
+        {!loading && !isChangingPassword && !message && (
           <button onClick={this.toggleForm} className="toggle-form-btn">
             {isLogin ? 'Create an account' : 'Have an account? Log in'}
           </button>
         )}
+        {!loading &&
+          !isChangingPassword &&
+          isLogin && ( // Only show when isLogin is true
+            <button
+              onClick={this.initiatePasswordChange}
+              className="change-password-init-btn"
+            >
+              Change Password
+            </button>
+          )}
       </div>
     );
   }

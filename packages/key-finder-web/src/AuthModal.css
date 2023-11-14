@@ -96,10 +96,10 @@
 .change-password-init-btn {
   background: none;
   border: none;
-  color: #5cb85c; /* Bootstrap's btn-success color */
+  color: #0077cc;
   cursor: pointer;
   display: block;
-  margin-top: 20px;
+  margin: 20px auto 0;
   text-decoration: underline;
 }
 
