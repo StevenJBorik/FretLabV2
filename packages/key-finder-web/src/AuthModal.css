@@ -73,3 +73,36 @@
 .toggle-form-btn:hover {
   opacity: 0.9;
 }
+
+.change-password-btn,
+.cancel-btn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  color: white;
+}
+
+.change-password-btn {
+  background-color: #f0ad4e; /* Bootstrap's btn-warning color */
+}
+
+.cancel-btn {
+  background-color: #d9534f; /* Bootstrap's btn-danger color */
+}
+
+.change-password-init-btn {
+  background: none;
+  border: none;
+  color: #5cb85c; /* Bootstrap's btn-success color */
+  cursor: pointer;
+  display: block;
+  margin-top: 20px;
+  text-decoration: underline;
+}
+
+.change-password-init-btn:hover {
+  opacity: 0.8;
+}
