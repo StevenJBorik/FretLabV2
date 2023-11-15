@@ -48,6 +48,11 @@
   border-bottom: 2px solid var(--primary-darker-color);
 }
 
+.user-container {
+  display: flex;
+  align-items: center; /* Align items vertically */
+}
+
 .auth-toggle {
   background: none;
   border: none;
@@ -56,9 +61,10 @@
   cursor: pointer;
   padding: 0.7rem 2rem 0.3rem 2rem; /* Similar padding to other links */
   text-decoration: none; /* No underline */
-  display: inline-block; /* Display inline like links */
+  display: inline-flex; /* Use inline-flex for centering content */
+  align-items: center; /* Align text and icons vertically */
   margin: 0; /* No additional margin */
-  font-size: 0.6rem;
+  font-size: 0.6rem; /* Adjust font size as needed */
 }
 
 .auth-toggle:hover,

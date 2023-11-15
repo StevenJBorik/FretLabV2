@@ -1,39 +1,55 @@
 import { h, Component } from 'preact';
-import { Router, Link } from 'preact-router';
+import { Router, Link, route } from 'preact-router'; // Make sure to import route
 import Navigation from './Navigation';
 import AudioFileKeyDetection from './AudioFileKeyDetection';
 import Settings from './Settings';
 import About from './About';
-import AuthModal from './AuthModal'; // Make sure to import AuthModal
+import AuthModal from './AuthModal';
 
 import './App.css';
 
 // Define the state interface
 interface AppState {
   showModal: boolean;
+  loggedInUser: string | null; // Corrected type to allow for null value
 }
 
 class App extends Component<{}, AppState> {
-  // Define the state using the AppState interface
   state: AppState = {
     showModal: false,
+    loggedInUser: null,
   };
 
-  // Method to toggle the modal
   toggleModal = () => {
     this.setState((prevState) => ({ showModal: !prevState.showModal }));
   };
 
+  handleSuccessfulLogin = (username: string) => {
+    console.log(username); // Add this line
+    this.setState({ loggedInUser: username, showModal: false }); // Close the modal on successful login
+    route('/'); // Navigate to homepage
+  };
+
+  handleLogout = () => {
+    this.setState({ loggedInUser: null });
+    localStorage.removeItem('token');
+    route('/'); // Navigate to homepage
+  };
+
   render() {
-    console.log('App - render');
+    const { showModal, loggedInUser } = this.state; // Destructure for cleaner code
+
     return (
       <>
         <div class="top-bar">
           <div class="app-logo">
             <Link href="/">FretLabs</Link>
           </div>
-          <Navigation onLoginClick={this.toggleModal} />{' '}
-          {/* Pass the toggle method as a prop to Navigation */}
+          <Navigation
+            onLoginClick={this.toggleModal}
+            loggedInUser={loggedInUser}
+            onLogout={this.handleLogout}
+          />
         </div>
         <div class="app-wrapper">
           <Router>
@@ -42,8 +58,12 @@ class App extends Component<{}, AppState> {
             <About path="/about" />
           </Router>
         </div>
-        {this.state.showModal && <AuthModal />}{' '}
-        {/* Conditionally render the AuthModal */}
+        {showModal && (
+          <AuthModal
+            onSuccessfulLogin={this.handleSuccessfulLogin}
+            onExit={this.toggleModal} // This prop needs to be handled in AuthModal if you want to allow closing the modal
+          />
+        )}
       </>
     );
   }

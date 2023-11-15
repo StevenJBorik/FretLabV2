@@ -35,7 +35,12 @@ interface AuthModalState {
   loading: boolean;
 }
 
-class AuthModal extends Component<{}, AuthModalState> {
+interface AuthModalProps {
+  onSuccessfulLogin: (username: string) => void; // Function that takes a username and returns void
+  onExit: () => void; // If you want a callback for when the modal should be closed without login
+}
+
+class AuthModal extends Component<AuthModalProps, AuthModalState> {
   state: AuthModalState = {
     isLogin: true,
     username: '',
@@ -149,12 +154,20 @@ class AuthModal extends Component<{}, AuthModalState> {
       });
 
       const result = await response.json();
+      console.log(result);
 
       if (response.ok) {
         localStorage.setItem('token', result.token);
-        route('/');
+        this.props.onSuccessfulLogin(result.username); // Call the passed in prop method
       } else {
-        this.setState({ errors: { ...this.state.errors, ...result.errors } });
+        // Here, we set the state to display an error message if the credentials are invalid
+        this.setState({
+          errors: {
+            ...this.state.errors,
+            form: result.message || 'Invalid credentials. Please try again.',
+          },
+          message: result.message || 'Invalid credentials. Please try again.',
+        });
       }
     } catch (error) {
       this.setState({
@@ -162,20 +175,22 @@ class AuthModal extends Component<{}, AuthModalState> {
           ...this.state.errors,
           form: 'Network error, please try again later.',
         },
+        message: 'Network error, please try again later.',
       });
     } finally {
       this.setState({ loading: false });
     }
   };
 
-  handlePasswordChange = async (event: Event) => {
+  handlePasswordChange = async (event) => {
     event.preventDefault();
     const { currentPassword, newPassword } = this.state;
     const token = localStorage.getItem('token');
-    const userId = this.getUserIdFromToken(token);
+    const userId = await this.getUserIdFromToken(token);
 
     if (!userId) {
       this.setState({
+        message: 'Unable to verify user identity.',
         errors: {
           ...this.state.errors,
           form: 'Unable to verify user identity.',
@@ -184,7 +199,7 @@ class AuthModal extends Component<{}, AuthModalState> {
       return;
     }
 
-    this.setState({ loading: true });
+    this.setState({ loading: true, message: '' });
 
     try {
       const response = await fetch('http://localhost:8080/change-password', {
@@ -204,14 +219,23 @@ class AuthModal extends Component<{}, AuthModalState> {
 
       if (response.ok) {
         this.setState({
-          message: 'Password changed successfully',
+          message: 'Password changed successfully.',
           isChangingPassword: false,
+          currentPassword: '',
+          newPassword: '',
         });
       } else {
-        this.setState({ errors: { ...this.state.errors, ...result.errors } });
+        this.setState({
+          message: result.message || 'Failed to change password.',
+          errors: {
+            ...this.state.errors,
+            form: result.message || 'Failed to change password.',
+          },
+        });
       }
     } catch (error) {
       this.setState({
+        message: 'Network error, please try again later.',
         errors: {
           ...this.state.errors,
           form: 'Network error, please try again later.',
@@ -220,6 +244,12 @@ class AuthModal extends Component<{}, AuthModalState> {
     } finally {
       this.setState({ loading: false });
     }
+  };
+
+  handleLogout = () => {
+    localStorage.removeItem('token'); // Remove the token from storage
+    this.setState({ message: 'Logged out successfully.' });
+    route('/');
   };
 
   toggleForm = () => {
@@ -289,23 +319,24 @@ class AuthModal extends Component<{}, AuthModalState> {
       </form>
     );
 
-    // Function to render the login / registration form
     const renderLoginForm = () => (
       <form onSubmit={this.handleSubmit} className="auth-form">
         <h2>{isLogin ? 'Log in' : 'Create account'}</h2>
+
         <div className="input-group">
           <input
             type="text"
             name="usernameOrEmail"
-            value={this.state.usernameOrEmail} // You'll need to add this state variable
+            value={this.state.usernameOrEmail}
             onChange={this.handleChange}
             placeholder="Username or Email"
-            className={errors.usernameOrEmail ? 'input-error' : ''} // Update the error state variable as needed
+            className={errors.usernameOrEmail ? 'input-error' : ''}
           />
           {errors.usernameOrEmail && (
             <p className="error">{errors.usernameOrEmail}</p>
           )}
         </div>
+
         <div className="input-group">
           <input
             type="password"
@@ -316,7 +347,12 @@ class AuthModal extends Component<{}, AuthModalState> {
             className={errors.password ? 'input-error' : ''}
           />
           {errors.password && <p className="error">{errors.password}</p>}
+          {/* Inline error message for invalid credentials */}
+          {errors.form === 'Invalid credentials. Please try again.' && (
+            <p className="error">{errors.form}</p>
+          )}
         </div>
+
         {!isLogin && (
           <div className="input-group">
             <input
@@ -330,12 +366,18 @@ class AuthModal extends Component<{}, AuthModalState> {
             {errors.email && <p className="error">{errors.email}</p>}
           </div>
         )}
+
         <button
           type="submit"
           className={isLogin ? 'login-btn' : 'create-account-btn'}
         >
           {isLogin ? 'Log in' : 'Create account'}
         </button>
+        {localStorage.getItem('token') && (
+          <button onClick={this.handleLogout} className="logout-btn">
+            Log Out
+          </button>
+        )}
       </form>
     );
 
@@ -350,6 +392,7 @@ class AuthModal extends Component<{}, AuthModalState> {
             {isLogin ? 'Create an account' : 'Have an account? Log in'}
           </button>
         )}
+
         {!loading &&
           !isChangingPassword &&
           isLogin && ( // Only show when isLogin is true

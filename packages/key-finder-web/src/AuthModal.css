@@ -40,7 +40,8 @@
 }
 
 .login-btn,
-.create-account-btn {
+.create-account-btn,
+.logout-btn {
   width: 100%;
   padding: 10px;
   margin-top: 10px;
@@ -51,6 +52,10 @@
 }
 
 .login-btn {
+  background-color: #008cba;
+}
+
+.logout-btn {
   background-color: #008cba;
 }
 
@@ -105,4 +110,15 @@
 
 .change-password-init-btn:hover {
   opacity: 0.8;
+}
+
+.error-message {
+  color: #d9534f; /* Bootstrap's btn-danger color for consistency */
+  background-color: #f2dede; /* Light red background for visibility */
+  border-color: #ebccd1; /* Light red border to highlight the box */
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px; /* Same as your input-group margin for consistency */
+  text-align: center; /* Center the text to make it stand out */
+  font-weight: bold; /* Optional: makes the text bold */
 }
