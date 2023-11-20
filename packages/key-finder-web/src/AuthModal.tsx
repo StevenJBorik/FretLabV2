@@ -383,6 +383,9 @@ class AuthModal extends Component<AuthModalProps, AuthModalState> {
 
     return (
       <div className="auth-modal">
+        <button onClick={this.props.onExit} className="exit-btn">
+          &times; {/* Using the HTML entity for 'X' */}
+        </button>
         {loading && <div>Loading...</div>}
         {message && <div className="message">{message}</div>}
         {!loading && !message && !isChangingPassword && renderLoginForm()}

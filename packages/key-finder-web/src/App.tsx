@@ -49,6 +49,7 @@ class App extends Component<{}, AppState> {
             onLoginClick={this.toggleModal}
             loggedInUser={loggedInUser}
             onLogout={this.handleLogout}
+            onNavLinkClick={this.toggleModal} // Pass toggleModal here to be called on link click
           />
         </div>
         <div class="app-wrapper">

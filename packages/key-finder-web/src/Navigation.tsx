@@ -7,6 +7,7 @@ interface NavigationProps {
   onLoginClick: () => void;
   loggedInUser: string | null; // If the user is not logged in, this should be able to be null
   onLogout: () => void; // Function to handle user logout
+  onNavLinkClick: () => void; // Add this line
 }
 interface State {
   navOpen: boolean;
@@ -19,6 +20,7 @@ class Navigation extends Component<NavigationProps, State> {
 
   closeNav = () => {
     this.setState({ navOpen: false });
+    this.props.onNavLinkClick(); // Add this line to close the modal as well
   };
 
   render({ onLoginClick, loggedInUser, onLogout }) {
