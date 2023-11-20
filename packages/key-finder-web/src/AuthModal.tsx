@@ -166,7 +166,6 @@ class AuthModal extends Component<AuthModalProps, AuthModalState> {
             ...this.state.errors,
             form: result.message || 'Invalid credentials. Please try again.',
           },
-          message: result.message || 'Invalid credentials. Please try again.',
         });
       }
     } catch (error) {
@@ -346,11 +345,7 @@ class AuthModal extends Component<AuthModalProps, AuthModalState> {
             placeholder="Password (required)"
             className={errors.password ? 'input-error' : ''}
           />
-          {errors.password && <p className="error">{errors.password}</p>}
-          {/* Inline error message for invalid credentials */}
-          {errors.form === 'Invalid credentials. Please try again.' && (
-            <p className="error">{errors.form}</p>
-          )}
+          <p className="error">{errors.password || errors.form}</p>
         </div>
 
         {!isLogin && (
