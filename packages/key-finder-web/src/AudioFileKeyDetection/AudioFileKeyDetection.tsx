@@ -63,8 +63,6 @@ interface State {
   selectedTuning: string;
   selectedGuitarType: string;
   highlightNotes: boolean | true;
-  startProcessing: boolean | false;
-  filesToProcess: File[];
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -112,8 +110,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
     selectedGuitarType: 'guitar6',
     selectedTuning: 'standard',
     highlightNotes: true,
-    startProcessing: false,
-    filesToProcess: [],
   };
 
   componentDidMount() {
@@ -163,39 +159,36 @@ class AudioFileKeyDetection extends Component<Props, State> {
   //   return false; // Prevent re-render
   // }
 
-  // shouldComponentUpdate(nextProps: Props, nextState: State) {
-  //   console.log('AudioFileKeyDetection - shouldComponentUpdate');
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
+    console.log('AudioFileKeyDetection - shouldComponentUpdate');
 
-  //   const filesChanged = this.state.files !== nextState.files;
-  //   const orderChanged = this.state.order !== nextState.order;
-  //   const incrementFactorChanged =
-  //     this.state.incrementFactor !== nextState.incrementFactor;
-  //   const sectionBoundariesChanged =
-  //     JSON.stringify(this.state.sectionBoundaries) !==
-  //     JSON.stringify(nextState.sectionBoundaries);
-  //   const guitarTypeChanged =
-  //     this.state.selectedGuitarType !== nextState.selectedGuitarType;
-  //   const tuningChanged =
-  //     this.state.selectedTuning !== nextState.selectedTuning;
+    const filesChanged = this.state.files !== nextState.files;
+    const orderChanged = this.state.order !== nextState.order;
+    const incrementFactorChanged =
+      this.state.incrementFactor !== nextState.incrementFactor;
+    const sectionBoundariesChanged =
+      JSON.stringify(this.state.sectionBoundaries) !==
+      JSON.stringify(nextState.sectionBoundaries);
+    const guitarTypeChanged =
+      this.state.selectedGuitarType !== nextState.selectedGuitarType;
+    const tuningChanged =
+      this.state.selectedTuning !== nextState.selectedTuning;
 
-  //   if (
-  //     filesChanged ||
-  //     orderChanged ||
-  //     incrementFactorChanged ||
-  //     sectionBoundariesChanged ||
-  //     guitarTypeChanged ||
-  //     tuningChanged
-  //   ) {
-  //     console.log(
-  //       'parent component AudioFileKeyDetection returned true -- rerendering'
-  //     );
-  //     return true;
-  //   }
+    if (
+      filesChanged ||
+      orderChanged ||
+      incrementFactorChanged ||
+      sectionBoundariesChanged ||
+      guitarTypeChanged ||
+      tuningChanged
+    ) {
+      console.log(
+        'parent component AudioFileKeyDetection returned true -- rerendering'
+      );
+      return true;
+    }
 
-  //   return false;
-  // }
-  shouldComponentUpdate(nextProps, nextState) {
-    return true; // Always update for now
+    return false;
   }
 
   computeThresholds() {
@@ -2172,60 +2165,6 @@ class AudioFileKeyDetection extends Component<Props, State> {
     }));
   };
 
-  handleClick = async (event) => {
-    const input = event.target as HTMLInputElement; // Correctly get input from event.target
-    const fileList = Array.from(input.files || []); // Ensure it's an array of File objects
-    if (!fileList.length) return;
-
-    // console.log("Selected files:", fileList);
-    this.setState({ startProcessing: true, filesToProcess: fileList });
-    await this.waitForChildComponent();
-
-    let csvContent = 'File Name,Key\n'; // Start with column headers
-
-    if (this.childComponentRef.current) {
-      for (let file of fileList) {
-        const key = await this.childComponentRef.current.processFile(file);
-        csvContent += `"${file.name}",${key}\n`;
-      }
-      this.triggerCSVDownload(csvContent);
-    } else {
-      console.error('Child component is not available.');
-    }
-  };
-
-  waitForChildComponent = (): Promise<void> => {
-    console.log('waiting for child component..');
-    return new Promise<void>((resolve) => {
-      const checkAvailability = () => {
-        if (this.childComponentRef.current) {
-          resolve();
-        } else {
-          setTimeout(checkAvailability, 100); // Check every 100ms
-        }
-      };
-      checkAvailability();
-    });
-  };
-
-  triggerCSVDownload = (csvContent) => {
-    console.log('triggered CSV Download...');
-    // Ensure that 'data:text/csv;charset=utf-8,' is not part of the csvContent
-    const encodedUri =
-      'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'audio_keys.csv');
-    document.body.appendChild(link); // Required for FF
-
-    // Delay the click to ensure the link is added to the document
-    setTimeout(() => {
-      console.log('downloading csv..');
-      link.click(); // This will download the data file named "audio_keys.csv".
-      document.body.removeChild(link); // Clean up and remove the link
-    }, 100); // Small delay, e.g., 100 milliseconds
-  };
-
   render(props) {
     const tuningsMap = {
       bass4: ['standard'],
@@ -2262,21 +2201,13 @@ class AudioFileKeyDetection extends Component<Props, State> {
               <label for="load-a-track" style={{ paddingRight: '1rem' }}>
                 Load a track:
               </label>
-              {/* <input
-                ref={this.ref}
-                id="load-a-track"
-                type="file"
-                accept="audio/*"
-                multiple={true}
-                onChange={async (event) => await this.handleFileInput(event)}
-              /> */}
               <input
                 ref={this.ref}
                 id="load-a-track"
                 type="file"
                 accept="audio/*"
                 multiple={true}
-                onChange={this.handleClick}
+                onChange={async (event) => await this.handleFileInput(event)}
               />
               <br />
               <label htmlFor="guitar-type-select">Select Guitar Type:</label>
@@ -2404,71 +2335,29 @@ class AudioFileKeyDetection extends Component<Props, State> {
             </div>
           </div>
         </main>
-        {this.state.startProcessing
-          ? this.state.filesToProcess.map((file, index) => {
-              const fileItem = {
-                id: uuidv4(), // Generate a unique ID
-                canProcess: true, // Assuming all files can be processed
-                file: file, // The actual file object
-                result: null,
-                digest: null,
-                keySignatureNumericValue: null,
-                scale: null,
-                frets: this.state.frets,
-                startFret: this.state.startFret,
-                order: this.state.order,
-                incrementFactor: this.state.incrementFactor,
-                normalizedResult: null,
-                sectionBoundaries: [],
-                // Add any other required properties with default values
-              };
-              return (
-                <AudioFileItem
-                  key={fileItem.id}
-                  fileItem={fileItem}
-                  ref={index === 0 ? this.childComponentRef : null}
-                  updateDigest={() => {}}
-                  updateResult={() => {}}
-                  frets={this.state.frets}
-                  isReadyToPlay={this.state.isReadyToPlay}
-                  startFret={this.state.startFret}
-                  order={this.state.order}
-                  incrementFactor={this.state.incrementFactor}
-                  normalizedResult={null}
-                  sectionBoundaries={this.state.sectionBoundaries}
-                  onUpdateSectionBoundaries={() => {}}
-                  onFretUpdate={() => {}}
-                  handleNoteDetection={() => {}}
-                  detectedNote={null}
-                  selectedGuitarType={this.state.selectedGuitarType}
-                  selectedTuning={this.state.selectedTuning}
-                />
-              );
-            })
-          : files.map((fileItem, index) => (
-              <AudioFileItem
-                key={fileItem.id}
-                fileItem={fileItem}
-                ref={index === 0 ? this.childComponentRef : null}
-                frets={this.state.frets} // Pass the user-defined frets value to the AudioFileItem component
-                startFret={this.state.startFret} // Pass the user-defined startFret value to the AudioFileItem component
-                order={fileItem.order} // Pass the user-defined order value to the AudioFileItem component
-                incrementFactor={fileItem.incrementFactor}
-                normalizedResult={fileItem.normalizedResult} // Pass the normalizedResult here
-                sectionBoundaries={this.state.sectionBoundaries}
-                onUpdateSectionBoundaries={this.updateSectionBoundaries}
-                // getCurrentTimestamp={this.getCurrentTimestamp} // Pass the prop here
-                updateDigest={this.updateDigest}
-                updateResult={this.updateResult}
-                // audioElement={this.audioElement} // Pass the audioElement to the child component
-                isReadyToPlay={this.state.isReadyToPlay}
-                onFretUpdate={this.handleFretUpdate}
-                handleNoteDetection={this.debouncedHandleNoteDetection} // Include handleNoteDetection in the props passed to the child component
-                detectedNote={this.state.detectedNote} // Pass the detected note to the child component
-                selectedGuitarType={this.state.selectedGuitarType}
-                selectedTuning={this.state.selectedTuning}
-              />
-            ))}
+        {files.map((fileItem) => (
+          <AudioFileItem
+            key={fileItem.id}
+            fileItem={fileItem}
+            frets={this.state.frets} // Pass the user-defined frets value to the AudioFileItem component
+            startFret={this.state.startFret} // Pass the user-defined startFret value to the AudioFileItem component
+            order={fileItem.order} // Pass the user-defined order value to the AudioFileItem component
+            incrementFactor={fileItem.incrementFactor}
+            normalizedResult={fileItem.normalizedResult} // Pass the normalizedResult here
+            sectionBoundaries={this.state.sectionBoundaries}
+            onUpdateSectionBoundaries={this.updateSectionBoundaries}
+            // getCurrentTimestamp={this.getCurrentTimestamp} // Pass the prop here
+            updateDigest={this.updateDigest}
+            updateResult={this.updateResult}
+            // audioElement={this.audioElement} // Pass the audioElement to the child component
+            isReadyToPlay={this.state.isReadyToPlay}
+            onFretUpdate={this.handleFretUpdate}
+            handleNoteDetection={this.debouncedHandleNoteDetection} // Include handleNoteDetection in the props passed to the child component
+            detectedNote={this.state.detectedNote} // Pass the detected note to the child component
+            selectedGuitarType={this.state.selectedGuitarType}
+            selectedTuning={this.state.selectedTuning}
+          />
+        ))}
       </>
     );
   }

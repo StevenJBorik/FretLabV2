@@ -119,20 +119,19 @@ class AudioFileItem extends Component<Props, State> {
   componentDidMount() {
     console.log('in componentDidMount method');
     this.mounted = true;
-
     console.log(
       'this.props.sectionBoundaries in componentDidmount..: ',
       this.props.sectionBoundaries
     );
     // this.audioElement = this.props.audioElement; // Assign the prop value to the class property
     // this.audioElement = this.audioRef.current;
-    // this.initAudio(this.props.fileItem);
-    // this.setState({ editableBoundaries: this.props.sectionBoundaries }, () => {
-    //   console.log(
-    //     'editable boundaries after setState:',
-    //     this.state.editableBoundaries
-    //   );
-    // });
+    this.initAudio(this.props.fileItem);
+    this.setState({ editableBoundaries: this.props.sectionBoundaries }, () => {
+      console.log(
+        'editable boundaries after setState:',
+        this.state.editableBoundaries
+      );
+    });
   }
 
   // componentDidUpdate(prevProps: Props) {
@@ -234,112 +233,100 @@ class AudioFileItem extends Component<Props, State> {
   //   return false;
   // }
 
-  // componentDidUpdate(prevProps: Props, prevState: State) {
-  //   console.log('AudioFileItem - componentDidUpdate started');
-  //   console.log('prevState', prevState);
-  //   console.log('current state', this.state);
-  //   console.log(
-  //     'Previous startFret:',
-  //     prevProps.startFret,
-  //     'Current startFret:',
-  //     this.props.startFret
-  //   );
-  //   console.log(
-  //     'Previous frets:',
-  //     prevProps.frets,
-  //     'Current frets:',
-  //     this.props.frets
-  //   );
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    console.log('AudioFileItem - componentDidUpdate started');
+    console.log('prevState', prevState);
+    console.log('current state', this.state);
+    console.log(
+      'Previous startFret:',
+      prevProps.startFret,
+      'Current startFret:',
+      this.props.startFret
+    );
+    console.log(
+      'Previous frets:',
+      prevProps.frets,
+      'Current frets:',
+      this.props.frets
+    );
 
-  //   if (prevProps.fileItem.id !== this.props.fileItem.id) {
-  //     console.log('AudioFileItem - componentDidUpdate: fileItem.id changed');
-  //     this.initAudio(this.props.fileItem);
-  //   }
+    if (prevProps.fileItem.id !== this.props.fileItem.id) {
+      console.log('AudioFileItem - componentDidUpdate: fileItem.id changed');
+      this.initAudio(this.props.fileItem);
+    }
 
-  //   if (prevState.editableBoundaries !== this.state.editableBoundaries) {
-  //     console.log(
-  //       'editable boundaries have been updated:',
-  //       this.state.editableBoundaries
-  //     );
-  //   }
+    if (prevState.editableBoundaries !== this.state.editableBoundaries) {
+      console.log(
+        'editable boundaries have been updated:',
+        this.state.editableBoundaries
+      );
+    }
 
-  //   // Check if sectionBoundaries have been updated
-  //   if (this.props.sectionBoundaries !== prevProps.sectionBoundaries) {
-  //     // Update editableBoundaries state with the new props
-  //     this.setState(
-  //       { editableBoundaries: this.props.sectionBoundaries },
-  //       () => {}
-  //     );
-  //   }
+    // Check if sectionBoundaries have been updated
+    if (this.props.sectionBoundaries !== prevProps.sectionBoundaries) {
+      // Update editableBoundaries state with the new props
+      this.setState(
+        { editableBoundaries: this.props.sectionBoundaries },
+        () => {}
+      );
+    }
 
-  //   if (
-  //     prevProps.frets !== this.props.frets ||
-  //     prevProps.startFret !== this.props.startFret
-  //   ) {
-  //     console.log(
-  //       'AudioFileItem componentDidupdate - startFret/frets prop changed, rerendering fretboard.'
-  //     );
-  //     this.renderFretboardScale();
-  //   } else {
-  //     console.log(
-  //       'AudioFileItem - componentDidUpdate: startFret/frets did not change'
-  //     );
-  //   }
-
-  //   if (
-  //     prevProps.selectedGuitarType !== this.props.selectedGuitarType ||
-  //     prevProps.selectedTuning !== this.props.selectedTuning
-  //   ) {
-  //     this.renderFretboardScale();
-  //   }
-  // }
-
-  componentDidUpdate(prevProps) {
     if (
-      this.props.fileItem &&
-      prevProps.fileItem.id !== this.props.fileItem.id
+      prevProps.frets !== this.props.frets ||
+      prevProps.startFret !== this.props.startFret
     ) {
-      this.processFile(this.props.fileItem.file);
+      console.log(
+        'AudioFileItem componentDidupdate - startFret/frets prop changed, rerendering fretboard.'
+      );
+      this.renderFretboardScale();
+    } else {
+      console.log(
+        'AudioFileItem - componentDidUpdate: startFret/frets did not change'
+      );
+    }
+
+    if (
+      prevProps.selectedGuitarType !== this.props.selectedGuitarType ||
+      prevProps.selectedTuning !== this.props.selectedTuning
+    ) {
+      this.renderFretboardScale();
     }
   }
-  shouldComponentUpdate(nextProps, nextState) {
-    return true; // Always update for now
+
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
+    const stateChanged =
+      this.state.analyzing !== nextState.analyzing ||
+      this.state.result !== nextState.result;
+    const boundariesChanged =
+      JSON.stringify(this.state.editableBoundaries) !==
+      JSON.stringify(nextState.editableBoundaries);
+    const tuningChanged =
+      this.props.selectedTuning !== nextProps.selectedTuning;
+    const guitarTypeChanged =
+      this.props.selectedGuitarType !== nextProps.selectedGuitarType;
+
+    console.log('AudioFileItem - shouldComponentUpdate');
+    console.log(
+      'Previous startFret:',
+      this.props.startFret,
+      'Next startFret:',
+      nextProps.startFret
+    );
+    console.log(
+      'Previous frets:',
+      this.props.frets,
+      'Next frets:',
+      nextProps.frets
+    );
+    console.log('stateChanged - ', stateChanged);
+    console.log('boundariesChanged - ', boundariesChanged);
+    console.log('tuningChanged - ', tuningChanged);
+    console.log('guitarTypeChanged - ', guitarTypeChanged);
+
+    return (
+      stateChanged || boundariesChanged || tuningChanged || guitarTypeChanged
+    );
   }
-
-  // shouldComponentUpdate(nextProps: Props, nextState: State) {
-  //   const stateChanged =
-  //     this.state.analyzing !== nextState.analyzing ||
-  //     this.state.result !== nextState.result;
-  //   const boundariesChanged =
-  //     JSON.stringify(this.state.editableBoundaries) !==
-  //     JSON.stringify(nextState.editableBoundaries);
-  //   const tuningChanged =
-  //     this.props.selectedTuning !== nextProps.selectedTuning;
-  //   const guitarTypeChanged =
-  //     this.props.selectedGuitarType !== nextProps.selectedGuitarType;
-
-  //   console.log('AudioFileItem - shouldComponentUpdate');
-  //   console.log(
-  //     'Previous startFret:',
-  //     this.props.startFret,
-  //     'Next startFret:',
-  //     nextProps.startFret
-  //   );
-  //   console.log(
-  //     'Previous frets:',
-  //     this.props.frets,
-  //     'Next frets:',
-  //     nextProps.frets
-  //   );
-  //   console.log('stateChanged - ', stateChanged);
-  //   console.log('boundariesChanged - ', boundariesChanged);
-  //   console.log('tuningChanged - ', tuningChanged);
-  //   console.log('guitarTypeChanged - ', guitarTypeChanged);
-
-  //   return (
-  //     stateChanged || boundariesChanged || tuningChanged || guitarTypeChanged
-  //   );
-  // }
 
   componentWillUnmount() {
     console.log('AudioFileItem component is unmounted. ');
@@ -389,96 +376,13 @@ class AudioFileItem extends Component<Props, State> {
     audioElement.addEventListener('timeupdate', this.handleAudioTimeUpdate);
     audioElement.addEventListener('canplaythrough', this.handleAudioCanPlay);
 
-    // const reader = new FileReader();
-    // reader.onload = this.handleFileLoad;
-    // reader.readAsArrayBuffer(fileItem.file);
+    const reader = new FileReader();
+    reader.onload = this.handleFileLoad;
+    reader.readAsArrayBuffer(fileItem.file);
   };
 
   getCurrentTime = () => {
     return this.audioRef.current?.currentTime || 0;
-  };
-
-  processFile = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const buffer = await this.loadAudioBuffer(event.target.result);
-          const key = await this.extractKey(buffer);
-          resolve(key); // Resolve the promise with the key once extraction is complete
-        } catch (error) {
-          reject(error); // Reject the promise in case of an error
-        }
-      };
-      reader.onerror = reject; // Handle file read errors
-      reader.readAsArrayBuffer(file);
-    });
-  };
-
-  loadAudioBuffer = async (arrayBuffer) => {
-    console.log('loadingAudioZBuffer...');
-    const context = audioUtils.createAudioContext();
-    return await context.decodeAudioData(arrayBuffer);
-  };
-
-  extractKey = async (buffer) => {
-    console.log('extracting Key method..');
-    return new Promise((resolve) => {
-      // Removed reject to avoid unhandled promise rejections
-      const worker = keyFinderUtils.initializeKeyFinder({
-        sampleRate: buffer.sampleRate,
-        numberOfChannels: buffer.numberOfChannels,
-      });
-
-      const channelData = [];
-      for (let i = 0; i < buffer.numberOfChannels; i++) {
-        channelData.push(buffer.getChannelData(i));
-      }
-      const segmentCounts = Math.floor(
-        channelData[0].length / buffer.sampleRate
-      );
-      let currentSegment = 0;
-
-      worker.addEventListener('message', (event) => {
-        if (event.data.finalResponse) {
-          const result = keyFinderUtils.extractResultFromByteArray(
-            event.data.data
-          );
-          const normalizedResult = this.getKeySignatureNumericValue(result);
-          console.log('extracted Key...: ', normalizedResult);
-          resolve(normalizedResult);
-        } else {
-          if (currentSegment < segmentCounts) {
-            const offset = currentSegment * buffer.sampleRate;
-            this.advanceSegmentCount(
-              worker,
-              channelData,
-              buffer.sampleRate,
-              buffer.numberOfChannels,
-              offset
-            );
-            currentSegment++;
-          } else {
-            worker.postMessage({ funcName: 'finalDetection' });
-          }
-        }
-      });
-
-      // Start the process
-      this.advanceSegmentCount(
-        worker,
-        channelData,
-        buffer.sampleRate,
-        buffer.numberOfChannels,
-        0
-      );
-
-      // Add an error listener for uncaught exceptions
-      worker.addEventListener('error', (error) => {
-        console.error('Worker error:', error.message);
-        resolve('Error'); // Resolve with "Error" so the CSV can still be downloaded
-      });
-    });
   };
 
   handleFileLoad = async (event: ProgressEvent<FileReader>): Promise<void> => {
