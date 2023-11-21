@@ -5,34 +5,53 @@ import './Navigation.css';
 
 interface NavigationProps {
   onLoginClick: () => void;
-  loggedInUser: string | null; // If the user is not logged in, this should be able to be null
-  onLogout: () => void; // Function to handle user logout
-  onNavLinkClick: () => void; // Add this line
+  loggedInUser: string | null;
+  onLogout: () => void;
+  onNavLinkClick: () => void;
 }
+
 interface State {
   navOpen: boolean;
+  userDropdownOpen: boolean;
 }
 
 class Navigation extends Component<NavigationProps, State> {
   state = {
     navOpen: false,
+    userDropdownOpen: false,
+  };
+
+  toggleUserDropdown = () => {
+    console.log('Toggling Dropdown'); // Add this line
+    this.setState((prevState) => ({
+      userDropdownOpen: !prevState.userDropdownOpen,
+    }));
   };
 
   closeNav = () => {
     this.setState({ navOpen: false });
-    this.props.onNavLinkClick(); // Add this line to close the modal as well
+    this.props.onNavLinkClick(); // Ensures that if the nav is open, it will close
+  };
+
+  closeUserDropdown = () => {
+    this.setState({ userDropdownOpen: false });
   };
 
   render({ onLoginClick, loggedInUser, onLogout }) {
-    const { navOpen } = this.state;
+    const { navOpen, userDropdownOpen } = this.state;
+    console.log('Logged in user: ', loggedInUser); // This should log the username
+    console.log('Dropdown state: ', userDropdownOpen); // Debug: Check dropdown state
+
     return (
       <nav
         class={['navigation-wrapper', navOpen ? 'navigation-open' : ''].join(
           ' '
         )}
       >
-        <button onClick={() => this.setState({ navOpen: true })}>☰</button>
+        {/* <button onClick={() => this.setState({ navOpen: true })}>☰</button> */}
+        <button className="menu-toggle">☰</button>
         <div class="links-container">
+          {/* Existing nav links */}
           <Link href="/live" activeClassName="active" onClick={this.closeNav}>
             Catalog
           </Link>
@@ -54,11 +73,38 @@ class Navigation extends Component<NavigationProps, State> {
           <Link href="/" activeClassName="active" onClick={this.closeNav}>
             ToS
           </Link>
+          {/* ... other existing links */}
+
+          {/* User dropdown or login/signup button */}
           {loggedInUser ? (
             <div class="user-container">
-              <button onClick={onLogout} class="auth-toggle">
-                {loggedInUser} | Log Out
+              <button onClick={this.toggleUserDropdown} class="user-toggle">
+                {loggedInUser}
               </button>
+              {userDropdownOpen && (
+                <div
+                  class={[
+                    'user-dropdown',
+                    userDropdownOpen ? 'user-dropdown-active' : '',
+                  ].join(' ')}
+                >
+                  <Link href="/notifications" onClick={this.closeUserDropdown}>
+                    Notifications
+                  </Link>
+                  <Link
+                    href="/my-fretlabs-bench"
+                    onClick={this.closeUserDropdown}
+                  >
+                    Lab Lists
+                  </Link>
+                  <Link href="/settings" onClick={this.closeUserDropdown}>
+                    Settings
+                  </Link>
+                  <button onClick={onLogout} class="logout-btn-navbar">
+                    Log out
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <button onClick={onLoginClick} class="auth-toggle">
