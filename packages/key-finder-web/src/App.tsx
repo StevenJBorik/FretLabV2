@@ -4,9 +4,21 @@ import Navigation from './Navigation';
 import AudioFileKeyDetection from './AudioFileKeyDetection';
 import Settings from './Settings';
 import About from './About';
+import Profile from './Profile';
 import AuthModal from './AuthModal';
+import { jwtVerify } from 'jose';
 
 import './App.css';
+
+const SECRET_KEY_BASE64 = 'gKHSkyVrtO9a2xm2/tnXIvHaGefr3fSU';
+const secretKeyBinaryString = atob(SECRET_KEY_BASE64);
+const secretKeyUint8Array = new Uint8Array(
+  new ArrayBuffer(secretKeyBinaryString.length)
+);
+
+for (let i = 0; i < secretKeyBinaryString.length; i++) {
+  secretKeyUint8Array[i] = secretKeyBinaryString.charCodeAt(i);
+}
 
 // Define the state interface
 interface AppState {
@@ -18,6 +30,65 @@ class App extends Component<{}, AppState> {
   state: AppState = {
     showModal: false,
     loggedInUser: null,
+  };
+
+  componentDidMount() {
+    this.checkLoggedInStatus();
+  }
+
+  handleNavLinkClick = () => {
+    // Intentionally left blank to not toggle the modal on every nav link click
+  };
+
+  checkLoggedInStatus = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const userId = await this.getUserIdFromToken(token);
+      if (userId) {
+        const username = await this.getUsernameFromToken(token);
+        if (username) {
+          this.setState({ loggedInUser: username });
+        } else {
+          console.error('Failed to retrieve username from token');
+        }
+      }
+    }
+  };
+
+  getUserIdFromToken = async (token) => {
+    try {
+      const { payload } = await jwtVerify(token, secretKeyUint8Array, {
+        algorithms: ['HS256'],
+      });
+      return payload.user_id ? payload.user_id : null;
+    } catch (error) {
+      console.error('Error verifying token:', error);
+      return null;
+    }
+  };
+
+  getUsernameFromToken = async (token) => {
+    try {
+      const response = await fetch('http://localhost:8080/validate-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        // Assuming result.username contains the username
+        return result.username; // Return the username if response is OK
+      } else {
+        console.error('Token validation failed:', result.message);
+        return null; // Return null if there's an error
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+      return null; // Return null if network error occurs
+    }
   };
 
   toggleModal = () => {
@@ -49,7 +120,7 @@ class App extends Component<{}, AppState> {
             onLoginClick={this.toggleModal}
             loggedInUser={loggedInUser}
             onLogout={this.handleLogout}
-            onNavLinkClick={this.toggleModal} // Pass toggleModal here to be called on link click
+            onNavLinkClick={this.handleNavLinkClick} // Remove or comment out this line
           />
         </div>
         <div class="app-wrapper">
@@ -57,6 +128,7 @@ class App extends Component<{}, AppState> {
             <AudioFileKeyDetection path="/file" />
             <Settings path="/settings" />
             <About path="/about" />
+            <Profile path="/profile" />
           </Router>
         </div>
         {showModal && (

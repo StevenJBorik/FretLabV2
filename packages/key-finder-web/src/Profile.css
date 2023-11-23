@@ -1,0 +1,159 @@
+.profile-container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #e5e5e5;
+  padding-bottom: 20px;
+}
+
+.profile-picture {
+  margin-right: 20px;
+  position: relative;
+}
+
+.profile-picture img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-picture button {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  padding: 5px 10px;
+  border: none;
+  background-color: #f0f0f0;
+  cursor: pointer;
+}
+
+.profile-info h1 {
+  margin: 0;
+  font-size: 2em;
+  color: #333;
+}
+
+.profile-info p {
+  margin: 5px 0;
+  color: #666;
+}
+
+.profile-info button {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  padding: 0;
+}
+
+.profile-body {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+}
+
+.profile-section {
+  width: 48%;
+}
+
+.profile-section h2 {
+  border-bottom: 2px solid #ccc;
+  padding-bottom: 5px;
+  font-size: 1.2em;
+  color: #333;
+}
+
+/* Assuming a structure for the Lab Lists and History items */
+.lab-list-item,
+.history-item {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lab-list-item:hover,
+.history-item:hover {
+  background-color: #f9f9f9;
+}
+
+.item-details {
+  display: flex;
+  align-items: center;
+}
+
+.item-details img {
+  margin-right: 10px;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+}
+
+.item-actions button {
+  background: none;
+  border: none;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+/* Style for the edit description area */
+.edit-description {
+  margin-top: 10px;
+}
+
+.edit-description textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  min-height: 100px;
+}
+
+/* Premium button styles */
+.premium-button {
+  background-color: #ff0;
+  border: 1px solid #cca;
+  padding: 10px 20px;
+  font-size: 1em;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-top: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .profile-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-picture {
+    margin-bottom: 20px;
+  }
+
+  .profile-body {
+    flex-direction: column;
+  }
+
+  .profile-section {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+}
+
+.success-message {
+  color: green;
+  margin-top: 10px;
+}

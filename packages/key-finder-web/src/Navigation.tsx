@@ -51,12 +51,18 @@ class Navigation extends Component<NavigationProps, State> {
         {/* <button onClick={() => this.setState({ navOpen: true })}>☰</button> */}
         <button className="menu-toggle">☰</button>
         <div class="links-container">
-          {/* Existing nav links */}
+          <Link href="/file" activeClassName="active" onClick={this.closeNav}>
+            Play
+          </Link>
           <Link href="/live" activeClassName="active" onClick={this.closeNav}>
             Catalog
           </Link>
-          <Link href="/file" activeClassName="active" onClick={this.closeNav}>
-            Play
+          <Link
+            href="/profile"
+            activeClassName="active"
+            onClick={this.closeNav}
+          >
+            My Profile
           </Link>
           <Link href="/" activeClassName="active" onClick={this.closeNav}>
             Pricing
@@ -73,7 +79,6 @@ class Navigation extends Component<NavigationProps, State> {
           <Link href="/" activeClassName="active" onClick={this.closeNav}>
             ToS
           </Link>
-          {/* ... other existing links */}
 
           {/* User dropdown or login/signup button */}
           {loggedInUser ? (
@@ -88,6 +93,9 @@ class Navigation extends Component<NavigationProps, State> {
                     userDropdownOpen ? 'user-dropdown-active' : '',
                   ].join(' ')}
                 >
+                  <Link href="/profile" onClick={this.closeUserDropdown}>
+                    My Profile
+                  </Link>
                   <Link href="/notifications" onClick={this.closeUserDropdown}>
                     Notifications
                   </Link>
