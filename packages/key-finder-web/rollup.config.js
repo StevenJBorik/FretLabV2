@@ -3,6 +3,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import OMT from '@surma/rollup-plugin-off-main-thread';
 import css from 'rollup-plugin-css-only';
 import commonjs from '@rollup/plugin-commonjs';
+import copy from 'rollup-plugin-copy';
 
 // rollup.config.js
 export default [
@@ -20,6 +21,9 @@ export default [
       typescript(),
       css({ output: 'index.css' }),
       OMT(),
+      copy({
+        targets: [{ src: 'src/images/*', dest: 'dist/images' }],
+      }),
     ],
   },
   {
