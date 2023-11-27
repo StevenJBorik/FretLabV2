@@ -1,157 +1,166 @@
+.navigation-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.menu-toggle {
+  display: none; /* Hidden by default, only shown in mobile view */
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+}
+
 .links-container {
   display: flex;
-  align-items: center; /* Align items vertically */
-  position: relative; /* Add this line */
-  /* padding-right: 1em;  */
+  align-items: center;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
 }
 
-/* .navigation-wrapper button:not(.auth-toggle) {
-  display: none;
-  border: none;
-} */
-
-@media (max-width: 800px) {
-  .links-container {
-    position: fixed;
-    right: 0;
-    width: calc(60vw - 20px);
-    top: 0;
-    height: 100vh;
-    z-index: 100;
-    padding-top: 3rem;
-    flex-direction: column;
-    transform: translateX(60vw);
-    transition: ease-in 300ms;
-    will-change: transform;
-    background: var(--background-color);
-    box-shadow: -2px 0px 5px rgb(0 0 0 / 26%);
-  }
-
-  .navigation-open > .links-container {
-    transform: translateX(0);
-  }
-
-  .navigation-wrapper button {
-    position: absolute;
-    top: 0.2rem;
-    right: 0.2rem;
-    display: inherit;
-  }
+.search-container {
+  position: relative; /* For absolute positioning of suggestions */
 }
 
-.navigation-wrapper .user-toggle {
-  display: initial;
+.search-container input[type='search'] {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
 }
 
-.navigation-wrapper .menu-toggle {
-  display: none;
+.search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.search-suggestion-item {
+  padding: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.search-suggestion-item:hover,
+.search-suggestion-item:focus {
+  background-color: #f7f7f7;
 }
 
 .links-container > a {
+  margin-right: 1rem;
   text-decoration: none;
-  text-align: center;
-  padding: 0.7rem 2rem 0.3rem 2rem;
-  font-size: 0.6rem;
+  color: #333;
+  font-size: 1rem;
 }
 
 .links-container > a.active {
-  border-bottom: 2px solid var(--primary-darker-color);
+  color: #0275d8;
+  border-bottom: 2px solid #0275d8;
 }
 
 .user-container {
-  display: flex;
-  align-items: center; /* Align items vertically */
-}
-
-.auth-toggle {
-  background: none;
-  border: none;
-  color: inherit; /* Use the same font color as other links */
-  font: inherit; /* Use the same font settings as other links */
-  cursor: pointer;
-  padding: 0.7rem 2rem 0.3rem 2rem; /* Similar padding to other links */
-  text-decoration: none; /* No underline */
-  display: inline-flex; /* Use inline-flex for centering content */
-  align-items: center; /* Align text and icons vertically */
-  margin: 0; /* No additional margin */
-  font-size: 0.6rem; /* Adjust font size as needed */
-}
-
-.auth-toggle:hover,
-.auth-toggle:focus {
-  text-decoration: underline; /* Underline on hover/focus for visual feedback */
-  outline: none; /* Remove focus outline */
-}
-
-/* Add a higher z-index value to the user container */
-.user-container {
-  display: inline-flex;
-  align-items: center;
   position: relative;
-  z-index: 1000;
-  text-decoration: none;
-  text-align: center;
-  padding: 0.7rem 2rem 0.3rem 2rem;
-  font-size: 0.6rem;
 }
 
-/* Ensure user-toggle button is visible */
 .user-toggle {
-  position: relative;
   background: none;
   border: none;
-  color: black;
   cursor: pointer;
-  padding: 10px;
-  z-index: 1001; /* Ensure it's above the dropdown for clicking */
+  font-size: 1rem;
 }
 
-/* Update the user-dropdown display property on active state */
 .user-dropdown {
-  display: none; /* Hide by default */
+  display: none;
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: white;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  top: 100%;
-  width: 90px;
   right: 0;
-  z-index: 1002; /* Ensure it's above the user-toggle */
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.user-dropdown-active {
+  display: block;
 }
 
 .user-dropdown a {
   display: block;
-  padding: 10px;
-  font-size: 0.4rem;
-  text-align: center;
+  padding: 0.5rem;
+  text-decoration: none;
+  color: #333;
+  font-size: 0.9rem;
 }
 
-/* Use JavaScript to toggle this class when the dropdown should be shown */
-.user-dropdown-active {
-  display: block; /* Show when active */
+.user-dropdown a:hover,
+.user-dropdown a:focus {
+  background-color: #f7f7f7;
 }
 
 .logout-btn-navbar {
-  /* padding: 5px 10px; */
-  font-size: 14px;
-  background-color: #008cba;
-  color: white;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
 }
 
-/* Rest of the styles remain unchanged */
+@media (max-width: 768px) {
+  .menu-toggle {
+    display: block;
+  }
 
-/* Make sure the hover effect is not the only way to display dropdown */
-@media (hover: hover) {
-  .user-container:hover .user-dropdown {
-    display: block; /* Show on hover for non-touch devices */
+  .links-container {
+    flex-direction: column;
+    align-items: flex-start;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -250px;
+    width: 250px;
+    background: #fff;
+    transition: left 0.3s;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+
+  .navigation-open .links-container {
+    left: 0;
+  }
+
+  .search-container {
+    margin-bottom: 1rem;
+  }
+
+  .links-container > a {
+    padding: 0.5rem 0;
+  }
+
+  .user-container {
+    order: -1; /* Show user dropdown at the top */
   }
 }
 
-/* Ensure that hover styles are not applied on touch devices */
-@media (hover: none) {
-  .user-container:hover .user-dropdown {
-    display: none; /* Do not show on hover for touch devices */
-  }
+/* Add focus styles for keyboard navigation */
+input[type='search']:focus,
+.search-suggestion-item:focus,
+.links-container > a:focus,
+.user-toggle:focus,
+.logout-btn-navbar:focus {
+  outline: 2px solid #0275d8;
 }

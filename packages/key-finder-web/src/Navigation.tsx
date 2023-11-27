@@ -1,7 +1,10 @@
 import { h, Component } from 'preact';
 import { Link } from 'preact-router/match';
+import debounce from 'lodash.debounce'; // You may need to install this with npm or yarn
 
 import './Navigation.css';
+
+const API_URL = 'http://localhost:8080'; // Define API_URL
 
 interface NavigationProps {
   onLoginClick: () => void;
@@ -13,12 +16,53 @@ interface NavigationProps {
 interface State {
   navOpen: boolean;
   userDropdownOpen: boolean;
+  searchQuery: string;
+  searchResults: any[]; // Adjust as per the structure of your search results
+  showSuggestions: boolean;
 }
 
 class Navigation extends Component<NavigationProps, State> {
   state = {
     navOpen: false,
     userDropdownOpen: false,
+    searchQuery: '',
+    searchResults: [],
+    showSuggestions: false,
+  };
+
+  toggleNav = () => {
+    this.setState((prevState) => ({
+      navOpen: !prevState.navOpen,
+    }));
+  };
+
+  // Debounced search function
+  search = debounce(async (query) => {
+    // Call your API endpoint here with the search query
+    const response = await fetch(
+      `${API_URL}/search?q=${encodeURIComponent(query)}`
+    );
+    const results = await response.json();
+    // Update state with the search results
+    this.setState({ searchResults: results, showSuggestions: true });
+  }, 300);
+
+  handleSearchInputChange = (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    this.setState({ searchQuery: target.value });
+    if (target.value.trim()) {
+      this.search(target.value.trim());
+    } else {
+      this.setState({ searchResults: [], showSuggestions: false });
+    }
+  };
+
+  selectSearchResult = (result: any) => {
+    // Navigate to the song-specific page here
+    // For example, using preact-router's route function:
+    // route(`/song/${result.id}`);
+    // Hide suggestions
+    this.setState({ showSuggestions: false, searchQuery: '' });
   };
 
   toggleUserDropdown = () => {
@@ -38,7 +82,13 @@ class Navigation extends Component<NavigationProps, State> {
   };
 
   render({ onLoginClick, loggedInUser, onLogout }) {
-    const { navOpen, userDropdownOpen } = this.state;
+    const {
+      navOpen,
+      userDropdownOpen,
+      searchQuery,
+      searchResults,
+      showSuggestions,
+    } = this.state;
     console.log('Logged in user: ', loggedInUser); // This should log the username
     console.log('Dropdown state: ', userDropdownOpen); // Debug: Check dropdown state
 
@@ -48,8 +98,32 @@ class Navigation extends Component<NavigationProps, State> {
           ' '
         )}
       >
+        {/* Search bar */}
+        <div class="search-container">
+          <input
+            type="search"
+            value={searchQuery}
+            onInput={this.handleSearchInputChange}
+            placeholder="Search songs or artists..."
+          />
+          {showSuggestions && (
+            <div class="search-suggestions">
+              {searchResults.map((result) => (
+                <div
+                  key={result.id}
+                  class="search-suggestion-item"
+                  onClick={() => this.selectSearchResult(result)}
+                >
+                  {result.title} by {result.artist}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         {/* <button onClick={() => this.setState({ navOpen: true })}>☰</button> */}
-        <button className="menu-toggle">☰</button>
+        <button className="menu-toggle" onClick={this.toggleNav}>
+          ☰
+        </button>
         <div class="links-container">
           <Link href="/file" activeClassName="active" onClick={this.closeNav}>
             Play
