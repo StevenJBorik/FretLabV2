@@ -1,4 +1,4 @@
-import { h, Component } from 'preact';
+import { h, Component, createRef } from 'preact';
 import { Link } from 'preact-router/match';
 import debounce from 'lodash.debounce'; // You may need to install this with npm or yarn
 
@@ -29,6 +29,30 @@ class Navigation extends Component<NavigationProps, State> {
     searchResults: [],
     showSuggestions: false,
   };
+
+  componentDidMount() {
+    // Attach event listener to hide suggestions when clicking outside
+    document.addEventListener('mousedown', this.handleClickOutside);
+  }
+
+  componentWillUnmount() {
+    // Remove the event listener when the component unmounts
+    document.removeEventListener('mousedown', this.handleClickOutside);
+  }
+
+  handleClickOutside = (event) => {
+    // If the clicked element is not within the search-container, hide suggestions
+    if (
+      this.state.showSuggestions &&
+      (!this.searchContainerRef.current ||
+        !this.searchContainerRef.current.contains(event.target))
+    ) {
+      this.setState({ showSuggestions: false });
+    }
+  };
+
+  // Ref for the search container
+  searchContainerRef = createRef();
 
   toggleNav = () => {
     this.setState((prevState) => ({
@@ -99,7 +123,7 @@ class Navigation extends Component<NavigationProps, State> {
         )}
       >
         {/* Search bar */}
-        <div class="search-container">
+        <div class="search-container" ref={this.searchContainerRef}>
           <input
             type="search"
             value={searchQuery}

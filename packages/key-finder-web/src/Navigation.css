@@ -1,9 +1,19 @@
 .navigation-wrapper {
+  width: 100%;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   padding: 0.5rem 1rem;
-  background-color: #fff;
+}
+
+/* Pseudo-element for bottom shadow */
+.navigation-wrapper::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px; /* Height of the shadow */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -25,6 +35,8 @@
 
 .search-container {
   position: relative; /* For absolute positioning of suggestions */
+  flex-grow: 1; /* Allow the search container to grow */
+  margin-right: 1rem; /* Add some margin to the right */
 }
 
 .search-container input[type='search'] {
