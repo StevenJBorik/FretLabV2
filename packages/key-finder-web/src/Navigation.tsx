@@ -1,7 +1,7 @@
 import { h, Component, createRef } from 'preact';
 import { Link } from 'preact-router/match';
 import debounce from 'lodash.debounce'; // You may need to install this with npm or yarn
-
+import { route } from 'preact-router';
 import './Navigation.css';
 
 const API_URL = 'http://localhost:8080'; // Define API_URL
@@ -81,10 +81,10 @@ class Navigation extends Component<NavigationProps, State> {
     }
   };
 
-  selectSearchResult = (result: any) => {
+  selectSearchResult = (result) => {
     // Navigate to the song-specific page here
     // For example, using preact-router's route function:
-    // route(`/song/${result.id}`);
+    route(`/song/${result.id}`);
     // Hide suggestions
     this.setState({ showSuggestions: false, searchQuery: '' });
   };

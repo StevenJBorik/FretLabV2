@@ -1,0 +1,14 @@
+.song-page-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.youtube-container {
+  width: 30%; /* Adjust based on your preference */
+  padding: 10px;
+}
+
+.fretboard-container {
+  width: 70%; /* Adjust based on your preference */
+  padding: 10px;
+}
