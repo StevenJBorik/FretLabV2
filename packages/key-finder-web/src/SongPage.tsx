@@ -17,6 +17,7 @@ declare global {
 const fetchSongData = async (songId) => {
   try {
     const response = await fetch(`${API_URL}/song/${songId}`);
+    console.log('Fetch response:', response);
     if (!response.ok) {
       throw new Error('Song data could not be fetched');
     }
@@ -66,6 +67,8 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const debouncedHandleNoteDetection = useRef<
     ((frequency: number | null) => void) | null
   >(null);
+
+  console.log('Song ID: ', songId);
 
   useEffect(() => {
     debouncedHandleNoteDetection.current = debounce(handleNoteDetection, 150);
@@ -490,6 +493,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   useEffect(() => {
     const fetchData = async () => {
       const songData = await fetchSongData(songId);
+
       if (songData) {
         setVideoId(songData.videoId);
         setDisplayedScale(songData.displayedScale);
@@ -540,6 +544,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       },
     });
   };
+  console.log('Youtube Iframe API is ready');
 
   useEffect(() => {
     window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
@@ -547,13 +552,13 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   }, []);
 
   const onPlayerReady = (event) => {
-    // Player is ready to use
+    console.log('Youtube Player is ready.');
   };
 
   // Function to handle player state changes
   const onPlayerStateChange = (event) => {
     if (event.data === window.YT.PlayerState.PLAYING) {
-      // The player is playing, get the current time
+      console.log('Youtube Player state has changed.');
       const currentTime = playerRef.current.getCurrentTime();
       checkAndUpdateFretboard(currentTime);
     }

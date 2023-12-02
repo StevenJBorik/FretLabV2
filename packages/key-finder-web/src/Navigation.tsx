@@ -67,6 +67,9 @@ class Navigation extends Component<NavigationProps, State> {
       `${API_URL}/search?q=${encodeURIComponent(query)}`
     );
     const results = await response.json();
+    // Inside the search method
+    console.log('Search results:', results);
+
     // Update state with the search results
     this.setState({ searchResults: results, showSuggestions: true });
   }, 300);
@@ -82,10 +85,13 @@ class Navigation extends Component<NavigationProps, State> {
   };
 
   selectSearchResult = (result) => {
+    // Inside the search method
+    console.log('Search results:', result);
+
     // Navigate to the song-specific page here
     // For example, using preact-router's route function:
+    console.log(`Routing to song with ID: ${result.id}`);
     route(`/song/${result.id}`);
-    // Hide suggestions
     this.setState({ showSuggestions: false, searchQuery: '' });
   };
 

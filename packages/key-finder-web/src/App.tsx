@@ -6,6 +6,7 @@ import Settings from './Settings';
 import About from './About';
 import Profile from './Profile';
 import AuthModal from './AuthModal';
+import SongPage from './SongPage';
 import { jwtVerify } from 'jose';
 
 import './App.css';
@@ -107,6 +108,10 @@ class App extends Component<{}, AppState> {
     route('/'); // Navigate to homepage
   };
 
+  handleRoute = (e) => {
+    console.log('Route changed:', e.url);
+  };
+
   render() {
     const { showModal, loggedInUser } = this.state; // Destructure for cleaner code
 
@@ -124,11 +129,12 @@ class App extends Component<{}, AppState> {
           />
         </div>
         <div class="app-wrapper">
-          <Router>
+          <Router onChange={this.handleRoute}>
             <AudioFileKeyDetection path="/file" />
             <Settings path="/settings" />
             <About path="/about" />
             <Profile path="/profile" />
+            <SongPage path="/song/:songId" />
           </Router>
         </div>
         {showModal && (
