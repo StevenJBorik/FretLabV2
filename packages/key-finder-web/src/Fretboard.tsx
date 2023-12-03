@@ -5,6 +5,7 @@ import './Fretboard.css';
 
 interface FretboardProps {
   displayedScale: string;
+  songId: string;
   sections: string[];
   startFret: number;
   frets: number;
@@ -27,6 +28,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   onFretUpdate,
   highlightedNote,
   highlightedFret,
+  songId,
 }) => {
   const fretboardRef = useRef<HTMLDivElement>(null);
   const [currentScale, setCurrentScale] = useState<string>(displayedScale);
@@ -354,6 +356,9 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
 
   // Renders the fretboard with the given scale, tuning, and fret range.
   const renderFretboard = () => {
+    if (fretboardRef.current) {
+      fretboardRef.current.innerHTML = ''; // Clear existing fretboard
+    }
     const currentTuning =
       fretboards.Tunings[selectedGuitarType][selectedTuning];
     const stringCountMap = {
@@ -373,14 +378,26 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     });
 
     // Add the scale to the fretboard and render it.
-    fretboard.add(displayedScale).paint();
-    fretboardRef.current = fretboard; // Store the fretboard instance for later use.
+    if (displayedScale) {
+      fretboard.add(displayedScale).paint();
+      fretboardRef.current = fretboard; // Store the fretboard instance for later use.
+    } else {
+      console.error('displayedScale is null or undefined');
+    }
   };
 
-  // useEffect to render fretboard when props changes
   useEffect(() => {
-    // Effect for handling prop changes.
+    // Render the new fretboard
     renderFretboard();
+
+    // Cleanup function
+    return () => {
+      const fretboardContainers = document.getElementsByClassName('fretboard');
+      console.log('fretboard container', fretboardContainers);
+      for (let i = 0; i < fretboardContainers.length; i++) {
+        fretboardContainers[i].innerHTML = '';
+      }
+    };
   }, [
     displayedScale,
     selectedGuitarType,
@@ -389,6 +406,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     initialFrets,
     order,
     incrementFactor,
+    songId,
   ]);
 
   const handleGuitarTypeChange = (event: Event) => {

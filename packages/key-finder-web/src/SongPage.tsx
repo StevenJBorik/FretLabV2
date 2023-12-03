@@ -25,6 +25,7 @@ const fetchSongData = async (songId) => {
     return songData;
   } catch (error) {
     console.error('fetchSongData error:', error);
+
     route('/'); // Redirect to home if there's an error
   }
 };
@@ -491,10 +492,21 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   };
 
   useEffect(() => {
+    // Other code...
+
+    return () => {
+      console.log('SongPage is unmounting');
+      // Cleanup logic here...
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
       const songData = await fetchSongData(songId);
 
       if (songData) {
+        console.log('Updating state with new song data', songData);
         setVideoId(songData.videoId);
         setDisplayedScale(songData.displayedScale);
         setSections(songData.sections);
@@ -504,6 +516,15 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     };
 
     fetchData();
+    return () => {
+      console.log('Cleaning up after song ID:', songId);
+      isMounted = false; // Set the flag to false when the component unmounts
+
+      // Perform any other cleanup actions, such as invalidating timers, canceling API requests, or removing event listeners
+      if (playerRef.current) {
+        playerRef.current.destroy(); // This will destroy the YouTube player instance
+      }
+    };
   }, [songId]);
 
   const handleAddBoundary = () => {
@@ -639,6 +660,8 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     <div>
       {/* YouTube player will be rendered here */}
       <Fretboard
+        songId={songId}
+        key={songId}
         displayedScale={displayedScale}
         sections={sections}
         startFret={currentFretboardSettings.startFret}

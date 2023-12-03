@@ -134,7 +134,7 @@ class App extends Component<{}, AppState> {
             <Settings path="/settings" />
             <About path="/about" />
             <Profile path="/profile" />
-            <SongPage path="/song/:songId" />
+            <SongPage path="/song/:songId" key={window.location.pathname} />
           </Router>
         </div>
         {showModal && (
