@@ -1,14 +1,29 @@
 .song-page-container {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start; /* To align items at the top */
+  flex-wrap: wrap; /* Allow items to wrap if needed */
+  border: 1px solid red;
 }
 
 .youtube-container {
-  width: 30%; /* Adjust based on your preference */
+  flex: 1; /* Allow flexibility but respect the width of the sibling */
   padding: 10px;
+  max-width: 30%; /* Set a maximum width */
 }
 
 .fretboard-container {
-  width: 70%; /* Adjust based on your preference */
+  flex: 1; /* Take up twice the space of the youtube-container, if possible */
   padding: 10px;
+  max-width: 70%; /* Set a maximum width */
+  /* min-width: 300px; */
+  overflow: auto; /* Handle internal overflow */
+}
+
+@media (max-width: 768px) {
+  /* Adjust the breakpoint as needed */
+  .youtube-container,
+  .fretboard-container {
+    max-width: 100%;
+  }
 }

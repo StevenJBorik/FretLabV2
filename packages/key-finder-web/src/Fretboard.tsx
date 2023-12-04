@@ -45,7 +45,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     initialIncrementFactor
   );
   const [highlightNotes, setHighlightNotes] = useState<boolean>(true);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<string | null>(displayedScale);
   const [scaleOptions, setScaleOptions] = useState<string[]>([]);
 
   const tuningsMap = {
@@ -453,13 +453,15 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   };
 
   useEffect(() => {
-    // Whenever 'result' changes, update scale options
-    if (result) {
-      setScaleOptions(getScaleOptions(result));
+    // Update scale options whenever displayedScale changes
+    if (displayedScale) {
+      setResult(displayedScale); // Set the current scale to the new displayedScale
+      setScaleOptions(getScaleOptions(displayedScale));
     } else {
-      setScaleOptions([]);
+      setResult(null); // Clear the result if no scale is displayed
+      setScaleOptions([]); // Clear the scale options
     }
-  }, [result]);
+  }, [displayedScale]);
 
   const changeScale = (selectedScaleType: string) => {
     // Implement the logic to change the scale
@@ -483,9 +485,9 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
       'melodic-minor',
     ];
 
-    if (scale.includes('Major')) {
+    if (scale.includes('major')) {
       return majorOptions;
-    } else if (scale.includes('Minor') || scale.includes('aeolian')) {
+    } else if (scale.includes('minor') || scale.includes('aeolian')) {
       return minorOptions;
     } else {
       return []; // or handle other scales as needed
@@ -498,82 +500,91 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
         <div id="youtube-player"></div>{' '}
         {/* YouTube player will be rendered here */}
       </div>
-      <div id="fretboard-container" ref={fretboardRef}>
-        <label htmlFor="guitar-type-select">Select Guitar Type:</label>
-        <select
-          id="guitar-type-select"
-          value={selectedGuitarType}
-          onChange={handleGuitarTypeChange}
-        >
-          <option value="bass4">Bass (4-string)</option>
-          <option value="guitar6">Guitar (6-string)</option>
-          <option value="guitar7">Guitar (7-string)</option>
-        </select>
+      <div className="controls-container">
+        <div className="controls-row">
+          <label htmlFor="guitar-type-select">Select Guitar Type:</label>
+          <select
+            id="guitar-type-select"
+            value={selectedGuitarType}
+            onChange={handleGuitarTypeChange}
+          >
+            <option value="bass4">Bass (4-string)</option>
+            <option value="guitar6">Guitar (6-string)</option>
+            <option value="guitar7">Guitar (7-string)</option>
+          </select>
 
-        <label htmlFor="tuning-select">Select Tuning:</label>
-        <select
-          id="tuning-select"
-          value={selectedTuning}
-          onChange={handleTuningChange}
-        >
-          {tuningsMap[selectedGuitarType].map((tuning) => (
-            <option key={tuning} value={tuning}>
-              {tuning.replace(/_/g, ' ')}
-            </option>
-          ))}
-        </select>
-        <br />
-        {result && (
-          <div>
-            Result: {result}
+          <label htmlFor="tuning-select">Select Tuning:</label>
+          <select
+            id="tuning-select"
+            value={selectedTuning}
+            onChange={handleTuningChange}
+          >
+            {tuningsMap[selectedGuitarType].map((tuning) => (
+              <option key={tuning} value={tuning}>
+                {tuning.replace(/_/g, ' ')}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="controls-row">
+          {result && (
             <div>
-              {scaleOptions.length > 0 &&
-                scaleOptions.map((scale) => (
-                  <button key={scale} onClick={() => changeScale(scale)}>
-                    {scale}
-                  </button>
-                ))}
+              Key Signature: {result}
+              <div>
+                {scaleOptions.length > 0 &&
+                  scaleOptions.map((scale) => (
+                    <button key={scale} onClick={() => changeScale(scale)}>
+                      {scale}
+                    </button>
+                  ))}
+              </div>
             </div>
-          </div>
-        )}
-        <br />
-        <label htmlFor="frets">End Fret:</label>
-        <input
-          id="frets"
-          type="number"
-          min="1"
-          max="24"
-          value={initialFrets}
-          onChange={handleFretsChange}
-        />
-        <br />
-        <label htmlFor="start-fret">Start Fret:</label>
-        <input
-          id="start-fret"
-          type="number"
-          min="0"
-          max="24"
-          value={initialStartFret}
-          onChange={handleStartFretChange}
-        />
-        <br />
-        <label htmlFor="increment-factor">Increment Factor:</label>
-        <input
-          id="increment-factor"
-          type="number"
-          min="1"
-          max="24"
-          value={incrementFactor}
-          onChange={handleIncrementFactorChange}
-        />
-        <br />
-        <label htmlFor="order">Order:</label>
-        <select id="order" value={order} onChange={handleOrderChange}>
-          <option value="ascending">Ascending</option>
-          <option value="descending">Descending</option>
-          <option value="random">Random</option>
-        </select>
-        <button onClick={toggleHighlight}>Toggle Note Highlighting</button>
+          )}
+        </div>
+
+        <div className="controls-row">
+          <label htmlFor="frets">End Fret:</label>
+          <input
+            id="frets"
+            type="number"
+            min="1"
+            max="24"
+            value={initialFrets}
+            onChange={handleFretsChange}
+          />
+
+          <label htmlFor="start-fret">Start Fret:</label>
+          <input
+            id="start-fret"
+            type="number"
+            min="0"
+            max="24"
+            value={initialStartFret}
+            onChange={handleStartFretChange}
+          />
+        </div>
+
+        <div className="controls-row">
+          <label htmlFor="increment-factor">Increment Factor:</label>
+          <input
+            id="increment-factor"
+            type="number"
+            min="1"
+            max="24"
+            value={incrementFactor}
+            onChange={handleIncrementFactorChange}
+          />
+
+          <label htmlFor="order">Order:</label>
+          <select id="order" value={order} onChange={handleOrderChange}>
+            <option value="ascending">Ascending</option>
+            <option value="descending">Descending</option>
+            <option value="random">Random</option>
+          </select>
+
+          <button onClick={toggleHighlight}>Toggle Note Highlighting</button>
+        </div>
       </div>
     </div>
   );

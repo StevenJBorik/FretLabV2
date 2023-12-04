@@ -508,8 +508,10 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       if (songData) {
         console.log('Updating state with new song data', songData);
         setVideoId(songData.videoId);
-        setDisplayedScale(songData.displayedScale);
+        setDisplayedScale(songData.key);
         setSections(songData.sections);
+        console.log('displayedScale set to:', songData.displayedScale); // Log to check
+        console.log('sections returned from api', songData.sections);
       } else {
         route('/');
       }
