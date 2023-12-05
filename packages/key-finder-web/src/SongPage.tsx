@@ -57,6 +57,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const [lastValidFret, setLastValidFret] = useState(null);
   const [lastValidString, setLastValidString] = useState(null);
   const [detectedFret, setDetectedFret] = useState(null);
+  const [isYouTubeApiLoaded, setIsYouTubeApiLoaded] = useState(false);
   const [currentFretboardSettings, setCurrentFretboardSettings] = useState({
     startFret: 0,
     frets: 24,
@@ -504,14 +505,20 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     let isMounted = true;
     const fetchData = async () => {
       const songData = await fetchSongData(songId);
-
       if (isMounted && songData) {
-        console.log('Updating state with new song data', songData);
-        setVideoId(songData.videoId);
         setDisplayedScale(songData.key);
         setSections(songData.sections);
-        console.log('displayedScale set to:', songData.key); // Log to check
-        console.log('sections returned from api', songData.sections);
+        console.log('Updating state with new song data', songData);
+        const urlParams = new URLSearchParams(
+          new URL(songData.youtube_url).search
+        );
+        const videoIdFromUrl = urlParams.get('v');
+        if (videoIdFromUrl) {
+          setVideoId(videoIdFromUrl);
+        } else {
+          console.error('No video ID found in the youtube_url');
+        }
+        // ... (rest of your code)
       } else {
         route('/');
       }
@@ -519,12 +526,9 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
     fetchData();
     return () => {
-      console.log('Cleaning up after song ID:', songId);
-      isMounted = false; // Set the flag to false when the component unmounts
-
-      // Perform any other cleanup actions, such as invalidating timers, canceling API requests, or removing event listeners
+      isMounted = false;
       if (playerRef.current) {
-        playerRef.current.destroy(); // This will destroy the YouTube player instance
+        playerRef.current.destroy();
       }
     };
   }, [songId]);
@@ -548,21 +552,79 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     setUserBoundaries([]); // Clear user boundaries after saving
   };
 
-  const loadYouTubeIframeAPI = () => {
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+  useEffect(() => {
+    // Check if the YouTube API script is already present
+    const isScriptPresent =
+      document.getElementById('youtube-api-script') !== null;
 
-    window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
-  };
+    if (!isScriptPresent) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      tag.id = 'youtube-api-script'; // Add an ID to the script for checking later
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+
+    // Define the callback globally if it's not already defined
+    if (typeof window.onYouTubeIframeAPIReady !== 'function') {
+      window.onYouTubeIframeAPIReady = () => {
+        setIsYouTubeApiLoaded(true); // Set the state when API is ready
+      };
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isYouTubeApiLoaded && videoId) {
+      // Only create the player once the API is loaded and videoId is available
+      console.log('Initializing YouTube player with videoId:', videoId);
+      initializeYouTubePlayer(videoId);
+    }
+  }, [isYouTubeApiLoaded, videoId]); // Depend on API load status and videoId
+
+  // const loadYouTubeIframeAPI = () => {
+  //   const tag = document.createElement('script');
+  //   tag.src = 'https://www.youtube.com/iframe_api';
+  //   const firstScriptTag = document.getElementsByTagName('script')[0];
+  //   firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+  //   // Assign the initialization function directly to the global handler
+  //   window.onYouTubeIframeAPIReady = () => {
+  //     if (videoId) {
+  //       console.log('Initializing YouTube player with videoId:', videoId);
+  //       initializeYouTubePlayer(videoId);
+  //     }
+  //   };
+  // };
 
   const onPlayerError = (event) => {
     console.error('Player Error:', event.data);
   };
 
-  const onYouTubeIframeAPIReady = () => {
-    console.log('video ID: ', videoId);
+  // const onYouTubeIframeAPIReady = () => {
+  //   if (videoId) {
+  //     playerRef.current = new window.YT.Player('youtube-player', {
+  //       height: '390',
+  //       width: '640',
+  //       videoId: videoId,
+  //       events: {
+  //         onReady: onPlayerReady,
+  //         onStateChange: onPlayerStateChange,
+  //         onError: onPlayerError,
+  //       },
+  //     });
+  //   } else {
+  //     console.error('YouTube Player initialization failed: videoId is null.');
+  //   }
+  // };
+
+  useEffect(() => {
+    if (videoId) {
+      console.log('Initializing YouTube player with videoId:', videoId);
+      initializeYouTubePlayer(videoId);
+    }
+  }, [videoId]);
+
+  const initializeYouTubePlayer = (videoId) => {
     playerRef.current = new window.YT.Player('youtube-player', {
       height: '390',
       width: '640',
@@ -570,16 +632,15 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       events: {
         onReady: onPlayerReady,
         onStateChange: onPlayerStateChange,
-        onError: onPlayerError, // Add this line
+        onError: onPlayerError,
       },
     });
   };
   console.log('Youtube Iframe API is ready');
 
-  useEffect(() => {
-    window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
-    loadYouTubeIframeAPI();
-  }, []);
+  // useEffect(() => {
+  //   loadYouTubeIframeAPI();
+  // }, []);
 
   const onPlayerReady = (event) => {
     console.log('Youtube Player is ready.');
