@@ -505,12 +505,12 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     const fetchData = async () => {
       const songData = await fetchSongData(songId);
 
-      if (songData) {
+      if (isMounted && songData) {
         console.log('Updating state with new song data', songData);
         setVideoId(songData.videoId);
         setDisplayedScale(songData.key);
         setSections(songData.sections);
-        console.log('displayedScale set to:', songData.displayedScale); // Log to check
+        console.log('displayedScale set to:', songData.key); // Log to check
         console.log('sections returned from api', songData.sections);
       } else {
         route('/');
@@ -556,7 +556,13 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
     window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
   };
+
+  const onPlayerError = (event) => {
+    console.error('Player Error:', event.data);
+  };
+
   const onYouTubeIframeAPIReady = () => {
+    console.log('video ID: ', videoId);
     playerRef.current = new window.YT.Player('youtube-player', {
       height: '390',
       width: '640',
@@ -564,6 +570,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       events: {
         onReady: onPlayerReady,
         onStateChange: onPlayerStateChange,
+        onError: onPlayerError, // Add this line
       },
     });
   };

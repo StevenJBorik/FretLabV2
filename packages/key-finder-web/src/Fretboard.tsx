@@ -47,6 +47,9 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   const [highlightNotes, setHighlightNotes] = useState<boolean>(true);
   const [result, setResult] = useState<string | null>(displayedScale);
   const [scaleOptions, setScaleOptions] = useState<string[]>([]);
+  const [userSelectedScale, setUserSelectedScale] = useState<string | null>(
+    null
+  );
 
   const tuningsMap = {
     bass4: ['standard'],
@@ -355,7 +358,41 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   };
 
   // Renders the fretboard with the given scale, tuning, and fret range.
+  // const renderFretboard = (scale) => {
+  //   if (fretboardRef.current) {
+  //     fretboardRef.current.innerHTML = ''; // Clear existing fretboard
+  //   }
+  //   const currentTuning =
+  //     fretboards.Tunings[selectedGuitarType][selectedTuning];
+  //   const stringCountMap = {
+  //     bass4: 4,
+  //     guitar6: 6,
+  //     guitar7: 7,
+  //   };
+  //   const stringCount = stringCountMap[selectedGuitarType];
+
+  //   // Initialize the fretboard with the selected tuning and string count.
+  //   const fretboard = fretboards.Fretboard({
+  //     tuning: currentTuning,
+  //     strings: stringCount,
+  //     frets: initialFrets,
+  //     startFret: initialStartFret,
+  //     showTitle: true,
+  //   });
+
+  //   // Add the scale to the fretboard and render it.
+  //   if (displayedScale) {
+
+  //     console.log("displayed scale in renderFretboard method", displayedScale);
+  //     fretboard.add(displayedScale).paint();
+  //     fretboardRef.current = fretboard; // Store the fretboard instance for later use.
+  //   } else {
+  //     console.error('displayedScale is null or undefined');
+  //   }
+  // };
+
   const renderFretboard = () => {
+    const scaleToRender = userSelectedScale || displayedScale;
     if (fretboardRef.current) {
       fretboardRef.current.innerHTML = ''; // Clear existing fretboard
     }
@@ -372,24 +409,25 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     const fretboard = fretboards.Fretboard({
       tuning: currentTuning,
       strings: stringCount,
-      frets: initialFrets,
-      startFret: initialStartFret,
+      frets: currentFrets,
+      startFret: currentStartFret,
       showTitle: true,
     });
 
     // Add the scale to the fretboard and render it.
-    if (displayedScale) {
-      fretboard.add(displayedScale).paint();
+    if (scaleToRender) {
+      console.log('scale in renderFretboard method', scaleToRender);
+      fretboard.add(scaleToRender).paint();
       fretboardRef.current = fretboard; // Store the fretboard instance for later use.
     } else {
-      console.error('displayedScale is null or undefined');
+      console.error('Scale is null or undefined');
     }
   };
 
+  // useeffect #3 - renders 2nd fretboard but rerenders guitar type functionality correctly
   useEffect(() => {
     // Render the new fretboard
     renderFretboard();
-
     // Cleanup function
     return () => {
       const fretboardContainers = document.getElementsByClassName('fretboard');
@@ -399,11 +437,12 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
       }
     };
   }, [
+    userSelectedScale,
     displayedScale,
     selectedGuitarType,
     selectedTuning,
-    initialStartFret,
-    initialFrets,
+    currentStartFret, // Changed from initialStartFret to currentStartFret
+    currentFrets,
     order,
     incrementFactor,
     songId,
@@ -451,6 +490,14 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   const toggleHighlight = () => {
     setHighlightNotes((prevHighlightNotes) => !prevHighlightNotes);
   };
+  // Inside Fretboard component
+
+  // useeffect# 4
+  useEffect(() => {
+    if (displayedScale) {
+      setCurrentScale(displayedScale);
+    }
+  }, [displayedScale]);
 
   useEffect(() => {
     // Update scale options whenever displayedScale changes
@@ -463,22 +510,71 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     }
   }, [displayedScale]);
 
+  // useEffect(() => {
+  //   setCurrentScale(displayedScale);
+  //   // This effect should only run once on mount, hence the empty dependency array.
+  // }, []);
+
+  // useffect comment #1
+  // // This effect updates the available scale options based on the currentScale.
+  // useEffect(() => {
+  //   if (currentScale) {
+  //     setScaleOptions(getScaleOptions(currentScale));
+  //   }
+  // }, [currentScale]);
+
+  // const changeScale = (selectedScaleType: string) => {
+  //   // Check if currentScale is a string and not null
+  //   if (typeof currentScale === 'string') {
+  //     let rootNote = currentScale.split(' ')[0];
+  //     rootNote = rootNote.charAt(0) + rootNote.slice(1);
+  //     const newScale = `${rootNote} ${selectedScaleType}`;
+  //     setCurrentScale(newScale); // Update the current scale
+  //     console.log("new scale", newScale);
+  //     renderFretboard(newScale); // Call the render function with the new scale
+  //   } else {
+  //     console.error('currentScale is null or not a string:', currentScale);
+  //   }
+  // };
+
+  // const changeScale = (selectedScaleType: string) => {
+  //   if (typeof currentScale === 'string') {
+  //     let rootNote = currentScale.split(' ')[0];
+  //     rootNote = rootNote.charAt(0).toUpperCase() + rootNote.slice(1);
+  //     const newScale = `${rootNote} ${selectedScaleType}`;
+  //     setCurrentScale(newScale); // Update the current scale
+  //     console.log("new scale selected by user", newScale);
+  //     renderFretboard(newScale); // Call the render function with the new scale
+  //   } else {
+  //     console.error('currentScale is null or not a string:', currentScale);
+  //   }
+  // };
+
   const changeScale = (selectedScaleType: string) => {
-    // Implement the logic to change the scale
-    let rootNote = currentScale.split(' ')[0];
-    rootNote = rootNote.charAt(0).toUpperCase() + rootNote.slice(1);
-    const newScale = `${rootNote} ${selectedScaleType}`;
-    setCurrentScale(newScale); // Update the current scale
-    // Call any additional functions if necessary to reflect the change
+    console.log('changeScale:', { currentScale, displayedScale });
+    if (typeof currentScale === 'string') {
+      let rootNote = currentScale.split(' ')[0];
+      rootNote = rootNote.charAt(0).toUpperCase() + rootNote.slice(1);
+      const newScale = `${rootNote} ${selectedScaleType}`;
+      setCurrentScale(newScale); // Update the current scale
+      setUserSelectedScale(newScale); // Set the user-selected scale
+      // No need to call renderFretboard here as the useEffect hook will handle it
+    } else {
+      console.error('currentScale is null or not a string:', currentScale);
+    }
   };
+
+  // useeffect comment #2 - this rendered the last of 3 scales
+  // useEffect(() => {
+  //   renderFretboard(currentScale); // Render the fretboard with the current scale
+  // }, [currentScale]); // Depend on 'currentScale'
 
   const getScaleOptions = (scale: string) => {
     console.log('in getScaleOptions..');
     console.log('resulting scale: ', scale);
 
-    const majorOptions = ['ionian', 'lydian', 'mixolydian'];
+    const majorOptions = ['lydian', 'mixolydian'];
     const minorOptions = [
-      'aeolian',
       'dorian',
       'phrygian',
       'harmonic-minor',
