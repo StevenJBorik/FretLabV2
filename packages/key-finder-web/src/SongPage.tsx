@@ -58,6 +58,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const [lastValidString, setLastValidString] = useState(null);
   const [detectedFret, setDetectedFret] = useState(null);
   const [isYouTubeApiLoaded, setIsYouTubeApiLoaded] = useState(false);
+  const [userMadeChanges, setUserMadeChanges] = useState(false);
   const [currentFretboardSettings, setCurrentFretboardSettings] = useState({
     startFret: 0,
     frets: 24,
@@ -484,6 +485,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       } else if (detectedNote) {
         // Use last valid values
         setDetectedNote({
+          // Update the detected note
           note: lastValidNote,
           fret: lastValidFret,
           string: lastValidString,
@@ -493,8 +495,6 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   };
 
   useEffect(() => {
-    // Other code...
-
     return () => {
       console.log('SongPage is unmounting');
       // Cleanup logic here...
@@ -574,8 +574,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   }, []);
 
   useEffect(() => {
-    if (isYouTubeApiLoaded && videoId) {
-      // Only create the player once the API is loaded and videoId is available
+    if (isYouTubeApiLoaded && videoId && window.YT && window.YT.Player) {
       console.log('Initializing YouTube player with videoId:', videoId);
       initializeYouTubePlayer(videoId);
     }
@@ -625,17 +624,23 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   }, [videoId]);
 
   const initializeYouTubePlayer = (videoId) => {
-    playerRef.current = new window.YT.Player('youtube-player', {
-      height: '390',
-      width: '640',
-      videoId: videoId,
-      events: {
-        onReady: onPlayerReady,
-        onStateChange: onPlayerStateChange,
-        onError: onPlayerError,
-      },
-    });
+    // Check if the YT.Player constructor is available before trying to create a new player
+    if (window.YT && window.YT.Player) {
+      playerRef.current = new window.YT.Player('youtube-player', {
+        height: '390',
+        width: '640',
+        videoId: videoId,
+        events: {
+          onReady: onPlayerReady,
+          onStateChange: onPlayerStateChange,
+          onError: onPlayerError,
+        },
+      });
+    } else {
+      console.error('YouTube Player library is not yet loaded.');
+    }
   };
+
   console.log('Youtube Iframe API is ready');
 
   // useEffect(() => {
@@ -651,6 +656,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     if (event.data === window.YT.PlayerState.PLAYING) {
       console.log('Youtube Player state has changed.');
       const currentTime = playerRef.current.getCurrentTime();
+      console.log('current time: ', currentTime);
       checkAndUpdateFretboard(currentTime);
     }
   };
@@ -663,12 +669,34 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     );
 
     if (matchedBoundary) {
+      console.log('matched boundary: ', matchedBoundary);
+      console.log(
+        '[SongPage] Updating Fretboard based on current time',
+        currentTime
+      );
       updateFretboardScale();
     }
   };
 
+  useEffect(() => {
+    console.log(`[SongPage] userMadeChanges updated: ${userMadeChanges}`);
+  }, [userMadeChanges]);
+
   const updateFretboardScale = () => {
+    console.log(
+      `[SongPage] updateFretboardScale: userMadeChanges = ${userMadeChanges}`
+    );
+    if (userMadeChanges) {
+      console.log('[SongPage] Skipping automatic update due to user changes');
+      return;
+    }
+
     let { startFret, frets, order, incrementFactor } = currentFretboardSettings;
+
+    console.log('startFret: ', startFret);
+    console.log('frets: ', frets);
+    console.log('order: ', order);
+    console.log('increment factor', incrementFactor);
 
     let fretDiff = frets - startFret;
     let nextStartFret = startFret;
@@ -700,11 +728,11 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         break;
     }
 
-    setCurrentFretboardSettings((prevSettings) => ({
-      ...prevSettings,
+    setCurrentFretboardSettings({
+      ...currentFretboardSettings,
       startFret: nextStartFret,
       frets: nextFretSpan,
-    }));
+    });
   };
 
   const handlePlayPause = () => {
@@ -726,9 +754,22 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  const handleFretUpdate = (startFret: number, frets: number) => {
+    console.log(`User updated frets: startFret=${startFret}, frets=${frets}`);
+    setCurrentFretboardSettings(() => ({
+      ...currentFretboardSettings,
+      startFret,
+      frets,
+    }));
+    setUserMadeChanges(true); // Indicate user made changes
+  };
+
   return (
     <div>
-      {/* YouTube player will be rendered here */}
+      {console.log(
+        '[SongPage] Rendering Fretboard with props',
+        currentFretboardSettings
+      )}
       <Fretboard
         songId={songId}
         key={songId}
@@ -740,6 +781,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         incrementFactor={currentFretboardSettings.incrementFactor}
         highlightedNote={detectedNote?.note}
         highlightedFret={detectedNote?.fret} // Passing the detected note to the Fretboard component
+        onFretUpdate={handleFretUpdate}
       />
       {/* Boundary management UI */}
       <input
