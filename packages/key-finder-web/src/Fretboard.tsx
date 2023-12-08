@@ -466,12 +466,12 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
 
   useEffect(() => {
     console.log('[Fretboard] Props updated', {
-      initialStartFret,
-      initialFrets,
+      currentFrets,
+      currentStartFret,
     });
-    setCurrentStartFret(initialStartFret);
-    setCurrentFrets(initialFrets);
-  }, [initialStartFret, initialFrets]); // Update state when initial props change
+    setCurrentStartFret(currentStartFret);
+    setCurrentFrets(currentFrets);
+  }, [currentStartFret, currentStartFret]); // Update state when initial props change
 
   const handleGuitarTypeChange = (event: Event) => {
     const target = event.target as HTMLSelectElement;
@@ -496,7 +496,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     const frets = Number((event.target as HTMLInputElement).value);
     console.log(`[Fretboard] handleFretsChange: New frets value = ${frets}`);
     setCurrentFrets(frets);
-    onFretUpdate?.(currentStartFret, frets); // Call handleFretUpdate in SongPage
+    onFretUpdate?.(currentFrets, frets); // Call handleFretUpdate in SongPage
   };
 
   const handleStartFretChange = (event: Event) => {
@@ -505,7 +505,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
       `[Fretboard] handleStartFretChange: New startFret value = ${startFret}`
     );
     setCurrentStartFret(startFret);
-    onFretUpdate?.(startFret, currentFrets); // Call handleFretUpdate in SongPage
+    onFretUpdate?.(currentStartFret, startFret); // Call handleFretUpdate in SongPage
   };
 
   const handleOrderChange = (event: Event) => {
@@ -627,6 +627,8 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
       {console.log('[Fretboard] Current state before rendering', {
         currentStartFret,
         currentFrets,
+        initialFrets,
+        initialStartFret,
       })}
       <div className="youtube-container">
         <div id="youtube-player"></div>{' '}

@@ -674,6 +674,10 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         '[SongPage] Updating Fretboard based on current time',
         currentTime
       );
+      console.log(
+        '[SongPage] - checkAndUpdate fretboard - userMadeChanges right before updateFretboard:',
+        userMadeChanges
+      );
       updateFretboardScale();
     }
   };
@@ -756,12 +760,17 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
   const handleFretUpdate = (startFret: number, frets: number) => {
     console.log(`User updated frets: startFret=${startFret}, frets=${frets}`);
-    setCurrentFretboardSettings(() => ({
-      ...currentFretboardSettings,
+    setCurrentFretboardSettings((prevSettings) => ({
+      // ...currentFretboardSettings,
+      ...prevSettings,
       startFret,
       frets,
     }));
-    setUserMadeChanges(true); // Indicate user made changes
+    setUserMadeChanges(true);
+    console.log(
+      '[SongPage] - Updated currentFretboardSettings after handleFretUpdate - ',
+      currentFretboardSettings
+    );
   };
 
   return (

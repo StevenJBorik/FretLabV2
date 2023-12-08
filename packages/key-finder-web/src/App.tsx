@@ -1,3 +1,4 @@
+import 'preact/debug';
 import { h, Component } from 'preact';
 import { Router, Link, route } from 'preact-router'; // Make sure to import route
 import Navigation from './Navigation';
