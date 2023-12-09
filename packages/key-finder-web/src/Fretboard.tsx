@@ -493,19 +493,19 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   };
 
   const handleFretsChange = (event: Event) => {
-    const frets = Number((event.target as HTMLInputElement).value);
-    console.log(`[Fretboard] handleFretsChange: New frets value = ${frets}`);
-    setCurrentFrets(frets);
-    onFretUpdate?.(currentFrets, frets); // Call handleFretUpdate in SongPage
+    const newFrets = Number((event.target as HTMLInputElement).value);
+    console.log(`[Fretboard] handleFretsChange: New frets value = ${newFrets}`);
+    setCurrentFrets(newFrets);
+    onFretUpdate?.(currentStartFret, newFrets); // Call handleFretUpdate in SongPage
   };
 
   const handleStartFretChange = (event: Event) => {
-    const startFret = Number((event.target as HTMLInputElement).value);
+    const newStartFret = Number((event.target as HTMLInputElement).value);
     console.log(
-      `[Fretboard] handleStartFretChange: New startFret value = ${startFret}`
+      `[Fretboard] handleStartFretChange: New startFret value = ${newStartFret}`
     );
-    setCurrentStartFret(startFret);
-    onFretUpdate?.(currentStartFret, startFret); // Call handleFretUpdate in SongPage
+    setCurrentStartFret(newStartFret);
+    onFretUpdate?.(newStartFret, currentFrets); // Call handleFretUpdate in SongPage
   };
 
   const handleOrderChange = (event: Event) => {

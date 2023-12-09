@@ -22,6 +22,7 @@ const fetchSongData = async (songId) => {
       throw new Error('Song data could not be fetched');
     }
     const songData = await response.json();
+    console.log('Fetched Song Data:', songData);
     return songData;
   } catch (error) {
     console.error('fetchSongData error:', error);
@@ -59,12 +60,16 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const [detectedFret, setDetectedFret] = useState(null);
   const [isYouTubeApiLoaded, setIsYouTubeApiLoaded] = useState(false);
   const [userMadeChanges, setUserMadeChanges] = useState(false);
+
   const [currentFretboardSettings, setCurrentFretboardSettings] = useState({
     startFret: 0,
     frets: 24,
     order: 'ascending' as 'ascending' | 'descending' | 'random', // Explicitly declare the type
     incrementFactor: 0,
   });
+  let immediateFretboardSettings = { ...currentFretboardSettings };
+
+  const currentFretboardSettingsRef = useRef(currentFretboardSettings);
 
   const playerRef = useRef(null); // Reference for the YouTube player
   const debouncedHandleNoteDetection = useRef<
@@ -580,41 +585,9 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     }
   }, [isYouTubeApiLoaded, videoId]); // Depend on API load status and videoId
 
-  // const loadYouTubeIframeAPI = () => {
-  //   const tag = document.createElement('script');
-  //   tag.src = 'https://www.youtube.com/iframe_api';
-  //   const firstScriptTag = document.getElementsByTagName('script')[0];
-  //   firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-  //   // Assign the initialization function directly to the global handler
-  //   window.onYouTubeIframeAPIReady = () => {
-  //     if (videoId) {
-  //       console.log('Initializing YouTube player with videoId:', videoId);
-  //       initializeYouTubePlayer(videoId);
-  //     }
-  //   };
-  // };
-
   const onPlayerError = (event) => {
     console.error('Player Error:', event.data);
   };
-
-  // const onYouTubeIframeAPIReady = () => {
-  //   if (videoId) {
-  //     playerRef.current = new window.YT.Player('youtube-player', {
-  //       height: '390',
-  //       width: '640',
-  //       videoId: videoId,
-  //       events: {
-  //         onReady: onPlayerReady,
-  //         onStateChange: onPlayerStateChange,
-  //         onError: onPlayerError,
-  //       },
-  //     });
-  //   } else {
-  //     console.error('YouTube Player initialization failed: videoId is null.');
-  //   }
-  // };
 
   useEffect(() => {
     if (videoId) {
@@ -626,6 +599,12 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const initializeYouTubePlayer = (videoId) => {
     // Check if the YT.Player constructor is available before trying to create a new player
     if (window.YT && window.YT.Player) {
+      console.log(
+        'currentFretboardSettings right before initializeyoutubeplayer',
+        currentFretboardSettings.frets,
+        currentFretboardSettings.startFret
+      );
+
       playerRef.current = new window.YT.Player('youtube-player', {
         height: '390',
         width: '640',
@@ -636,6 +615,11 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
           onError: onPlayerError,
         },
       });
+      console.log(
+        'currentFretboardSettings right after initializeyoutubeplayer',
+        currentFretboardSettings.frets,
+        currentFretboardSettings.startFret
+      );
     } else {
       console.error('YouTube Player library is not yet loaded.');
     }
@@ -643,29 +627,50 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
   console.log('Youtube Iframe API is ready');
 
-  // useEffect(() => {
-  //   loadYouTubeIframeAPI();
-  // }, []);
-
   const onPlayerReady = (event) => {
     console.log('Youtube Player is ready.');
   };
 
   // Function to handle player state changes
   const onPlayerStateChange = (event) => {
+    console.log(
+      'currentFretboardSettings right bfore onplayerstatechange',
+      currentFretboardSettings.frets,
+      currentFretboardSettings.startFret
+    );
     if (event.data === window.YT.PlayerState.PLAYING) {
       console.log('Youtube Player state has changed.');
       const currentTime = playerRef.current.getCurrentTime();
       console.log('current time: ', currentTime);
+      console.log('Player State Changed:', event.data);
+      console.log(
+        'immediateFretboardchanges right after onplayerstatechange',
+        currentFretboardSettings.frets,
+        currentFretboardSettings.startFret
+      );
+
       checkAndUpdateFretboard(currentTime);
     }
   };
 
   const checkAndUpdateFretboard = (currentTime) => {
+    console.log(
+      'immediateFretboardchanges right at checkandupdatefretboard',
+      currentFretboardSettings.frets,
+      currentFretboardSettings.startFret
+    );
+
     const formattedTime = convertSecondsToMinuteSecond(Math.round(currentTime));
 
     const matchedBoundary = sections.find((boundary) =>
       boundary.includes(formattedTime)
+    );
+
+    console.log(
+      'Formatted Time:',
+      formattedTime,
+      'Matched Boundary:',
+      matchedBoundary
     );
 
     if (matchedBoundary) {
@@ -678,6 +683,11 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         '[SongPage] - checkAndUpdate fretboard - userMadeChanges right before updateFretboard:',
         userMadeChanges
       );
+      console.log(
+        'immediateFretboardchanges right before updatefretboardscale',
+        currentFretboardSettings.frets,
+        currentFretboardSettings.startFret
+      );
       updateFretboardScale();
     }
   };
@@ -686,21 +696,31 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     console.log(`[SongPage] userMadeChanges updated: ${userMadeChanges}`);
   }, [userMadeChanges]);
 
+  useEffect(() => {
+    console.log('[SongPage] currentFretboardSettings updated:');
+    console.log('startFret:', currentFretboardSettings.startFret);
+    console.log('frets:', currentFretboardSettings.frets);
+    console.log('order:', currentFretboardSettings.order);
+    console.log('incrementFactor:', currentFretboardSettings.incrementFactor);
+  }, [currentFretboardSettings]);
+
   const updateFretboardScale = () => {
     console.log(
       `[SongPage] updateFretboardScale: userMadeChanges = ${userMadeChanges}`
     );
-    if (userMadeChanges) {
-      console.log('[SongPage] Skipping automatic update due to user changes');
-      return;
-    }
 
-    let { startFret, frets, order, incrementFactor } = currentFretboardSettings;
+    let startFret = currentFretboardSettingsRef.current.startFret;
+    let frets = currentFretboardSettingsRef.current.frets;
+    let order = currentFretboardSettingsRef.current.order;
+    let incrementFactor = currentFretboardSettingsRef.current.incrementFactor;
 
-    console.log('startFret: ', startFret);
-    console.log('frets: ', frets);
-    console.log('order: ', order);
-    console.log('increment factor', incrementFactor);
+    console.log('startFret: ', currentFretboardSettingsRef.current.startFret);
+    console.log('frets: ', currentFretboardSettingsRef.current.frets);
+    console.log('order: ', currentFretboardSettingsRef.current.order);
+    console.log(
+      'increment factor',
+      currentFretboardSettingsRef.current.incrementFactor
+    );
 
     let fretDiff = frets - startFret;
     let nextStartFret = startFret;
@@ -737,6 +757,8 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       startFret: nextStartFret,
       frets: nextFretSpan,
     });
+
+    console.log('Next Fretboard Settings:', { nextStartFret, nextFretSpan });
   };
 
   const handlePlayPause = () => {
@@ -758,19 +780,18 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  useEffect(() => {
+    currentFretboardSettingsRef.current = currentFretboardSettings;
+  }, [currentFretboardSettings]);
+
   const handleFretUpdate = (startFret: number, frets: number) => {
     console.log(`User updated frets: startFret=${startFret}, frets=${frets}`);
-    setCurrentFretboardSettings((prevSettings) => ({
-      // ...currentFretboardSettings,
-      ...prevSettings,
+    setCurrentFretboardSettings({
+      ...currentFretboardSettings, // current state
       startFret,
       frets,
-    }));
-    setUserMadeChanges(true);
-    console.log(
-      '[SongPage] - Updated currentFretboardSettings after handleFretUpdate - ',
-      currentFretboardSettings
-    );
+    });
+    // setUserMadeChanges(true);
   };
 
   return (
