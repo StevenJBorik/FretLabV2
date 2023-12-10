@@ -15,6 +15,11 @@ interface FretboardProps {
   highlightedNote: string;
   highlightedFret: number;
   onFretUpdate?: (startFret: number, frets: number) => void;
+  onOrderUpdate?: (order: 'ascending' | 'descending' | 'random') => void;
+  onIncrementUpdate?: (incrementFactor: number) => void;
+  userStartFret: number;
+  userFrets: number;
+  onUserFretInputChange: (newStartFret: number, newFrets: number) => void;
 }
 
 const Fretboard: FunctionalComponent<FretboardProps> = ({
@@ -26,9 +31,14 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   incrementFactor: initialIncrementFactor, // Use a different name for the prop
   highlightedNotes = [],
   onFretUpdate,
+  onOrderUpdate,
+  onIncrementUpdate,
   highlightedNote,
   highlightedFret,
   songId,
+  userStartFret,
+  userFrets,
+  onUserFretInputChange,
 }) => {
   console.log('[Fretboard] Initial props', {
     displayedScale,
@@ -464,14 +474,19 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     songId,
   ]);
 
+  // useEffect(() => {
+  //   console.log('[Fretboard] Props updated', {
+  //     currentFrets,
+  //     currentStartFret,
+  //   });
+  //   setCurrentStartFret(currentStartFret);
+  //   setCurrentFrets(currentFrets);
+  // }, [currentStartFret, currentFrets]); // Update state when initial props change
+
   useEffect(() => {
-    console.log('[Fretboard] Props updated', {
-      currentFrets,
-      currentStartFret,
-    });
-    setCurrentStartFret(currentStartFret);
-    setCurrentFrets(currentFrets);
-  }, [currentStartFret, currentStartFret]); // Update state when initial props change
+    setCurrentStartFret(initialStartFret);
+    setCurrentFrets(initialFrets);
+  }, [initialStartFret, initialFrets]); // Listen to changes in these props
 
   const handleGuitarTypeChange = (event: Event) => {
     const target = event.target as HTMLSelectElement;
@@ -512,11 +527,24 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     const target = event.target as HTMLSelectElement; // Type assertion
     const order = target.value as 'ascending' | 'descending' | 'random';
     setOrder(order);
+    onOrderUpdate?.(order);
   };
 
   const handleIncrementFactorChange = (event: Event) => {
     const incrementFactor = Number((event.target as HTMLInputElement).value);
     setIncrementFactor(incrementFactor);
+    onIncrementUpdate?.(incrementFactor);
+  };
+
+  const handleUserStartFretChange = (event: Event) => {
+    const newStartFret = Number((event.target as HTMLInputElement).value);
+    onUserFretInputChange(newStartFret, userFrets); // Update the parent component's state
+  };
+
+  // Event handler for user input change on frets
+  const handleUserFretsChange = (event: Event) => {
+    const newFrets = Number((event.target as HTMLInputElement).value);
+    onUserFretInputChange(userStartFret, newFrets); // Update the parent component's state
   };
 
   const toggleHighlight = () => {
@@ -684,8 +712,8 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
             type="number"
             min="1"
             max="24"
-            value={initialFrets}
-            onChange={handleFretsChange}
+            value={userFrets}
+            onChange={handleUserFretsChange}
           />
 
           <label htmlFor="start-fret">Start Fret:</label>
@@ -694,8 +722,8 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
             type="number"
             min="0"
             max="24"
-            value={initialStartFret}
-            onChange={handleStartFretChange}
+            value={userStartFret}
+            onChange={handleUserStartFretChange}
           />
         </div>
 

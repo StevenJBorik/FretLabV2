@@ -59,15 +59,18 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const [lastValidString, setLastValidString] = useState(null);
   const [detectedFret, setDetectedFret] = useState(null);
   const [isYouTubeApiLoaded, setIsYouTubeApiLoaded] = useState(false);
-  const [userMadeChanges, setUserMadeChanges] = useState(false);
-
+  const sectionsRef = useRef(sections);
+  const [userFretInputs, setUserFretInputs] = useState({
+    startFret: 0,
+    frets: 24,
+  });
+  const [fretboardUpdateInterval, setFretboardUpdateInterval] = useState(null);
   const [currentFretboardSettings, setCurrentFretboardSettings] = useState({
     startFret: 0,
     frets: 24,
     order: 'ascending' as 'ascending' | 'descending' | 'random', // Explicitly declare the type
     incrementFactor: 0,
   });
-  let immediateFretboardSettings = { ...currentFretboardSettings };
 
   const currentFretboardSettingsRef = useRef(currentFretboardSettings);
 
@@ -513,7 +516,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       if (isMounted && songData) {
         setDisplayedScale(songData.key);
         setSections(songData.sections);
-        console.log('Updating state with new song data', songData);
+        console.log('Updating state with new song data', songData.sections);
         const urlParams = new URLSearchParams(
           new URL(songData.youtube_url).search
         );
@@ -583,7 +586,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       console.log('Initializing YouTube player with videoId:', videoId);
       initializeYouTubePlayer(videoId);
     }
-  }, [isYouTubeApiLoaded, videoId]); // Depend on API load status and videoId
+  }, [isYouTubeApiLoaded, videoId]);
 
   const onPlayerError = (event) => {
     console.error('Player Error:', event.data);
@@ -599,12 +602,6 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const initializeYouTubePlayer = (videoId) => {
     // Check if the YT.Player constructor is available before trying to create a new player
     if (window.YT && window.YT.Player) {
-      console.log(
-        'currentFretboardSettings right before initializeyoutubeplayer',
-        currentFretboardSettings.frets,
-        currentFretboardSettings.startFret
-      );
-
       playerRef.current = new window.YT.Player('youtube-player', {
         height: '390',
         width: '640',
@@ -615,11 +612,6 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
           onError: onPlayerError,
         },
       });
-      console.log(
-        'currentFretboardSettings right after initializeyoutubeplayer',
-        currentFretboardSettings.frets,
-        currentFretboardSettings.startFret
-      );
     } else {
       console.error('YouTube Player library is not yet loaded.');
     }
@@ -631,84 +623,62 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     console.log('Youtube Player is ready.');
   };
 
-  // Function to handle player state changes
-  const onPlayerStateChange = (event) => {
-    console.log(
-      'currentFretboardSettings right bfore onplayerstatechange',
-      currentFretboardSettings.frets,
-      currentFretboardSettings.startFret
-    );
-    if (event.data === window.YT.PlayerState.PLAYING) {
-      console.log('Youtube Player state has changed.');
-      const currentTime = playerRef.current.getCurrentTime();
-      console.log('current time: ', currentTime);
-      console.log('Player State Changed:', event.data);
-      console.log(
-        'immediateFretboardchanges right after onplayerstatechange',
-        currentFretboardSettings.frets,
-        currentFretboardSettings.startFret
-      );
-
-      checkAndUpdateFretboard(currentTime);
+  const manageFretboardUpdateInterval = (start) => {
+    if (start) {
+      const interval = setInterval(() => {
+        const currentTime = playerRef.current.getCurrentTime();
+        checkAndUpdateFretboard(currentTime);
+      }, 1000);
+      setFretboardUpdateInterval(interval);
+    } else {
+      clearInterval(fretboardUpdateInterval);
+      setFretboardUpdateInterval(null);
     }
   };
 
+  const onPlayerStateChange = (event) => {
+    if (event.data === window.YT.PlayerState.PLAYING) {
+      console.log('YouTube Player is playing.');
+      manageFretboardUpdateInterval(true);
+    } else {
+      console.log('YouTube Player is not playing.');
+      manageFretboardUpdateInterval(false);
+    }
+  };
+
+  useEffect(() => {
+    sectionsRef.current = sections;
+  }, [sections]);
+
+  const convertTimeToSeconds = (timeString) => {
+    const [minutes, seconds] = timeString.split(':').map(Number);
+    return minutes * 60 + seconds;
+  };
+
   const checkAndUpdateFretboard = (currentTime) => {
-    console.log(
-      'immediateFretboardchanges right at checkandupdatefretboard',
-      currentFretboardSettings.frets,
-      currentFretboardSettings.startFret
-    );
-
     const formattedTime = convertSecondsToMinuteSecond(Math.round(currentTime));
+    // console.log('Formatted Time:', formattedTime, 'Sections:', sectionsRef.current);
 
-    const matchedBoundary = sections.find((boundary) =>
-      boundary.includes(formattedTime)
-    );
+    // Convert formattedTime to seconds for comparison
+    const currentTimeInSeconds = convertTimeToSeconds(formattedTime);
 
-    console.log(
-      'Formatted Time:',
-      formattedTime,
-      'Matched Boundary:',
-      matchedBoundary
-    );
+    const matchedBoundary = sectionsRef.current.find((section) => {
+      const sectionTimeInSeconds = convertTimeToSeconds(section);
+      return currentTimeInSeconds === sectionTimeInSeconds;
+    });
+
+    console.log('Matched Boundary:', matchedBoundary);
 
     if (matchedBoundary) {
-      console.log('matched boundary: ', matchedBoundary);
       console.log(
         '[SongPage] Updating Fretboard based on current time',
         currentTime
-      );
-      console.log(
-        '[SongPage] - checkAndUpdate fretboard - userMadeChanges right before updateFretboard:',
-        userMadeChanges
-      );
-      console.log(
-        'immediateFretboardchanges right before updatefretboardscale',
-        currentFretboardSettings.frets,
-        currentFretboardSettings.startFret
       );
       updateFretboardScale();
     }
   };
 
-  useEffect(() => {
-    console.log(`[SongPage] userMadeChanges updated: ${userMadeChanges}`);
-  }, [userMadeChanges]);
-
-  useEffect(() => {
-    console.log('[SongPage] currentFretboardSettings updated:');
-    console.log('startFret:', currentFretboardSettings.startFret);
-    console.log('frets:', currentFretboardSettings.frets);
-    console.log('order:', currentFretboardSettings.order);
-    console.log('incrementFactor:', currentFretboardSettings.incrementFactor);
-  }, [currentFretboardSettings]);
-
   const updateFretboardScale = () => {
-    console.log(
-      `[SongPage] updateFretboardScale: userMadeChanges = ${userMadeChanges}`
-    );
-
     let startFret = currentFretboardSettingsRef.current.startFret;
     let frets = currentFretboardSettingsRef.current.frets;
     let order = currentFretboardSettingsRef.current.order;
@@ -753,7 +723,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     }
 
     setCurrentFretboardSettings({
-      ...currentFretboardSettings,
+      ...currentFretboardSettingsRef.current,
       startFret: nextStartFret,
       frets: nextFretSpan,
     });
@@ -794,6 +764,36 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     // setUserMadeChanges(true);
   };
 
+  const handleOrderUpdate = (order: 'ascending' | 'descending' | 'random') => {
+    console.log(`User updated order: ${order}`);
+    setCurrentFretboardSettings((prevSettings) => ({
+      ...prevSettings,
+      order,
+    }));
+  };
+
+  const handleIncrementUpdate = (incrementFactor: number) => {
+    console.log(`User updated increment factor: ${incrementFactor}`);
+    setCurrentFretboardSettings((prevSettings) => ({
+      ...prevSettings,
+      incrementFactor,
+    }));
+  };
+
+  const handleUserFretInputChange = (
+    newStartFret: number,
+    newFrets: number
+  ) => {
+    // Update the state that binds to the user inputs
+    setUserFretInputs({
+      startFret: newStartFret,
+      frets: newFrets,
+    });
+
+    // Also update the internal state that determines what's rendered
+    handleFretUpdate(newStartFret, newFrets);
+  };
+
   return (
     <div>
       {console.log(
@@ -805,6 +805,9 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         key={songId}
         displayedScale={displayedScale}
         sections={sections}
+        userStartFret={userFretInputs.startFret}
+        userFrets={userFretInputs.frets}
+        onUserFretInputChange={handleUserFretInputChange}
         startFret={currentFretboardSettings.startFret}
         frets={currentFretboardSettings.frets}
         order={currentFretboardSettings.order}
@@ -812,6 +815,8 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         highlightedNote={detectedNote?.note}
         highlightedFret={detectedNote?.fret} // Passing the detected note to the Fretboard component
         onFretUpdate={handleFretUpdate}
+        onOrderUpdate={handleOrderUpdate}
+        onIncrementUpdate={handleIncrementUpdate}
       />
       {/* Boundary management UI */}
       <input
