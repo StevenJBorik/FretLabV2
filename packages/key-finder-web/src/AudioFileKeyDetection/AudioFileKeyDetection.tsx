@@ -111,7 +111,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
     this.startListeningForNotes();
   }
 
-  componentWillUnmount() {}
+  componentWillUnmount() {
+    this.stopListeningForNotes();
+  }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     console.log('AudioFileKeyDetection - shouldComponentUpdate');

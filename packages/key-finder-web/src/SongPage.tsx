@@ -71,13 +71,13 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     order: 'ascending' as 'ascending' | 'descending' | 'random', // Explicitly declare the type
     incrementFactor: 0,
   });
-
   const currentFretboardSettingsRef = useRef(currentFretboardSettings);
-
   const playerRef = useRef(null); // Reference for the YouTube player
   const debouncedHandleNoteDetection = useRef<
     ((frequency: number | null) => void) | null
   >(null);
+  const audioContextRef = useRef(null);
+  const mediaStreamRef = useRef(null);
 
   console.log('Song ID: ', songId);
 
@@ -293,6 +293,23 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   useEffect(() => {
     computeThresholds();
     startListeningForNotes();
+
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current
+          .close()
+          .then(() => {
+            console.log('AudioContext closed');
+          })
+          .catch((error) => {
+            console.error('Error closing AudioContext:', error);
+          });
+      }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+        console.log('MediaStream tracks stopped');
+      }
+    };
   }, []);
 
   const computeThresholds = () => {
@@ -384,11 +401,14 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
-        const audioContext = new AudioContext();
-        const analyserNode = audioContext.createAnalyser();
+        // const audioContext = new AudioContext();
+        audioContextRef.current = new AudioContext();
+        const analyserNode = audioContextRef.current.createAnalyser();
         analyserNode.fftSize = 1024;
 
-        audioContext.createMediaStreamSource(stream).connect(analyserNode);
+        audioContextRef.current
+          .createMediaStreamSource(stream)
+          .connect(analyserNode);
         detector = PitchDetector.forFloat32Array(analyserNode.fftSize);
 
         const fetchAndSendAudioData = () => {
@@ -397,7 +417,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
             const fftSize = analyserNode.fftSize;
             const audioData = new Float32Array(fftSize);
             analyserNode.getFloatTimeDomainData(audioData);
-            processAudioData(audioData, audioContext.sampleRate);
+            processAudioData(audioData, audioContextRef.current.sampleRate);
 
             lastProcessedTime = currentTime;
           }
@@ -411,6 +431,8 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         console.error('Error accessing microphone:', error);
       });
   };
+
+  const stopListeningForNotes = () => {};
 
   const getNoteFromFrequency = (
     frequency: number
