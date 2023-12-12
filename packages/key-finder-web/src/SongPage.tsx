@@ -4,6 +4,8 @@ import { route } from 'preact-router';
 import Fretboard from './Fretboard';
 import { PitchDetector } from 'pitchy';
 import './SongPage.css';
+import { useContext } from 'preact/hooks';
+import { UserContext } from './context'; // import the context
 
 const API_URL = 'http://localhost:8080'; // Define API_URL
 
@@ -28,6 +30,66 @@ const fetchSongData = async (songId) => {
     console.error('fetchSongData error:', error);
 
     route('/'); // Redirect to home if there's an error
+  }
+};
+
+const fetchUserId = async (username) => {
+  try {
+    const response = await fetch(`${API_URL}/get-user-id`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify({ username }),
+    });
+    const data = await response.json();
+    if (response.ok) {
+      return data.userId;
+    } else {
+      throw new Error('Failed to fetch user ID');
+    }
+  } catch (error) {
+    console.error('fetchUserId error:', error);
+    return null;
+  }
+};
+
+const recordUserHistory = async (songId) => {
+  // Accept songId as a parameter
+  try {
+    await fetch(`${API_URL}/user-history`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify({
+        song_id: songId,
+        played_at: new Date().toISOString(),
+      }),
+    });
+    // Handle response and potential errors...
+  } catch (error) {
+    console.error('recordUserHistory error:', error);
+  }
+};
+
+const fetchUserHistory = async () => {
+  try {
+    const response = await fetch(`${API_URL}/user-history`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    if (response.ok) {
+      const userHistory = await response.json();
+      // Set the state with this user history
+    } else {
+      throw new Error('Failed to fetch user history');
+    }
+  } catch (error) {
+    console.error('fetchUserHistory error:', error);
   }
 };
 
@@ -60,6 +122,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const [detectedFret, setDetectedFret] = useState(null);
   const [isYouTubeApiLoaded, setIsYouTubeApiLoaded] = useState(false);
   const sectionsRef = useRef(sections);
+  const loggedInUser = useContext(UserContext); // use the context
   const [userFretInputs, setUserFretInputs] = useState({
     startFret: 0,
     frets: 24,
@@ -78,6 +141,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   >(null);
   const audioContextRef = useRef(null);
   const mediaStreamRef = useRef(null);
+  const [historyRecorded, setHistoryRecorded] = useState(false);
 
   console.log('Song ID: ', songId);
 
@@ -662,11 +726,19 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     if (event.data === window.YT.PlayerState.PLAYING) {
       console.log('YouTube Player is playing.');
       manageFretboardUpdateInterval(true);
+      recordUserHistory(songId); // Adjusted call
+      setHistoryRecorded(true); // Set a flag to indicate that the history has been recorded
     } else {
       console.log('YouTube Player is not playing.');
       manageFretboardUpdateInterval(false);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      setHistoryRecorded(false); // Reset history recorded state
+    };
+  }, [songId]);
 
   useEffect(() => {
     sectionsRef.current = sections;

@@ -82,3 +82,37 @@ body {
 .app-wrapper {
   margin: 2rem 3rem;
 }
+
+.user-history-container {
+  margin-top: 20px;
+}
+
+.history-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.history-thumbnail {
+  width: 100px; /* Set to your desired thumbnail size */
+  height: auto;
+  margin-right: 10px;
+}
+
+.history-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-title {
+  font-weight: bold;
+}
+
+.history-artist {
+  color: grey;
+}

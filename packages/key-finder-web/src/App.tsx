@@ -8,6 +8,7 @@ import About from './About';
 import Profile from './Profile';
 import AuthModal from './AuthModal';
 import SongPage from './SongPage';
+import { UserContext } from './context'; // import the context you created
 import { jwtVerify } from 'jose';
 
 import './App.css';
@@ -26,16 +27,22 @@ for (let i = 0; i < secretKeyBinaryString.length; i++) {
 interface AppState {
   showModal: boolean;
   loggedInUser: string | null; // Corrected type to allow for null value
+  userHistory: any[]; // Array to hold user history
 }
 
 class App extends Component<{}, AppState> {
   state: AppState = {
     showModal: false,
     loggedInUser: null,
+    userHistory: [], // Initialize as an empty array
   };
 
   componentDidMount() {
-    this.checkLoggedInStatus();
+    this.checkLoggedInStatus().then(() => {
+      if (this.state.loggedInUser) {
+        this.fetchUserHistory(); // Fetch history if user is logged in
+      }
+    });
   }
 
   handleNavLinkClick = () => {
@@ -113,38 +120,94 @@ class App extends Component<{}, AppState> {
     console.log('Route changed:', e.url);
   };
 
+  fetchUserHistory = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const response = await fetch('http://localhost:8080/user-history', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const historyData = await response.json();
+          this.setState({ userHistory: historyData });
+        } else {
+          console.error('Failed to fetch user history');
+          // Handle error...
+        }
+      } catch (error) {
+        console.error('Error fetching user history:', error);
+        // Handle error...
+      }
+    }
+  };
+  renderUserHistory() {
+    const { userHistory } = this.state;
+
+    if (userHistory.length === 0) {
+      // You can render a message or return null to render nothing
+      return <div class="user-history-container">No history to show.</div>;
+    }
+
+    return (
+      <div class="user-history-container">
+        <h2>Play again</h2>
+        <div class="history-items">
+          {userHistory.map((item, index) => (
+            <div key={index} class="history-item">
+              <img
+                src={item.thumbnail_url}
+                alt={item.title}
+                class="history-thumbnail"
+              />
+              <div class="history-info">
+                <div class="history-title">{item.title}</div>
+                <div class="history-artist">{item.artist}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   render() {
     const { showModal, loggedInUser } = this.state; // Destructure for cleaner code
 
     return (
-      <>
-        <div class="top-bar">
-          <div class="app-logo">
-            <Link href="/">FretLabs</Link>
+      <UserContext.Provider value={loggedInUser}>
+        <>
+          <div class="top-bar">
+            <div class="app-logo">
+              <Link href="/">FretLabs</Link>
+            </div>
+            <Navigation
+              onLoginClick={this.toggleModal}
+              loggedInUser={loggedInUser}
+              onLogout={this.handleLogout}
+              onNavLinkClick={this.handleNavLinkClick}
+            />
           </div>
-          <Navigation
-            onLoginClick={this.toggleModal}
-            loggedInUser={loggedInUser}
-            onLogout={this.handleLogout}
-            onNavLinkClick={this.handleNavLinkClick} // Remove or comment out this line
-          />
-        </div>
-        <div class="app-wrapper">
-          <Router onChange={this.handleRoute}>
-            <AudioFileKeyDetection path="/file" />
-            <Settings path="/settings" />
-            <About path="/about" />
-            <Profile path="/profile" />
-            <SongPage path="/song/:songId" key={window.location.pathname} />
-          </Router>
-        </div>
-        {showModal && (
-          <AuthModal
-            onSuccessfulLogin={this.handleSuccessfulLogin}
-            onExit={this.toggleModal} // This prop needs to be handled in AuthModal if you want to allow closing the modal
-          />
-        )}
-      </>
+          <div class="app-wrapper">
+            <Router onChange={this.handleRoute}>
+              <AudioFileKeyDetection path="/file" />
+              <Settings path="/settings" />
+              <About path="/about" />
+              <Profile path="/profile" />
+              <SongPage path="/song/:songId" key={window.location.pathname} />
+              {this.state.loggedInUser && this.renderUserHistory()}
+            </Router>
+          </div>
+          {showModal && (
+            <AuthModal
+              onSuccessfulLogin={this.handleSuccessfulLogin}
+              onExit={this.toggleModal}
+            />
+          )}
+        </>
+      </UserContext.Provider>
     );
   }
 }
