@@ -211,13 +211,13 @@ class App extends Component<{}, AppState> {
             />
           </div>
           <div class="app-wrapper">
+            {userHistoryContent}
             <Router onChange={this.handleRoute}>
               <AudioFileKeyDetection path="/file" />
               <Settings path="/settings" />
               <About path="/about" />
               <Profile path="/profile" />
               <SongPage path="/song/:songId" key={window.location.pathname} />
-              {userHistoryContent}
             </Router>
           </div>
           {showModal && (
