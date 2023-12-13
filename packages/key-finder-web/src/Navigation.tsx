@@ -2,6 +2,8 @@ import { h, Component, createRef } from 'preact';
 import { Link } from 'preact-router/match';
 import debounce from 'lodash.debounce'; // You may need to install this with npm or yarn
 import { route } from 'preact-router';
+import DropdownContext from './context';
+import { useContext } from 'preact/hooks';
 import './Navigation.css';
 
 const API_URL = 'http://localhost:8080'; // Define API_URL
@@ -29,6 +31,8 @@ class Navigation extends Component<NavigationProps, State> {
     searchResults: [],
     showSuggestions: false,
   };
+
+  static contextType = DropdownContext; // Set the context type for this component
 
   componentDidMount() {
     // Attach event listener to hide suggestions when clicking outside
@@ -119,8 +123,11 @@ class Navigation extends Component<NavigationProps, State> {
       searchResults,
       showSuggestions,
     } = this.state;
-    console.log('Logged in user: ', loggedInUser); // This should log the username
-    console.log('Dropdown state: ', userDropdownOpen); // Debug: Check dropdown state
+
+    // console.log('Logged in user: ', loggedInUser); // This should log the username
+    // console.log('Dropdown state: ', userDropdownOpen); // Debug: Check dropdown state
+    // const { isDropdownOpen, toggleDropdown } = this.context; // Use DropdownContext
+    // console.log("isDropdown context: ", isDropdownOpen);
 
     return (
       <nav

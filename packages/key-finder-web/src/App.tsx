@@ -9,6 +9,7 @@ import Profile from './Profile';
 import AuthModal from './AuthModal';
 import SongPage from './SongPage';
 import { UserContext } from './context'; // import the context you created
+import DropdownContext from './context';
 import { jwtVerify } from 'jose';
 
 import './App.css';
@@ -28,6 +29,7 @@ interface AppState {
   showModal: boolean;
   loggedInUser: string | null; // Corrected type to allow for null value
   userHistory: any[]; // Array to hold user history
+  isDropdownOpen: boolean; // Add this to your state
 }
 
 class App extends Component<{}, AppState> {
@@ -35,7 +37,14 @@ class App extends Component<{}, AppState> {
     showModal: false,
     loggedInUser: null,
     userHistory: [], // Initialize as an empty array
+    isDropdownOpen: false, // Add this to your state
   };
+
+  constructor() {
+    super();
+    // Bind the method to 'this' if you haven't used an arrow function
+    this.toggleDropdown = this.toggleDropdown.bind(this);
+  }
 
   componentDidMount() {
     this.checkLoggedInStatus().then(() => {
@@ -101,6 +110,7 @@ class App extends Component<{}, AppState> {
   };
 
   toggleModal = () => {
+    console.log('toggleModal called');
     this.setState((prevState) => ({ showModal: !prevState.showModal }));
   };
 
@@ -145,12 +155,9 @@ class App extends Component<{}, AppState> {
   };
   renderUserHistory() {
     const { userHistory } = this.state;
-
     if (userHistory.length === 0) {
-      // You can render a message or return null to render nothing
       return <div class="user-history-container">No history to show.</div>;
     }
-
     return (
       <div class="user-history-container">
         <h2>Play again</h2>
@@ -173,8 +180,21 @@ class App extends Component<{}, AppState> {
     );
   }
 
+  toggleDropdown = () => {
+    this.setState((prevState) => {
+      console.log('Current state of isDropdownOpen:', prevState.isDropdownOpen);
+      console.log('Toggling isDropdownOpen to:', !prevState.isDropdownOpen);
+      return { isDropdownOpen: !prevState.isDropdownOpen };
+    });
+  };
+
   render() {
-    const { showModal, loggedInUser } = this.state; // Destructure for cleaner code
+    const { showModal, loggedInUser, userHistory } = this.state;
+    let userHistoryContent = null;
+
+    if (loggedInUser) {
+      userHistoryContent = this.renderUserHistory();
+    }
 
     return (
       <UserContext.Provider value={loggedInUser}>
@@ -197,7 +217,7 @@ class App extends Component<{}, AppState> {
               <About path="/about" />
               <Profile path="/profile" />
               <SongPage path="/song/:songId" key={window.location.pathname} />
-              {this.state.loggedInUser && this.renderUserHistory()}
+              {userHistoryContent}
             </Router>
           </div>
           {showModal && (
