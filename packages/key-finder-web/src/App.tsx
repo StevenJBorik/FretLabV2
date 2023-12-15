@@ -8,8 +8,9 @@ import About from './About';
 import Profile from './Profile';
 import AuthModal from './AuthModal';
 import SongPage from './SongPage';
+import FretLists from './FretLists';
 import { UserContext } from './context'; // import the context you created
-import DropdownContext from './context';
+import RouteContext from './RouteContext';
 import { jwtVerify } from 'jose';
 
 import './App.css';
@@ -30,6 +31,8 @@ interface AppState {
   loggedInUser: string | null; // Corrected type to allow for null value
   userHistory: any[]; // Array to hold user history
   isDropdownOpen: boolean; // Add this to your state
+  currentRoute: string; // Add this line
+  userSetLists: any[];
 }
 
 class App extends Component<{}, AppState> {
@@ -38,6 +41,8 @@ class App extends Component<{}, AppState> {
     loggedInUser: null,
     userHistory: [], // Initialize as an empty array
     isDropdownOpen: false, // Add this to your state
+    currentRoute: '/', // Initialize with a default value, e.g., '/'
+    userSetLists: [],
   };
 
   constructor() {
@@ -50,9 +55,20 @@ class App extends Component<{}, AppState> {
     this.checkLoggedInStatus().then(() => {
       if (this.state.loggedInUser) {
         this.fetchUserHistory(); // Fetch history if user is logged in
+        this.fetchUserSetlists(); // Add this line
       }
     });
+    this.updateCurrentRoute();
   }
+
+  updateCurrentRoute = () => {
+    this.setState({ currentRoute: window.location.pathname });
+  };
+
+  handleRoute = (e) => {
+    console.log('Route changed:', e.url);
+    this.updateCurrentRoute();
+  };
 
   handleNavLinkClick = () => {
     // Intentionally left blank to not toggle the modal on every nav link click
@@ -126,10 +142,6 @@ class App extends Component<{}, AppState> {
     route('/'); // Navigate to homepage
   };
 
-  handleRoute = (e) => {
-    console.log('Route changed:', e.url);
-  };
-
   fetchUserHistory = async () => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -153,17 +165,51 @@ class App extends Component<{}, AppState> {
       }
     }
   };
+
+  fetchUserSetlists = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const response = await fetch('http://localhost:8080/user-setlists', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const setlistsData = await response.json();
+          this.setState({ userSetLists: setlistsData });
+        } else {
+          console.error('Failed to fetch user setlists');
+          // Handle error...
+        }
+      } catch (error) {
+        console.error('Error fetching user setlists:', error);
+        // Handle error...
+      }
+    }
+  };
+
   renderUserHistory() {
     const { userHistory } = this.state;
     if (userHistory.length === 0) {
       return <div class="user-history-container">No history to show.</div>;
     }
+
+    const navigateToSongPage = (songId) => {
+      route(`/song/${songId}`); // Navigate to the song page
+    };
+
     return (
       <div class="user-history-container">
         <h2>Play again</h2>
         <div class="history-items">
           {userHistory.map((item, index) => (
-            <div key={index} class="history-item">
+            <div
+              key={index}
+              class="history-item"
+              onClick={() => navigateToSongPage(item.id)}
+            >
               <img
                 src={item.thumbnail_url}
                 alt={item.title}
@@ -180,6 +226,25 @@ class App extends Component<{}, AppState> {
     );
   }
 
+  renderUserSetlists() {
+    const { userSetLists } = this.state;
+    if (userSetLists.length === 0) {
+      return <div>No setlists to show.</div>;
+    }
+
+    // Render setlists
+    return (
+      <div>
+        {userSetLists.map((setlist) => (
+          <div key={setlist.id}>
+            <h3>{setlist.name}</h3>
+            {/* Render setlist details */}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   toggleDropdown = () => {
     this.setState((prevState) => {
       console.log('Current state of isDropdownOpen:', prevState.isDropdownOpen);
@@ -189,45 +254,49 @@ class App extends Component<{}, AppState> {
   };
 
   render() {
-    const { showModal, loggedInUser, userHistory } = this.state;
+    const { showModal, loggedInUser, userHistory, currentRoute } = this.state;
     let userHistoryContent = null;
 
-    if (loggedInUser) {
+    // Check if the current route is the homepage
+    if (loggedInUser && currentRoute === '/') {
       userHistoryContent = this.renderUserHistory();
     }
 
     return (
-      <UserContext.Provider value={loggedInUser}>
-        <>
-          <div class="top-bar">
-            <div class="app-logo">
-              <Link href="/">FretLabs</Link>
+      <RouteContext.Provider value={currentRoute}>
+        <UserContext.Provider value={loggedInUser}>
+          <>
+            <div class="top-bar">
+              <div class="app-logo">
+                <Link href="/">FretLabs</Link>
+              </div>
+              <Navigation
+                onLoginClick={this.toggleModal}
+                loggedInUser={loggedInUser}
+                onLogout={this.handleLogout}
+                onNavLinkClick={this.handleNavLinkClick}
+              />
             </div>
-            <Navigation
-              onLoginClick={this.toggleModal}
-              loggedInUser={loggedInUser}
-              onLogout={this.handleLogout}
-              onNavLinkClick={this.handleNavLinkClick}
-            />
-          </div>
-          <div class="app-wrapper">
-            {userHistoryContent}
-            <Router onChange={this.handleRoute}>
-              <AudioFileKeyDetection path="/file" />
-              <Settings path="/settings" />
-              <About path="/about" />
-              <Profile path="/profile" />
-              <SongPage path="/song/:songId" key={window.location.pathname} />
-            </Router>
-          </div>
-          {showModal && (
-            <AuthModal
-              onSuccessfulLogin={this.handleSuccessfulLogin}
-              onExit={this.toggleModal}
-            />
-          )}
-        </>
-      </UserContext.Provider>
+            <div class="app-wrapper">
+              {userHistoryContent}
+              <Router onChange={this.handleRoute}>
+                <AudioFileKeyDetection path="/file" />
+                <Settings path="/settings" />
+                <About path="/about" />
+                <Profile path="/profile" />
+                <FretLists path="/fretlists" />
+                <SongPage path="/song/:songId" key={window.location.pathname} />
+              </Router>
+            </div>
+            {showModal && (
+              <AuthModal
+                onSuccessfulLogin={this.handleSuccessfulLogin}
+                onExit={this.toggleModal}
+              />
+            )}
+          </>
+        </UserContext.Provider>
+      </RouteContext.Provider>
     );
   }
 }

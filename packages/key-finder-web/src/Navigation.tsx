@@ -178,7 +178,11 @@ class Navigation extends Component<NavigationProps, State> {
           <Link href="/" activeClassName="active" onClick={this.closeNav}>
             Pricing
           </Link>
-          <Link href="/" activeClassName="active" onClick={this.closeNav}>
+          <Link
+            href="/fretlists"
+            activeClassName="active"
+            onClick={this.closeNav}
+          >
             Fretlists
           </Link>
           <Link href="/" activeClassName="active" onClick={this.closeNav}>

@@ -55,6 +55,10 @@ const fetchUserId = async (username) => {
   }
 };
 
+const addSongToSetlist = async (songId, setlistId) => {
+  // Call backend API to add the song to the setlist
+};
+
 const recordUserHistory = async (songId) => {
   // Accept songId as a parameter
   try {
@@ -890,6 +894,9 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
   return (
     <div>
+      <button onClick={() => addSongToSetlist(songId, setlistId)}>
+        Add to Setlist
+      </button>
       {console.log(
         '[SongPage] Rendering Fretboard with props',
         currentFretboardSettings
