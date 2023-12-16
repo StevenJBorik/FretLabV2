@@ -279,17 +279,14 @@ class App extends Component<{}, AppState> {
           alt={song.title}
           class="setlist-song-thumbnail"
         />
-        <div class="setlist-song-info">
-          <div class="setlist-song-title">{song.title}</div>
-          <div class="setlist-song-artist">{song.artist}</div>
-        </div>
+        <div class="setlist-song-info"></div>
       </div>
     ));
 
     return (
       <div class="setlist-songs-container">
         {setlistSongsElements.length > 0 ? (
-          setlistSongsElements
+          <div class="grid-container">{setlistSongsElements}</div>
         ) : (
           <div>No songs in this setlist.</div>
         )}

@@ -117,16 +117,6 @@ body {
   color: grey;
 }
 
-/* Additions to existing styles */
-
-/* Styles for the recent setlists container */
-.recent-setlists-container {
-  display: flex;
-  justify-content: center; /* Center children horizontally */
-  align-items: center; /* Center children vertically */
-  gap: 20px; /* Adjust space between children */
-}
-
 .recent-setlist-preview {
   width: 200px; /* Adjust width as needed */
   height: 200px; /* Adjust height as needed */
@@ -134,8 +124,11 @@ body {
 }
 
 .setlist-thumbnail {
-  width: 100%;
-  height: auto;
+  width: 100px; /* Match user history thumbnails */
+  height: 100px; /* Match user history thumbnails */
+  object-fit: cover;
+  margin: 0; /* No extra margin */
+  border-radius: 4px; /* Match the border-radius if history-thumbnail has it */
 }
 
 .recent-setlist-preview img {
@@ -145,13 +138,59 @@ body {
 }
 
 /* Hover effect for the setlist previews */
+/* Hover effect for the setlist previews */
 .recent-setlist-preview:hover {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .placeholder {
-  display: flex;
+  width: 150px; /* Same width as the thumbnails */
+  height: 150px; /* Same height as the thumbnails */
+  /* Add other styles as needed */
+}
+
+.setlist-songs-container {
+  display: flex; /* Use flex to center the child grid container */
+  justify-content: center; /* Center the grid container horizontally */
+  align-items: center; /* Center the grid container vertically */
+  margin: auto; /* This will center the container on the page */
+  padding: 20px; /* Add some padding around the grid */
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columns */
+  grid-gap: 20px;
   justify-content: center;
   align-items: center;
-  background: #f3f3f3; /* Placeholder background color */
+}
+
+.setlist-song {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  text-align: center;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.setlist-song-thumbnail {
+  width: 125px; /* Set the thumbnail width */
+  height: 125px; /* Set the thumbnail height */
+  object-fit: cover; /* Ensure the image covers the area */
+  border-radius: 4px; /* Rounded corners if desired */
+}
+
+/* Media query for smaller screens */
+@media (max-width: var(--breakpoint-mobile)) {
+  .grid-container {
+    grid-template-columns: 1fr; /* 1 column layout for mobile */
+  }
+
+  .setlist-songs-container {
+    padding: 10px; /* Less padding on mobile */
+  }
 }
