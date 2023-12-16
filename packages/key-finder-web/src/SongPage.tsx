@@ -1,11 +1,11 @@
 import { h, FunctionalComponent } from 'preact';
-import { useState, useEffect, useRef } from 'preact/hooks';
+import { useState, useEffect, useRef, useContext } from 'preact/hooks';
 import { route } from 'preact-router';
 import Fretboard from './Fretboard';
 import { PitchDetector } from 'pitchy';
 import './SongPage.css';
-import { useContext } from 'preact/hooks';
-import { UserContext } from './context'; // import the context
+import { UserContext } from './context';
+import { SetlistContext } from './setListContext'; // Import the context
 
 const API_URL = 'http://localhost:8080'; // Define API_URL
 
@@ -56,7 +56,25 @@ const fetchUserId = async (username) => {
 };
 
 const addSongToSetlist = async (songId, setlistId) => {
-  // Call backend API to add the song to the setlist
+  try {
+    const response = await fetch(`${API_URL}/add-song-to-setlist`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify({ songId, setlistId }),
+    });
+
+    const result = await response.json();
+    if (response.ok) {
+      console.log('Song added to setlist:', result);
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error('Error adding song to setlist:', error);
+  }
 };
 
 const recordUserHistory = async (songId) => {
@@ -76,24 +94,6 @@ const recordUserHistory = async (songId) => {
     // Handle response and potential errors...
   } catch (error) {
     console.error('recordUserHistory error:', error);
-  }
-};
-
-const fetchUserHistory = async () => {
-  try {
-    const response = await fetch(`${API_URL}/user-history`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-    if (response.ok) {
-      const userHistory = await response.json();
-      // Set the state with this user history
-    } else {
-      throw new Error('Failed to fetch user history');
-    }
-  } catch (error) {
-    console.error('fetchUserHistory error:', error);
   }
 };
 
@@ -146,6 +146,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const audioContextRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const [historyRecorded, setHistoryRecorded] = useState(false);
+  const setlistId = useContext(SetlistContext); // Use the context to get the setlistId
 
   console.log('Song ID: ', songId);
 
@@ -894,9 +895,23 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
   return (
     <div>
-      <button onClick={() => addSongToSetlist(songId, setlistId)}>
+      <button
+        onClick={() => addSongToSetlist(songId, setlistId)}
+        className="add-song-button"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          fill="currentColor"
+          className="bi bi-plus"
+          viewBox="0 0 16 16"
+        >
+          <path d="M8 0a.5.5 0 0 1 .5.5v7h7a.5.5 0 0 1 0 1h-7v7a.5.5 0 0 1-.5.5H7a.5.5 0 0 1-.5-.5v-7H0a.5.5 0 0 1 0-1h7V.5A.5.5 0 0 1 8 0z" />
+        </svg>
         Add to Setlist
       </button>
+
       {console.log(
         '[SongPage] Rendering Fretboard with props',
         currentFretboardSettings

@@ -27,3 +27,37 @@
     max-width: 100%;
   }
 }
+
+.add-song-button {
+  display: inline-flex; /* Use flexbox for centering content */
+  align-items: center; /* Center content vertically */
+  justify-content: center; /* Center content horizontally */
+  padding: 0.5em 1em; /* Top/bottom and left/right padding */
+  border: none; /* No border */
+  background-color: #4caf50; /* Green background */
+  color: white; /* White text */
+  font-size: 1em; /* Font size */
+  font-weight: bold; /* Bold font weight */
+  border-radius: 0.25em; /* Rounded corners */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: background-color 0.3s; /* Smooth background color transition */
+}
+
+.add-song-button:hover {
+  background-color: #45a049; /* Darker shade on hover */
+}
+
+.add-song-button:focus {
+  outline: none; /* Remove outline */
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1); /* Add a subtle shadow to show focus */
+}
+
+.add-song-button:active {
+  background-color: #3e8e41; /* Even darker on click */
+}
+
+.add-song-button svg {
+  margin-right: 0.5em; /* Space between icon and text */
+  width: 1em; /* Icon size */
+  height: 1em; /* Icon size */
+}

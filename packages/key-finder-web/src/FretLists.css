@@ -1,0 +1,66 @@
+/* Fretlists.css */
+
+/* Styles for the FretLists component */
+.fretlists-container {
+  padding: 20px;
+}
+
+.recent-setlists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.setlist-preview {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.setlist-preview img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.setlist-preview h3 {
+  margin: 10px;
+  font-size: 1rem;
+  color: #333;
+}
+
+.full-setlist {
+  list-style-type: none;
+  padding: 0;
+}
+
+.setlist-item {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  padding: 10px 0;
+}
+
+.setlist-item h3 {
+  margin: 0 0 0 10px;
+  font-size: 1rem;
+  color: #333;
+}
+
+.setlist-item:last-child {
+  border-bottom: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: var(--breakpoint-mobile)) {
+  .recent-setlists-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: var(--breakpoint-tablet)) {
+  .recent-setlists-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

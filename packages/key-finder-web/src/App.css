@@ -116,3 +116,42 @@ body {
 .history-artist {
   color: grey;
 }
+
+/* Additions to existing styles */
+
+/* Styles for the recent setlists container */
+.recent-setlists-container {
+  display: flex;
+  justify-content: center; /* Center children horizontally */
+  align-items: center; /* Center children vertically */
+  gap: 20px; /* Adjust space between children */
+}
+
+.recent-setlist-preview {
+  width: 200px; /* Adjust width as needed */
+  height: 200px; /* Adjust height as needed */
+  border: 1px solid #ccc; /* Placeholder border, remove if using an image */
+}
+
+.setlist-thumbnail {
+  width: 100%;
+  height: auto;
+}
+
+.recent-setlist-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Hover effect for the setlist previews */
+.recent-setlist-preview:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f3f3f3; /* Placeholder background color */
+}

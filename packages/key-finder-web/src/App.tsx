@@ -11,6 +11,7 @@ import SongPage from './SongPage';
 import FretLists from './FretLists';
 import { UserContext } from './context'; // import the context you created
 import RouteContext from './RouteContext';
+import { SetlistContext } from './setListContext';
 import { jwtVerify } from 'jose';
 
 import './App.css';
@@ -33,6 +34,8 @@ interface AppState {
   isDropdownOpen: boolean; // Add this to your state
   currentRoute: string; // Add this line
   userSetLists: any[];
+  setlistId: number | null;
+  currentSetlistSongs: any[];
 }
 
 class App extends Component<{}, AppState> {
@@ -43,6 +46,8 @@ class App extends Component<{}, AppState> {
     isDropdownOpen: false, // Add this to your state
     currentRoute: '/', // Initialize with a default value, e.g., '/'
     userSetLists: [],
+    setlistId: null,
+    currentSetlistSongs: [],
   };
 
   constructor() {
@@ -57,8 +62,17 @@ class App extends Component<{}, AppState> {
         this.fetchUserHistory(); // Fetch history if user is logged in
         this.fetchUserSetlists(); // Add this line
       }
+      if (this.state.setlistId) {
+        this.fetchSetlistSongs(this.state.setlistId);
+      }
     });
     this.updateCurrentRoute();
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.setlistId !== this.state.setlistId && this.state.setlistId) {
+      this.fetchSetlistSongs(this.state.setlistId);
+    }
   }
 
   updateCurrentRoute = () => {
@@ -178,7 +192,10 @@ class App extends Component<{}, AppState> {
 
         if (response.ok) {
           const setlistsData = await response.json();
-          this.setState({ userSetLists: setlistsData });
+          this.setState({
+            userSetLists: setlistsData,
+            setlistId: setlistsData.length > 0 ? setlistsData[0].id : null, // Assuming the first setlist is the current one
+          });
         } else {
           console.error('Failed to fetch user setlists');
           // Handle error...
@@ -186,6 +203,31 @@ class App extends Component<{}, AppState> {
       } catch (error) {
         console.error('Error fetching user setlists:', error);
         // Handle error...
+      }
+    }
+  };
+
+  fetchSetlistSongs = async (setlistId: number) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const response = await fetch(
+          `http://localhost:8080/setlist-songs/${setlistId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const songsData = await response.json();
+          this.setState({ currentSetlistSongs: songsData });
+        } else {
+          console.error('Failed to fetch setlist songs');
+        }
+      } catch (error) {
+        console.error('Error fetching setlist songs:', error);
       }
     }
   };
@@ -227,20 +269,30 @@ class App extends Component<{}, AppState> {
   }
 
   renderUserSetlists() {
-    const { userSetLists } = this.state;
-    if (userSetLists.length === 0) {
-      return <div>No setlists to show.</div>;
-    }
+    const { currentSetlistSongs } = this.state;
 
-    // Render setlists
+    // Map over the setlist songs to create song elements
+    const setlistSongsElements = currentSetlistSongs.map((song, index) => (
+      <div key={index} class="setlist-song">
+        <img
+          src={song.thumbnail_url}
+          alt={song.title}
+          class="setlist-song-thumbnail"
+        />
+        <div class="setlist-song-info">
+          <div class="setlist-song-title">{song.title}</div>
+          <div class="setlist-song-artist">{song.artist}</div>
+        </div>
+      </div>
+    ));
+
     return (
-      <div>
-        {userSetLists.map((setlist) => (
-          <div key={setlist.id}>
-            <h3>{setlist.name}</h3>
-            {/* Render setlist details */}
-          </div>
-        ))}
+      <div class="setlist-songs-container">
+        {setlistSongsElements.length > 0 ? (
+          setlistSongsElements
+        ) : (
+          <div>No songs in this setlist.</div>
+        )}
       </div>
     );
   }
@@ -254,47 +306,56 @@ class App extends Component<{}, AppState> {
   };
 
   render() {
-    const { showModal, loggedInUser, userHistory, currentRoute } = this.state;
+    const { showModal, loggedInUser, userHistory, currentRoute, userSetLists } =
+      this.state;
     let userHistoryContent = null;
+    let userSetlistsContent = null;
 
     // Check if the current route is the homepage
     if (loggedInUser && currentRoute === '/') {
       userHistoryContent = this.renderUserHistory();
+      userSetlistsContent = this.renderUserSetlists();
     }
 
     return (
       <RouteContext.Provider value={currentRoute}>
         <UserContext.Provider value={loggedInUser}>
-          <>
-            <div class="top-bar">
-              <div class="app-logo">
-                <Link href="/">FretLabs</Link>
+          <SetlistContext.Provider value={this.state.setlistId}>
+            <>
+              <div class="top-bar">
+                <div class="app-logo">
+                  <Link href="/">FretLabs</Link>
+                </div>
+                <Navigation
+                  onLoginClick={this.toggleModal}
+                  loggedInUser={loggedInUser}
+                  onLogout={this.handleLogout}
+                  onNavLinkClick={this.handleNavLinkClick}
+                />
               </div>
-              <Navigation
-                onLoginClick={this.toggleModal}
-                loggedInUser={loggedInUser}
-                onLogout={this.handleLogout}
-                onNavLinkClick={this.handleNavLinkClick}
-              />
-            </div>
-            <div class="app-wrapper">
-              {userHistoryContent}
-              <Router onChange={this.handleRoute}>
-                <AudioFileKeyDetection path="/file" />
-                <Settings path="/settings" />
-                <About path="/about" />
-                <Profile path="/profile" />
-                <FretLists path="/fretlists" />
-                <SongPage path="/song/:songId" key={window.location.pathname} />
-              </Router>
-            </div>
-            {showModal && (
-              <AuthModal
-                onSuccessfulLogin={this.handleSuccessfulLogin}
-                onExit={this.toggleModal}
-              />
-            )}
-          </>
+              <div class="app-wrapper">
+                {userHistoryContent}
+                {userSetlistsContent}
+                <Router onChange={this.handleRoute}>
+                  <AudioFileKeyDetection path="/file" />
+                  <Settings path="/settings" />
+                  <About path="/about" />
+                  <Profile path="/profile" />
+                  <FretLists path="/fretlists" />
+                  <SongPage
+                    path="/song/:songId"
+                    key={window.location.pathname}
+                  />
+                </Router>
+              </div>
+              {showModal && (
+                <AuthModal
+                  onSuccessfulLogin={this.handleSuccessfulLogin}
+                  onExit={this.toggleModal}
+                />
+              )}
+            </>
+          </SetlistContext.Provider>
         </UserContext.Provider>
       </RouteContext.Provider>
     );
