@@ -64,3 +64,33 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* Add to your CSS file */
+.setlist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px; /* Adjust gap to match your design */
+}
+
+.setlist-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.setlist-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px; /* Space between items */
+}
+
+.setlist-thumbnail {
+  width: 100px; /* Adjust size as needed */
+  height: auto;
+  margin-right: 16px;
+}
+
+.setlist-title {
+  flex-grow: 1;
+}
+
+/* Additional styles for buttons and ellipses can be added here */

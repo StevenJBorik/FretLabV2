@@ -268,10 +268,10 @@ class App extends Component<{}, AppState> {
     );
   }
 
+  // Inside App component
   renderUserSetlists() {
     const { currentSetlistSongs } = this.state;
 
-    // Map over the setlist songs to create song elements
     const setlistSongsElements = currentSetlistSongs.map((song, index) => (
       <div key={index} class="setlist-song">
         <img
@@ -279,18 +279,20 @@ class App extends Component<{}, AppState> {
           alt={song.title}
           class="setlist-song-thumbnail"
         />
-        <div class="setlist-song-info"></div>
+        <div class="setlist-song-info">{/* Song info here */}</div>
       </div>
     ));
 
     return (
-      <div class="setlist-songs-container">
-        {setlistSongsElements.length > 0 ? (
-          <div class="grid-container">{setlistSongsElements}</div>
-        ) : (
-          <div>No songs in this setlist.</div>
-        )}
-      </div>
+      <Link href="/fretlists" class="setlist-songs-container">
+        <div class="grid-container">
+          {setlistSongsElements.length > 0 ? (
+            setlistSongsElements
+          ) : (
+            <div>No songs in this setlist.</div>
+          )}
+        </div>
+      </Link>
     );
   }
 

@@ -1,5 +1,7 @@
 import { h, Component } from 'preact';
+import { SetlistContext } from './setListContext'; // Import SetlistContext
 import { jwtVerify } from 'jose'; // Ensure this is imported if needed for token verification
+
 import './Fretlists.css';
 
 const API_URL = 'http://localhost:8080'; // API URL
@@ -14,13 +16,19 @@ for (let i = 0; i < secretKeyBinaryString.length; i++) {
 }
 
 class Fretlists extends Component {
+  static contextType = SetlistContext; // Assign SetlistContext to the class
   state = {
     setlists: [],
+    currentSetlistSongs: [], // Initialize this state
     loggedInUser: null,
   };
 
   componentDidMount() {
     this.checkLoggedInStatus();
+    const setlistId = this.context; // Context is accessed directly in class components
+    if (setlistId) {
+      this.fetchSetlistSongs(setlistId);
+    }
   }
 
   checkLoggedInStatus = async () => {
@@ -36,6 +44,28 @@ class Fretlists extends Component {
         }
       } catch (error) {
         console.error('Error verifying token:', error);
+      }
+    }
+  };
+
+  fetchSetlistSongs = async (setlistId: number) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const response = await fetch(`${API_URL}/setlist-songs/${setlistId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const songsData = await response.json();
+          this.setState({ currentSetlistSongs: songsData });
+        } else {
+          console.error('Failed to fetch setlist songs');
+        }
+      } catch (error) {
+        console.error('Error fetching setlist songs:', error);
       }
     }
   };
@@ -62,35 +92,70 @@ class Fretlists extends Component {
     }
   };
 
-  render() {
-    const { setlists } = this.state;
-    const recentSetlists = setlists.slice(0, 4); // Assuming the setlists are ordered by most recent
+  renderSetlistGrid() {
+    const { currentSetlistSongs } = this.state;
+    const setlistGridElements = currentSetlistSongs
+      .slice(0, 4)
+      .map((song, index) => (
+        <div key={index} class="setlist-song">
+          <img
+            src={song.thumbnail_url}
+            alt={song.title}
+            class="setlist-song-thumbnail"
+          />
+          {/* Additional song info can be added here */}
+        </div>
+      ));
 
+    return (
+      <div class="grid-container">
+        {setlistGridElements.length > 0 ? (
+          setlistGridElements
+        ) : (
+          <div>No songs in this setlist.</div>
+        )}
+      </div>
+    );
+  }
+
+  renderSetlistList() {
+    const { setlists } = this.state;
+    return setlists.map((setlist, index) => (
+      <div key={index} class="setlist-item">
+        <img
+          src={setlist.thumbnail_url}
+          alt={setlist.name}
+          class="setlist-thumbnail"
+        />
+        <div class="setlist-info">
+          <span class="setlist-title">{setlist.name}</span>
+          {/* The plus button and ellipses functionality can be added here later */}
+        </div>
+      </div>
+    ));
+  }
+
+  renderSetlistSongsList() {
+    const { currentSetlistSongs } = this.state;
+    return currentSetlistSongs.map((song, index) => (
+      <div key={index} class="setlist-item">
+        <img
+          src={song.thumbnail_url}
+          alt={song.title}
+          class="setlist-thumbnail"
+        />
+        <span class="setlist-title">{song.title}</span>
+        {/* The plus button and ellipses functionality can be added here later */}
+      </div>
+    ));
+  }
+
+  render() {
     return (
       <div>
         <h2>Favorites</h2>
-        <div class="recent-setlists-grid">
-          {recentSetlists.length === 0 ? (
-            <p>No recent setlists found</p>
-          ) : (
-            recentSetlists.map((setlist, index) => (
-              <div key={index} class="setlist-preview">
-                {/* Display setlist preview */}
-                <img src={setlist.thumbnail_url} alt={setlist.name} />
-                <span>{setlist.name}</span>
-              </div>
-            ))
-          )}
-        </div>
-        <div class="full-setlist">
-          {setlists.map((setlist, index) => (
-            <div key={index} class="setlist-item">
-              {/* Full setlist details */}
-              <h3>{setlist.name}</h3>
-              {/* Additional details can be rendered here */}
-            </div>
-          ))}
-        </div>
+        {this.renderSetlistGrid()}
+        <div class="full-setlist">{this.renderSetlistList()}</div>
       </div>
     );
   }
