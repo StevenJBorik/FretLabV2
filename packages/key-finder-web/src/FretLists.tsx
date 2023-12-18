@@ -28,6 +28,7 @@ class Fretlists extends Component {
   componentDidMount() {
     this.checkLoggedInStatus();
     const setlistId = this.context; // Context is accessed directly in class components
+    console.log('Received setlistId from context in Fretlists:', setlistId); // Log the setlistId from context
     if (setlistId) {
       this.fetchSetlistSongs(setlistId);
     }
@@ -51,6 +52,7 @@ class Fretlists extends Component {
   };
 
   fetchSetlistSongs = async (setlistId: number) => {
+    console.log('Fetching songs for setlistId:', setlistId); // Log the setlistId used for fetching songs
     this.setState({ selectedSetlistId: setlistId });
 
     const token = localStorage.getItem('token');
@@ -86,6 +88,8 @@ class Fretlists extends Component {
         });
         if (response.ok) {
           const setlists = await response.json();
+          console.log('Fetched setlists:', setlists); // Log the fetched setlists data
+
           this.setState({ setlists });
         } else {
           console.error('Failed to fetch setlists');
@@ -96,9 +100,11 @@ class Fretlists extends Component {
     }
   };
 
-  selectSetlist = (setlistId) => {
-    // Method to handle selecting a setlist and fetching its songs
-    this.fetchSetlistSongs(setlistId);
+  selectSetlist = (setlistId: number) => {
+    console.log('Selecting setlist with ID:', setlistId); // Log the selected setlistId
+    this.setState({ setlistId }, () => {
+      route(`/fretlists/${setlistId}`); // Ensure setlistId is defined here
+    });
   };
 
   renderSetlistGrid() {

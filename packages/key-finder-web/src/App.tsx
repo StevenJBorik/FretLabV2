@@ -65,12 +65,19 @@ class App extends Component<{}, AppState> {
       if (this.state.setlistId) {
         this.fetchSetlistSongs(this.state.setlistId);
       }
+      console.log('Component mounted with setlistId:', this.state.setlistId); // Log the initial setlistId
     });
     this.updateCurrentRoute();
   }
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.setlistId !== this.state.setlistId && this.state.setlistId) {
+      console.log(
+        'SetlistId changed from',
+        prevState.setlistId,
+        'to',
+        this.state.setlistId
+      ); // Log the change in setlistId
       this.fetchSetlistSongs(this.state.setlistId);
     }
   }
@@ -192,17 +199,22 @@ class App extends Component<{}, AppState> {
 
         if (response.ok) {
           const setlistsData = await response.json();
-          this.setState({
-            userSetLists: setlistsData,
-            setlistId: setlistsData.length > 0 ? setlistsData[0].id : null, // Assuming the first setlist is the current one
-          });
+          console.log('Fetched setlists:', setlistsData); // Log the fetched setlists data
+          this.setState(
+            {
+              userSetLists: setlistsData,
+              setlistId: setlistsData.length > 0 ? setlistsData[0].id : null, // Assuming the first setlist is the current one
+            },
+            () => {
+              console.log('Setlist ID set to:', this.state.setlistId); // Log the setlistId
+            }
+          );
         } else {
           console.error('Failed to fetch user setlists');
           // Handle error...
         }
       } catch (error) {
         console.error('Error fetching user setlists:', error);
-        // Handle error...
       }
     }
   };
@@ -223,6 +235,10 @@ class App extends Component<{}, AppState> {
         if (response.ok) {
           const songsData = await response.json();
           this.setState({ currentSetlistSongs: songsData });
+          console.log(
+            'songdata state after setlist-songs api call:',
+            this.state.currentSetlistSongs
+          );
         } else {
           console.error('Failed to fetch setlist songs');
         }
@@ -267,20 +283,22 @@ class App extends Component<{}, AppState> {
       </div>
     );
   }
-  selectSetlist = (setlistId: number) => {
-    route(`/fretlists/${setlistId}`); // Pass setlistId as a route parameter
+  selectSetlist = () => {
+    const setlistId = this.state.setlistId;
+    console.log('Selecting setlist with ID:', setlistId);
+    route(`/fretlists/${setlistId}`);
   };
-  // App.tsx
+
   renderUserSetlists() {
     const { currentSetlistSongs } = this.state;
-
+    console.log('Current setlist songs:', this.state.currentSetlistSongs);
     return (
       <div class="grid-container">
         {currentSetlistSongs.map((song, index) => (
           <div
             key={index}
             class="setlist-song"
-            onClick={() => this.selectSetlist(song.setlistId)}
+            onClick={() => this.selectSetlist()}
           >
             <img
               src={song.thumbnail_url}
