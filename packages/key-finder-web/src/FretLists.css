@@ -69,7 +69,9 @@
 .setlist-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px; /* Adjust gap to match your design */
+  grid-gap: 20px;
+  justify-content: center;
+  align-items: center;
 }
 
 .setlist-list {
@@ -84,9 +86,10 @@
 }
 
 .setlist-thumbnail {
-  width: 100px; /* Adjust size as needed */
-  height: auto;
-  margin-right: 16px;
+  width: 125px; /* Set the thumbnail width */
+  height: 125px; /* Set the thumbnail height */
+  object-fit: cover; /* Ensure the image covers the area */
+  border-radius: 4px; /* Rounded corners if desired */
 }
 
 .setlist-title {
@@ -94,3 +97,29 @@
 }
 
 /* Additional styles for buttons and ellipses can be added here */
+.setlist-song {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0; /* Remove any default margin */
+  padding: 0; /* Remove any default padding */
+}
+
+.setlist-song-thumbnail {
+  width: 100%; /* Thumbnail takes full width of its parent */
+  height: auto; /* Maintain aspect ratio */
+  object-fit: cover; /* Cover the area without stretching */
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(
+    2,
+    minmax(0, 1fr)
+  ); /* 2 columns with minimum width of 0 */
+  grid-gap: 5px; /* Reduced gap for a tighter grid */
+  justify-content: center;
+  align-items: center;
+  width: fit-content; /* Set the width of the grid container to fit its children */
+  margin: auto; /* Center the grid in the container if necessary */
+}

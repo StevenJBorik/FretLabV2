@@ -267,32 +267,32 @@ class App extends Component<{}, AppState> {
       </div>
     );
   }
-
-  // Inside App component
+  selectSetlist = (setlistId: number) => {
+    route(`/fretlists/${setlistId}`); // Pass setlistId as a route parameter
+  };
+  // App.tsx
   renderUserSetlists() {
     const { currentSetlistSongs } = this.state;
 
-    const setlistSongsElements = currentSetlistSongs.map((song, index) => (
-      <div key={index} class="setlist-song">
-        <img
-          src={song.thumbnail_url}
-          alt={song.title}
-          class="setlist-song-thumbnail"
-        />
-        <div class="setlist-song-info">{/* Song info here */}</div>
-      </div>
-    ));
-
     return (
-      <Link href="/fretlists" class="setlist-songs-container">
-        <div class="grid-container">
-          {setlistSongsElements.length > 0 ? (
-            setlistSongsElements
-          ) : (
-            <div>No songs in this setlist.</div>
-          )}
-        </div>
-      </Link>
+      <div class="grid-container">
+        {currentSetlistSongs.map((song, index) => (
+          <div
+            key={index}
+            class="setlist-song"
+            onClick={() => this.selectSetlist(song.setlistId)}
+          >
+            <img
+              src={song.thumbnail_url}
+              alt={song.title}
+              class="setlist-song-thumbnail"
+            />
+            <div class="setlist-info">
+              {/* Additional song info can be added here */}
+            </div>
+          </div>
+        ))}
+      </div>
     );
   }
 
@@ -340,7 +340,7 @@ class App extends Component<{}, AppState> {
                   <Settings path="/settings" />
                   <About path="/about" />
                   <Profile path="/profile" />
-                  <FretLists path="/fretlists" />
+                  <FretLists path="/fretlists/:setlistId" />
                   <SongPage
                     path="/song/:songId"
                     key={window.location.pathname}

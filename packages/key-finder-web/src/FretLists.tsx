@@ -21,6 +21,7 @@ class Fretlists extends Component {
     setlists: [],
     currentSetlistSongs: [], // Initialize this state
     loggedInUser: null,
+    selectedSetlistId: null, // Newly added state to track the selected setlist
   };
 
   componentDidMount() {
@@ -49,8 +50,10 @@ class Fretlists extends Component {
   };
 
   fetchSetlistSongs = async (setlistId: number) => {
+    this.setState({ selectedSetlistId: setlistId });
+
     const token = localStorage.getItem('token');
-    if (token) {
+    if (token && setlistId) {
       try {
         const response = await fetch(`${API_URL}/setlist-songs/${setlistId}`, {
           headers: {
@@ -90,6 +93,11 @@ class Fretlists extends Component {
         console.error('Error fetching user setlists:', error);
       }
     }
+  };
+
+  selectSetlist = (setlistId) => {
+    // Method to handle selecting a setlist and fetching its songs
+    this.fetchSetlistSongs(setlistId);
   };
 
   renderSetlistGrid() {
@@ -134,18 +142,17 @@ class Fretlists extends Component {
       </div>
     ));
   }
-
   renderSetlistSongsList() {
     const { currentSetlistSongs } = this.state;
+    // We will render all songs, so no need to slice the array
     return currentSetlistSongs.map((song, index) => (
-      <div key={index} class="setlist-item">
+      <div key={index} class="setlist-song-item">
         <img
           src={song.thumbnail_url}
           alt={song.title}
-          class="setlist-thumbnail"
+          class="setlist-song-thumbnail"
         />
-        <span class="setlist-title">{song.title}</span>
-        {/* The plus button and ellipses functionality can be added here later */}
+        <span class="setlist-song-title">{song.title}</span>
       </div>
     ));
   }
@@ -155,7 +162,7 @@ class Fretlists extends Component {
       <div>
         <h2>Favorites</h2>
         {this.renderSetlistGrid()}
-        <div class="full-setlist">{this.renderSetlistList()}</div>
+        <div class="full-setlist">{this.renderSetlistSongsList()}</div>
       </div>
     );
   }
