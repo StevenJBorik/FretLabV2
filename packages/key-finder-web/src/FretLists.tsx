@@ -1,4 +1,5 @@
 import { h, Component } from 'preact';
+import { Router, Link, route } from 'preact-router'; // Make sure to import route
 import { SetlistContext } from './setListContext'; // Import SetlistContext
 import { jwtVerify } from 'jose'; // Ensure this is imported if needed for token verification
 
@@ -142,11 +143,19 @@ class Fretlists extends Component {
       </div>
     ));
   }
+
+  navigateToSongPage = (songId) => {
+    route(`/song/${songId}`); // Navigate to the SongPage component
+  };
+
   renderSetlistSongsList() {
     const { currentSetlistSongs } = this.state;
-    // We will render all songs, so no need to slice the array
     return currentSetlistSongs.map((song, index) => (
-      <div key={index} class="setlist-song-item">
+      <div
+        key={index}
+        class="setlist-song-item"
+        onClick={() => this.navigateToSongPage(song.id)} // Add onClick event
+      >
         <img
           src={song.thumbnail_url}
           alt={song.title}
