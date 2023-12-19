@@ -157,3 +157,41 @@
   color: green;
   margin-top: 10px;
 }
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columns */
+  grid-gap: 20px;
+  justify-content: center;
+  align-items: center;
+}
+
+.setlist-song {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  text-align: center;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.setlist-song-thumbnail {
+  width: 125px; /* Set the thumbnail width */
+  height: 125px; /* Set the thumbnail height */
+  object-fit: cover; /* Ensure the image covers the area */
+  border-radius: 4px; /* Rounded corners if desired */
+}
+
+/* Media query for smaller screens */
+@media (max-width: var(--breakpoint-mobile)) {
+  .grid-container {
+    grid-template-columns: 1fr; /* 1 column layout for mobile */
+  }
+
+  .setlist-songs-container {
+    padding: 10px; /* Less padding on mobile */
+  }
+}

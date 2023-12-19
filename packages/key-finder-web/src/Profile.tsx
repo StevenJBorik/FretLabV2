@@ -1,6 +1,7 @@
 import { h, Component, createRef } from 'preact';
-import { Link } from 'preact-router/match';
+import { Router, Link, route } from 'preact-router'; // Make sure to import route
 import './Profile.css'; // Your CSS file path here
+import { SetlistContext } from './setListContext';
 
 const API_URL = 'http://localhost:8080'; // Define API_URL
 
@@ -16,8 +17,9 @@ interface ProfileState {
   editingDescription: boolean;
   message: string; // Add this line
   profilePicture: string; // Add this line to store the profile picture path
-
-  // Add any other state properties you need
+  userSetLists: any[];
+  setlistId: number | null;
+  currentSetlistSongs: any[];
 }
 
 class Profile extends Component<ProfileProps, ProfileState> {
@@ -33,6 +35,9 @@ class Profile extends Component<ProfileProps, ProfileState> {
       editingDescription: false,
       message: '',
       profilePicture: '',
+      userSetLists: [],
+      setlistId: null,
+      currentSetlistSongs: [],
     };
   }
 
@@ -42,6 +47,8 @@ class Profile extends Component<ProfileProps, ProfileState> {
     if (profilePicture) {
       this.setState({ profilePicture });
     }
+    this.fetchUserSetlists();
+    console.log('Component mounted');
   }
 
   handleEditPictureClick = () => {
@@ -138,6 +145,101 @@ class Profile extends Component<ProfileProps, ProfileState> {
     }
   };
 
+  fetchUserSetlists = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const response = await fetch('http://localhost:8080/user-setlists', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const setlistsData = await response.json();
+          console.log('Fetched setlists:', setlistsData);
+          const firstSetlistId =
+            setlistsData.length > 0 ? setlistsData[0].id : null;
+          this.setState(
+            {
+              userSetLists: setlistsData,
+              setlistId: firstSetlistId,
+            },
+            () => {
+              if (this.state.setlistId) {
+                this.fetchSetlistSongs(this.state.setlistId);
+              }
+            }
+          );
+        } else {
+          console.error('Failed to fetch user setlists');
+        }
+      } catch (error) {
+        console.error('Error fetching user setlists:', error);
+      }
+    }
+  };
+
+  fetchSetlistSongs = async (setlistId: number) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const response = await fetch(
+          `http://localhost:8080/setlist-songs/${setlistId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const songsData = await response.json();
+          this.setState({ currentSetlistSongs: songsData });
+          console.log(
+            'songdata state after setlist-songs api call:',
+            this.state.currentSetlistSongs
+          );
+        } else {
+          console.error('Failed to fetch setlist songs');
+        }
+      } catch (error) {
+        console.error('Error fetching setlist songs:', error);
+      }
+    }
+  };
+
+  renderUserSetlists() {
+    const { currentSetlistSongs } = this.state;
+    console.log('Current setlist songs:', this.state.currentSetlistSongs);
+    return (
+      <div class="grid-container">
+        {currentSetlistSongs.map((song, index) => (
+          <div
+            key={index}
+            class="setlist-song"
+            onClick={() => this.selectSetlist()}
+          >
+            <img
+              src={song.thumbnail_url}
+              alt={song.title}
+              class="setlist-song-thumbnail"
+            />
+            <div class="setlist-info">
+              {/* Additional song info can be added here */}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  selectSetlist = () => {
+    const setlistId = this.state.setlistId;
+    console.log('Selecting setlist with ID:', setlistId);
+    route(`/fretlists/${setlistId}`);
+  };
+
   render() {
     const {
       username,
@@ -148,72 +250,82 @@ class Profile extends Component<ProfileProps, ProfileState> {
       message,
       profilePicture,
     } = this.state;
+
+    let userSetlistsContent = null;
+
+    userSetlistsContent = this.renderUserSetlists();
+
     return (
-      <div className="profile-container">
-        <div className="profile-header">
-          <div className="profile-picture">
-            {/* Placeholder for profile image */}
-            <img src={profilePicture || '/images/SwanOne.png'} alt={username} />
-            <button onClick={this.handleEditPictureClick}>Edit</button>
-            <input
-              type="file"
-              ref={this.fileInputRef}
-              style={{ display: 'none' }}
-              onChange={this.handleFileChange}
-              accept="image/png, image/jpeg" // Accept only images
-            />
-          </div>
-          <div className="profile-info">
-            <h1>{username}</h1>
-            <p>{memberType}</p>
-            <p>
-              {profileType} profile -{' '}
-              <button
-                onClick={() => {
-                  /* handle profile type change */
-                }}
-              >
-                change
-              </button>
-            </p>
-            {editingDescription ? (
-              <textarea
-                value={description}
-                onChange={(e) =>
-                  this.setState({
-                    description: (e.target as HTMLTextAreaElement).value,
-                  })
-                }
-              ></textarea>
-            ) : (
-              <p onClick={() => this.setState({ editingDescription: true })}>
-                {description ||
-                  '+ Click here to introduce yourself to the community'}
+      <SetlistContext.Provider value={this.state.setlistId}>
+        <div className="profile-container">
+          <div className="profile-header">
+            <div className="profile-picture">
+              {/* Placeholder for profile image */}
+              <img
+                src={profilePicture || '/images/SwanOne.png'}
+                alt={username}
+              />
+              <button onClick={this.handleEditPictureClick}>Edit</button>
+              <input
+                type="file"
+                ref={this.fileInputRef}
+                style={{ display: 'none' }}
+                onChange={this.handleFileChange}
+                accept="image/png, image/jpeg" // Accept only images
+              />
+            </div>
+            <div className="profile-info">
+              <h1>{username}</h1>
+              <p>{memberType}</p>
+              <p>
+                {profileType} profile -{' '}
+                <button
+                  onClick={() => {
+                    /* handle profile type change */
+                  }}
+                >
+                  change
+                </button>
               </p>
-            )}
-            {message && <div className="success-message">{message}</div>}
-            <button onClick={this.saveProfile}>Save Profile</button>
+              {editingDescription ? (
+                <textarea
+                  value={description}
+                  onChange={(e) =>
+                    this.setState({
+                      description: (e.target as HTMLTextAreaElement).value,
+                    })
+                  }
+                ></textarea>
+              ) : (
+                <p onClick={() => this.setState({ editingDescription: true })}>
+                  {description ||
+                    '+ Click here to introduce yourself to the community'}
+                </p>
+              )}
+              {message && <div className="success-message">{message}</div>}
+              <button onClick={this.saveProfile}>Save Profile</button>
+            </div>
           </div>
+          <div className="profile-body">
+            <section>
+              <h2>Lab Lists</h2>
+              {userSetlistsContent}
+            </section>
+            <section>
+              <h2>History</h2>
+              {/* Component or list rendering history items */}
+            </section>
+            {/* Continue with other sections as needed */}
+          </div>
+          <button
+            onClick={() => {
+              /* handle unlock premium */
+            }}
+          >
+            Unlock Premium
+          </button>
         </div>
-        <div className="profile-body">
-          <section>
-            <h2>Lab Lists</h2>
-            {/* Component or list rendering your lab lists */}
-          </section>
-          <section>
-            <h2>History</h2>
-            {/* Component or list rendering history items */}
-          </section>
-          {/* Continue with other sections as needed */}
-        </div>
-        <button
-          onClick={() => {
-            /* handle unlock premium */
-          }}
-        >
-          Unlock Premium
-        </button>
-      </div>
+      </SetlistContext.Provider>
     );
   }
 }

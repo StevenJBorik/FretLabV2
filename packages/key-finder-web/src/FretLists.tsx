@@ -26,12 +26,14 @@ class Fretlists extends Component {
   };
 
   componentDidMount() {
-    this.checkLoggedInStatus();
-    const setlistId = this.context; // Context is accessed directly in class components
-    console.log('Received setlistId from context in Fretlists:', setlistId); // Log the setlistId from context
-    if (setlistId) {
-      this.fetchSetlistSongs(setlistId);
-    }
+    this.checkLoggedInStatus().then(() => {
+      const setlistId = this.context; // Get setlistId from context
+      if (setlistId) {
+        this.fetchSetlistSongs(setlistId);
+      } else {
+        this.fetchUserSetlists(); // Fetch all setlists if no specific setlistId
+      }
+    });
   }
 
   checkLoggedInStatus = async () => {
@@ -43,7 +45,6 @@ class Fretlists extends Component {
         });
         if (payload.user_id) {
           this.setState({ loggedInUser: payload.user_id });
-          this.fetchUserSetlists();
         }
       } catch (error) {
         console.error('Error verifying token:', error);

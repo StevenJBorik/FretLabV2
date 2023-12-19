@@ -198,6 +198,7 @@ class App extends Component<{}, AppState> {
         });
 
         if (response.ok) {
+          ``;
           const setlistsData = await response.json();
           console.log('Fetched setlists:', setlistsData); // Log the fetched setlists data
           this.setState(
@@ -358,7 +359,7 @@ class App extends Component<{}, AppState> {
                   <Settings path="/settings" />
                   <About path="/about" />
                   <Profile path="/profile" />
-                  <FretLists path="/fretlists/:setlistId" />
+                  <FretLists path="/fretlists/:setlistId?" />
                   <SongPage
                     path="/song/:songId"
                     key={window.location.pathname}
