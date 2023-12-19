@@ -3,12 +3,12 @@ import { h, Component } from 'preact';
 import { Router, Link, route } from 'preact-router'; // Make sure to import route
 import Navigation from './Navigation';
 import AudioFileKeyDetection from './AudioFileKeyDetection';
-import Settings from './Settings';
 import About from './About';
 import Profile from './Profile';
 import AuthModal from './AuthModal';
 import SongPage from './SongPage';
 import FretLists from './FretLists';
+import Settings from './settings';
 import { UserContext } from './context'; // import the context you created
 import RouteContext from './RouteContext';
 import { SetlistContext } from './setListContext';
