@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'preact/hooks';
 import { route } from 'preact-router';
 import { h, FunctionComponent } from 'preact';
+import './Settings.css';
+
+const API_URL = 'http://localhost:8080'; // Define API_URL
 
 interface SettingsProps {
   path: string;
@@ -10,10 +13,13 @@ const Settings: FunctionComponent<SettingsProps> = ({ path }) => {
   const [email, setEmail] = useState('');
   const [profileVisibility, setProfileVisibility] = useState('private');
   const [receiveEmails, setReceiveEmails] = useState(true);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     // Fetch user settings on component mount
-    fetch('/api/settings', {
+    fetch(`${API_URL}/api/settings`, {
+      // Add API_URL here
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
@@ -26,9 +32,16 @@ const Settings: FunctionComponent<SettingsProps> = ({ path }) => {
       });
   }, []);
 
+  const handleApiResponse = (response: Response) => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    return response.json();
+  };
+
   const updateSettings = (endpoint, data) => {
-    return fetch(endpoint, {
-      method: 'PATCH',
+    return fetch(`${API_URL}${endpoint}`, {
+      method: 'POST', // Changed from 'PATCH' to 'POST'
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -37,32 +50,125 @@ const Settings: FunctionComponent<SettingsProps> = ({ path }) => {
     });
   };
 
+  const handleEmailChange = (e: Event) => {
+    setEmail((e.target as HTMLInputElement).value);
+  };
+
+  const handleProfileVisibilityChange = (e: Event) => {
+    setProfileVisibility((e.target as HTMLSelectElement).value);
+  };
+
+  const handleReceiveEmailsChange = (e: Event) => {
+    setReceiveEmails((e.target as HTMLInputElement).checked);
+  };
+
   const saveDetails = () => {
     Promise.all([
       updateSettings('/api/settings/email', { email }),
       updateSettings('/api/settings/profile-visibility', { profileVisibility }),
-      updateSettings('/api/settings/email-subscription', { receiveEmails }),
+      // updateSettings('/api/settings/email-subscription', { receiveEmails }),
     ])
-      .then(() => {
-        console.log('Settings updated');
-        // Inform the user of the update, e.g., using a toast notification
+      .then((responses) => Promise.all(responses.map((res) => res.json())))
+      .then((data) => {
+        // Assuming each response has a 'message' field with a success message
+        data.forEach((item) => {
+          console.log(item.message);
+        });
+        alert('Settings updated successfully!');
       })
       .catch((error) => {
         console.error('Error updating settings:', error);
+        alert('Failed to update settings.');
       });
   };
 
-  const handleChangePassword = () => {
-    // Implement change password logic
-    route('/change-password');
+  const handleChangePasswordClick = () => {
+    fetch(`${API_URL}/api/settings/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    })
+      .then(handleApiResponse)
+      .then((data) => {
+        console.log(data.message);
+        alert('Password changed successfully!');
+        // Clear the password fields after a successful password change
+        setCurrentPassword('');
+        setNewPassword('');
+      })
+      .catch((error) => {
+        console.error('Error changing password:', error);
+        alert('Failed to change password.');
+      });
+  };
+
+  const handleCurrentPasswordChange = (e: Event) => {
+    setCurrentPassword((e.target as HTMLInputElement).value);
+  };
+
+  const handleNewPasswordChange = (e: Event) => {
+    setNewPassword((e.target as HTMLInputElement).value);
   };
 
   return (
     <div class="settings-container">
       <h1>Account Settings</h1>
-      {/* ...other settings code */}
-      <button onClick={saveDetails}>Save Details</button>
-      <button onClick={handleChangePassword}>Change Password</button>
+      <div class="setting">
+        <label for="email">Email Address</label>
+        <input
+          type="email"
+          id="email"
+          value={email}
+          onInput={handleEmailChange}
+        />
+      </div>
+      <div class="setting">
+        <label for="profile-visibility">My Profile</label>
+        <select
+          id="profile-visibility"
+          value={profileVisibility}
+          onChange={handleProfileVisibilityChange}
+        >
+          <option value="private">Private</option>
+          <option value="public">Public</option>
+        </select>
+      </div>
+      <div class="setting">
+        {/* <label for="receive-emails">
+          <input
+            type="checkbox"
+            id="receive-emails"
+            checked={receiveEmails}
+            onChange={handleReceiveEmailsChange}
+          />
+          Receive email notifications
+        </label> */}
+      </div>
+      <div class="setting">
+        <label for="currentPassword">Current Password</label>
+        <input
+          type="password"
+          id="currentPassword"
+          value={currentPassword}
+          onInput={handleCurrentPasswordChange}
+        />
+      </div>
+      <div class="setting">
+        <label for="newPassword">New Password</label>
+        <input
+          type="password"
+          id="newPassword"
+          value={newPassword}
+          onInput={handleNewPasswordChange}
+        />
+      </div>
+      <div class="links">
+        <button onClick={saveDetails}>Save Details</button>
+        <button onClick={handleChangePasswordClick}>Change Password</button>
+      </div>
     </div>
   );
 };
