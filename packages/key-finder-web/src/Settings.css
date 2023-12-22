@@ -122,3 +122,24 @@ button:hover:after {
     font-size: 14px;
   }
 }
+
+.password-input {
+  display: flex;
+  align-items: center;
+}
+
+.password-input input {
+  flex: 1;
+}
+
+.password-input button {
+  background: none;
+  border: none;
+  color: #007bff;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+.password-input button:hover {
+  text-decoration: underline;
+}

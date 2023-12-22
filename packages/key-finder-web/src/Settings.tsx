@@ -15,6 +15,9 @@ const Settings: FunctionComponent<SettingsProps> = ({ path }) => {
   const [receiveEmails, setReceiveEmails] = useState(true);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   useEffect(() => {
     // Fetch user settings on component mount
@@ -33,6 +36,7 @@ const Settings: FunctionComponent<SettingsProps> = ({ path }) => {
   }, []);
 
   const handleApiResponse = (response: Response) => {
+    console.log('API Response:', response);
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
@@ -41,7 +45,7 @@ const Settings: FunctionComponent<SettingsProps> = ({ path }) => {
 
   const updateSettings = (endpoint, data) => {
     return fetch(`${API_URL}${endpoint}`, {
-      method: 'POST', // Changed from 'PATCH' to 'POST'
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -83,6 +87,9 @@ const Settings: FunctionComponent<SettingsProps> = ({ path }) => {
   };
 
   const handleChangePasswordClick = () => {
+    console.log('Current Password:', currentPassword);
+    console.log('New Password:', newPassword);
+
     fetch(`${API_URL}/api/settings/change-password`, {
       method: 'POST',
       headers: {
@@ -98,10 +105,12 @@ const Settings: FunctionComponent<SettingsProps> = ({ path }) => {
         // Clear the password fields after a successful password change
         setCurrentPassword('');
         setNewPassword('');
+        setPasswordError(''); // Clear any previous error message
       })
       .catch((error) => {
-        console.error('Error changing password:', error);
-        alert('Failed to change password.');
+        setPasswordError(
+          'Failed to change password. Please check your current password.'
+        );
       });
   };
 
@@ -149,21 +158,39 @@ const Settings: FunctionComponent<SettingsProps> = ({ path }) => {
       </div>
       <div class="setting">
         <label for="currentPassword">Current Password</label>
-        <input
-          type="password"
-          id="currentPassword"
-          value={currentPassword}
-          onInput={handleCurrentPasswordChange}
-        />
+        <div class="password-input">
+          <input
+            type={showCurrentPassword ? 'text' : 'password'}
+            id="currentPassword"
+            value={currentPassword}
+            onInput={handleCurrentPasswordChange}
+          />
+          <button
+            type="button"
+            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+          >
+            {showCurrentPassword ? 'Hide' : 'Show'}
+          </button>
+        </div>
+        {passwordError && <p class="error">{passwordError}</p>}
       </div>
       <div class="setting">
         <label for="newPassword">New Password</label>
-        <input
-          type="password"
-          id="newPassword"
-          value={newPassword}
-          onInput={handleNewPasswordChange}
-        />
+        <div class="password-input">
+          <input
+            type={showNewPassword ? 'text' : 'password'}
+            id="newPassword"
+            value={newPassword}
+            onInput={handleNewPasswordChange}
+          />
+          <button
+            type="button"
+            onClick={() => setShowNewPassword(!showNewPassword)}
+          >
+            {showNewPassword ? 'Hide' : 'Show'}
+          </button>
+          {passwordError && <p class="error">{passwordError}</p>}
+        </div>
       </div>
       <div class="links">
         <button onClick={saveDetails}>Save Details</button>
