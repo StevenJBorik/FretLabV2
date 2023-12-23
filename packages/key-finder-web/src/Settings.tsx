@@ -18,6 +18,7 @@ const Settings: FunctionComponent<SettingsProps> = ({ path }) => {
   const [passwordError, setPasswordError] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     // Fetch user settings on component mount
@@ -122,6 +123,43 @@ const Settings: FunctionComponent<SettingsProps> = ({ path }) => {
     setNewPassword((e.target as HTMLInputElement).value);
   };
 
+  const showDeleteAccountModal = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteAccount = () => {
+    // API call to delete account
+    deleteAccount();
+  };
+
+  const deleteAccount = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/delete-account`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (response.ok) {
+        // Handle successful account deletion
+        console.log('Account successfully deleted');
+        localStorage.removeItem('token'); // Remove the user's token
+        route('/'); // Redirect the user to the homepage or login page
+      } else {
+        // Handle non-successful responses
+        const errorData = await response.json();
+        console.error('Failed to delete account:', errorData.message);
+        alert('Failed to delete account: ' + errorData.message);
+      }
+    } catch (error) {
+      // Handle network errors
+      console.error('Network error:', error);
+      alert('Network error, please try again later.');
+    }
+  };
+
   return (
     <div class="settings-container">
       <h1>Account Settings</h1>
@@ -145,6 +183,13 @@ const Settings: FunctionComponent<SettingsProps> = ({ path }) => {
           <option value="public">Public</option>
         </select>
       </div>
+      {showDeleteModal && (
+        <div class="delete-confirmation-modal">
+          <p>Are you sure you want to delete your account?</p>
+          <button onClick={handleDeleteAccount}>Yes, Delete</button>
+          <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+        </div>
+      )}
       <div class="setting">
         {/* <label for="receive-emails">
           <input
@@ -195,6 +240,9 @@ const Settings: FunctionComponent<SettingsProps> = ({ path }) => {
       <div class="links">
         <button onClick={saveDetails}>Save Details</button>
         <button onClick={handleChangePasswordClick}>Change Password</button>
+        <button onClick={showDeleteAccountModal} class="delete-account-btn">
+          Delete Account
+        </button>
       </div>
     </div>
   );

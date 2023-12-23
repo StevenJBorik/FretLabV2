@@ -175,7 +175,11 @@ class Navigation extends Component<NavigationProps, State> {
           >
             My Profile
           </Link>
-          <Link href="/" activeClassName="active" onClick={this.closeNav}>
+          <Link
+            href="/pricing"
+            activeClassName="active"
+            onClick={this.closeNav}
+          >
             Pricing
           </Link>
           <Link

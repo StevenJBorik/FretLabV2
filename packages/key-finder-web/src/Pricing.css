@@ -1,0 +1,110 @@
+.pricing-container {
+  max-width: 960px;
+  margin: 40px auto;
+  padding: 20px;
+  text-align: center;
+}
+
+.pricing-header h1 {
+  font-size: 36px;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.pricing-header p {
+  font-size: 18px;
+  color: #666;
+}
+
+.plans-container {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 30px;
+}
+
+.plan {
+  width: 45%;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  background-color: #f9f9f9;
+}
+
+.plan h2 {
+  font-size: 28px;
+  color: #007bff;
+  margin-bottom: 15px;
+}
+
+.plan p {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.features-list {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.features-list li {
+  text-align: left;
+  padding: 5px 0;
+}
+
+.plan-select-btn {
+  padding: 10px 20px;
+  border-radius: 5px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.plan-select-btn:hover {
+  background-color: #0056b3;
+}
+
+.plan-select-btn.premium {
+  background-color: #28a745;
+}
+
+.plan-select-btn.premium:hover {
+  background-color: #218838;
+}
+
+.price-info {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.discount-tag {
+  background-color: #ffc107;
+  color: #333;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.price {
+  text-align: center;
+}
+
+.old-price {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.new-price {
+  font-size: 24px;
+  color: #28a745;
+}
+
+/* Add more styles as needed */

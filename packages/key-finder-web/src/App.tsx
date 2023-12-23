@@ -9,6 +9,7 @@ import AuthModal from './AuthModal';
 import SongPage from './SongPage';
 import FretLists from './FretLists';
 import Settings from './settings';
+import Pricing from './Pricing';
 import { UserContext } from './context'; // import the context you created
 import RouteContext from './RouteContext';
 import { SetlistContext } from './setListContext';
@@ -358,6 +359,7 @@ class App extends Component<{}, AppState> {
                   <AudioFileKeyDetection path="/file" />
                   <Settings path="/settings" />
                   <About path="/about" />
+                  <Pricing path="/pricing" />
                   <Profile path="/profile" />
                   <FretLists path="/fretlists/:setlistId?" />
                   <SongPage

@@ -20,6 +20,7 @@ interface ProfileState {
   userSetLists: any[];
   setlistId: number | null;
   currentSetlistSongs: any[];
+  userHistory: any[]; // Add this to store user history
 }
 
 class Profile extends Component<ProfileProps, ProfileState> {
@@ -38,6 +39,7 @@ class Profile extends Component<ProfileProps, ProfileState> {
       userSetLists: [],
       setlistId: null,
       currentSetlistSongs: [],
+      userHistory: [],
     };
   }
 
@@ -49,6 +51,7 @@ class Profile extends Component<ProfileProps, ProfileState> {
     }
     this.fetchUserSetlists();
     console.log('Component mounted');
+    this.fetchUserHistory(); // Fetch user history
   }
 
   handleEditPictureClick = () => {
@@ -240,6 +243,61 @@ class Profile extends Component<ProfileProps, ProfileState> {
     route(`/fretlists/${setlistId}`);
   };
 
+  fetchUserHistory = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const response = await fetch(`${API_URL}/user-history`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const historyData = await response.json();
+          this.setState({ userHistory: historyData });
+        } else {
+          console.error('Failed to fetch user history');
+        }
+      } catch (error) {
+        console.error('Network error when fetching history:', error);
+      }
+    }
+  };
+  renderUserHistory() {
+    const { userHistory } = this.state;
+    if (userHistory.length === 0) {
+      return <div class="user-history-container">No history to show.</div>;
+    }
+
+    const navigateToSongPage = (songId) => {
+      route(`/song/${songId}`); // Navigate to the song page
+    };
+
+    return (
+      <div class="user-history-container">
+        <div class="history-items">
+          {userHistory.map((item, index) => (
+            <div
+              key={index}
+              class="history-item"
+              onClick={() => navigateToSongPage(item.id)}
+            >
+              <img
+                src={item.thumbnail_url}
+                alt={item.title}
+                class="history-thumbnail"
+              />
+              <div class="history-info">
+                <div class="history-title">{item.title}</div>
+                <div class="history-artist">{item.artist}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   render() {
     const {
       username,
@@ -249,11 +307,13 @@ class Profile extends Component<ProfileProps, ProfileState> {
       editingDescription,
       message,
       profilePicture,
+      userHistory,
     } = this.state;
 
     let userSetlistsContent = null;
 
     userSetlistsContent = this.renderUserSetlists();
+    let userHistoryContent = this.renderUserHistory();
 
     return (
       <SetlistContext.Provider value={this.state.setlistId}>
@@ -313,7 +373,7 @@ class Profile extends Component<ProfileProps, ProfileState> {
             </section>
             <section>
               <h2>History</h2>
-              {/* Component or list rendering history items */}
+              {userHistoryContent}
             </section>
             {/* Continue with other sections as needed */}
           </div>
