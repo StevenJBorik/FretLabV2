@@ -12,6 +12,7 @@ import Settings from './settings';
 import Pricing from './Pricing';
 import Notifications from './Notifications';
 import TermsAndConditions from './TermsAndConditions';
+import Footer from './Footer';
 import { UserContext } from './context'; // import the context you created
 import RouteContext from './RouteContext';
 import { SetlistContext } from './setListContext';
@@ -379,6 +380,7 @@ class App extends Component<{}, AppState> {
                   onExit={this.toggleModal}
                 />
               )}
+              <Footer />
             </>
           </SetlistContext.Provider>
         </UserContext.Provider>

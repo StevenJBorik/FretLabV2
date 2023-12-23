@@ -49,6 +49,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
     Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  background-color: #f4f4f4; /* Match the footer background color */
 }
 
 .top-bar {
@@ -80,7 +81,13 @@ body {
 }
 
 .app-wrapper {
-  margin: 2rem 3rem;
+  margin: 2rem 3rem 0 3rem; /* Remove bottom margin */
+}
+
+.app-wrapper:after {
+  content: '';
+  display: table;
+  clear: both;
 }
 
 .user-history-container {

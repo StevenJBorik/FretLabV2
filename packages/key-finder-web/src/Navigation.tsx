@@ -220,11 +220,11 @@ class Navigation extends Component<NavigationProps, State> {
                     My Profile
                   </Link>
                   <Link
-                    href="/terms-and-conditions"
+                    href="/notifications"
                     activeClassName="active"
                     onClick={this.closeNav}
                   >
-                    ToS
+                    Notifications
                   </Link>
                   <Link
                     href="/my-fretlabs-bench"
