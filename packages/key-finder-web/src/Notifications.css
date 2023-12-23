@@ -1,0 +1,39 @@
+.notifications-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.notifications-list {
+  list-style: none;
+  padding: 0;
+}
+
+.notification-item {
+  display: flex;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.notification-icon {
+  width: 40px;
+  height: 40px;
+  margin-right: 15px;
+}
+
+.notification-title {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.notification-description {
+  font-size: 14px;
+  color: #666;
+}
+
+/* Add responsiveness and more styling as needed */

@@ -195,7 +195,11 @@ class Navigation extends Component<NavigationProps, State> {
           <Link href="/about" activeClassName="active" onClick={this.closeNav}>
             About
           </Link>
-          <Link href="/" activeClassName="active" onClick={this.closeNav}>
+          <Link
+            href="/terms-and-conditions"
+            activeClassName="active"
+            onClick={this.closeNav}
+          >
             ToS
           </Link>
 
@@ -215,8 +219,12 @@ class Navigation extends Component<NavigationProps, State> {
                   <Link href="/profile" onClick={this.closeUserDropdown}>
                     My Profile
                   </Link>
-                  <Link href="/notifications" onClick={this.closeUserDropdown}>
-                    Notifications
+                  <Link
+                    href="/terms-and-conditions"
+                    activeClassName="active"
+                    onClick={this.closeNav}
+                  >
+                    ToS
                   </Link>
                   <Link
                     href="/my-fretlabs-bench"
