@@ -62,6 +62,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   const [highlightNotes, setHighlightNotes] = useState<boolean>(true);
   const [result, setResult] = useState<string | null>(displayedScale);
   const [scaleOptions, setScaleOptions] = useState<string[]>([]);
+  const [isLeftHanded, setIsLeftHanded] = useState(false);
   const [userSelectedScale, setUserSelectedScale] = useState<string | null>(
     null
   );
@@ -406,6 +407,11 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   //   }
   // };
 
+  const toggleLeftHanded = () => {
+    // Just toggle the state, don't interact with the fretboard directly
+    setIsLeftHanded(!isLeftHanded);
+  };
+
   const renderFretboard = () => {
     const scaleToRender = userSelectedScale || displayedScale;
     // Get all previous fretboard containers
@@ -434,6 +440,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
       strings: stringCount,
       frets: currentFrets,
       startFret: currentStartFret,
+      leftHanded: isLeftHanded, // Use the state variable here
       showTitle: true,
     });
 
@@ -472,6 +479,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     order,
     incrementFactor,
     songId,
+    isLeftHanded,
   ]);
 
   // useEffect(() => {
@@ -744,7 +752,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
             <option value="descending">Descending</option>
             <option value="random">Random</option>
           </select>
-
+          <button onClick={toggleLeftHanded}>Toggle Left-Handed Mode</button>
           <button onClick={toggleHighlight}>Toggle Note Highlighting</button>
         </div>
       </div>

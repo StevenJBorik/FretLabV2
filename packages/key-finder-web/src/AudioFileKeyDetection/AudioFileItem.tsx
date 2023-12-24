@@ -69,6 +69,7 @@ interface State {
   editableBoundaries: string[] | null;
   tempBoundaries: string[] | null;
   newUserBoundary: string | null;
+  isLeftHanded: boolean; // Add this property
 }
 
 class AudioFileItem extends Component<Props, State> {
@@ -103,6 +104,7 @@ class AudioFileItem extends Component<Props, State> {
     editableBoundaries: this.props.sectionBoundaries || [],
     tempBoundaries: [],
     newUserBoundary: '',
+    isLeftHanded: false,
   };
 
   audioRef = createRef<HTMLAudioElement>();
@@ -551,6 +553,7 @@ class AudioFileItem extends Component<Props, State> {
       frets: this.state.frets,
       startFret: this.state.startFret,
       showTitle: true,
+      leftHanded: this.state.isLeftHanded,
     });
 
     console.log(
@@ -794,6 +797,12 @@ class AudioFileItem extends Component<Props, State> {
     );
   };
 
+  toggleLeftHanded = () => {
+    this.setState((prevState) => ({ isLeftHanded: !prevState.isLeftHanded }));
+    // Call the method to re-render the fretboard here if needed
+    this.renderFretboardScale();
+  };
+
   render() {
     console.log('Render method invoked with state:', this.state);
     const { fileItem } = this.props;
@@ -823,6 +832,7 @@ class AudioFileItem extends Component<Props, State> {
           }
           placeholder="Add new boundary (e.g., 1:23)"
         />
+        <button onClick={this.toggleLeftHanded}>Toggle Left-Handed Mode</button>
         <button onClick={this.handleAddBoundary}>Add Boundary</button>
         <button onClick={this.handleSaveBoundaries}>Save Boundaries</button>
         <ul>
