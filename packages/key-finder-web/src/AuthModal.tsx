@@ -91,6 +91,7 @@ class AuthModal extends Component<AuthModalProps, AuthModalState> {
   };
   handleSubmit = async (event: Event) => {
     event.preventDefault();
+    event.stopPropagation(); // Add this line
     const { username, password, email, usernameOrEmail, isLogin } = this.state;
 
     const token = localStorage.getItem('token');
@@ -159,6 +160,7 @@ class AuthModal extends Component<AuthModalProps, AuthModalState> {
       if (response.ok) {
         localStorage.setItem('token', result.token);
         this.props.onSuccessfulLogin(result.username); // Call the passed in prop method
+        this.props.onExit();
       } else {
         // Here, we set the state to display an error message if the credentials are invalid
         this.setState({

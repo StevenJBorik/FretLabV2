@@ -1,5 +1,5 @@
 import 'preact/debug';
-import { h, Component } from 'preact';
+import { h, Component, createRef } from 'preact';
 import { Router, Link, route } from 'preact-router'; // Make sure to import route
 import Navigation from './Navigation';
 import AudioFileKeyDetection from './AudioFileKeyDetection';
@@ -40,6 +40,8 @@ interface AppState {
   userSetLists: any[];
   setlistId: number | null;
   currentSetlistSongs: any[];
+  hasLoggedIn: boolean;
+  initialDataFetched: boolean; // New state property
 }
 
 class App extends Component<{}, AppState> {
@@ -52,6 +54,8 @@ class App extends Component<{}, AppState> {
     userSetLists: [],
     setlistId: null,
     currentSetlistSongs: [],
+    hasLoggedIn: false,
+    initialDataFetched: false,
   };
 
   constructor() {
@@ -59,6 +63,8 @@ class App extends Component<{}, AppState> {
     // Bind the method to 'this' if you haven't used an arrow function
     this.toggleDropdown = this.toggleDropdown.bind(this);
   }
+
+  navigationRef = createRef();
 
   componentDidMount() {
     this.checkLoggedInStatus().then(() => {
@@ -75,16 +81,44 @@ class App extends Component<{}, AppState> {
   }
 
   componentDidUpdate(prevProps, prevState) {
+    console.log(
+      '[componentDidUpdate] prevState:',
+      prevState,
+      'Current state:',
+      this.state
+    );
+
     if (prevState.setlistId !== this.state.setlistId && this.state.setlistId) {
-      console.log(
-        'SetlistId changed from',
-        prevState.setlistId,
-        'to',
-        this.state.setlistId
-      ); // Log the change in setlistId
       this.fetchSetlistSongs(this.state.setlistId);
     }
+    if (
+      !prevState.hasLoggedIn &&
+      this.state.hasLoggedIn &&
+      !this.state.initialDataFetched
+    ) {
+      this.fetchInitialData();
+    }
   }
+
+  closeModal = () => {
+    this.setState({ showModal: false });
+  };
+
+  closeUserDropdown = () => {
+    // Pass the method to Navigation component as a prop
+    this.navigationRef.current?.closeUserDropdown();
+  };
+
+  fetchInitialData = async () => {
+    try {
+      await Promise.all([this.fetchUserHistory(), this.fetchUserSetlists()]);
+      this.setState({ initialDataFetched: true });
+    } catch (error) {
+      // Handle error appropriately
+      console.error('Error fetching initial data:', error);
+      // Do not set initialDataFetched to true
+    }
+  };
 
   updateCurrentRoute = () => {
     this.setState({ currentRoute: window.location.pathname });
@@ -151,14 +185,38 @@ class App extends Component<{}, AppState> {
   };
 
   toggleModal = () => {
-    console.log('toggleModal called');
-    this.setState((prevState) => ({ showModal: !prevState.showModal }));
+    console.log(
+      '[toggleModal] called. Current showModal:',
+      this.state.showModal
+    );
+    this.setState(
+      (prevState) => {
+        const newShowModal = !prevState.showModal;
+        console.log('[toggleModal] Setting showModal to:', newShowModal);
+        return { showModal: newShowModal };
+      },
+      () => {
+        console.log(
+          '[toggleModal] showModal state updated to:',
+          this.state.showModal
+        );
+      }
+    );
   };
 
   handleSuccessfulLogin = (username: string) => {
-    console.log(username); // Add this line
-    this.setState({ loggedInUser: username, showModal: false }); // Close the modal on successful login
-    route('/'); // Navigate to homepage
+    console.log('[handleSuccessfulLogin] called with username:', username);
+    this.setState(
+      { loggedInUser: username, showModal: false, hasLoggedIn: true },
+      () => {
+        this.closeUserDropdown(); // Close the user dropdown
+        console.log(
+          '[handleSuccessfulLogin] State updated, showModal:',
+          this.state.showModal
+        );
+        route('/');
+      }
+    );
   };
 
   handleLogout = () => {
@@ -189,6 +247,7 @@ class App extends Component<{}, AppState> {
         // Handle error...
       }
     }
+    this.setState({ initialDataFetched: true });
   };
 
   fetchUserSetlists = async () => {
@@ -222,6 +281,7 @@ class App extends Component<{}, AppState> {
         console.error('Error fetching user setlists:', error);
       }
     }
+    this.setState({ initialDataFetched: true });
   };
 
   fetchSetlistSongs = async (setlistId: number) => {
@@ -349,6 +409,7 @@ class App extends Component<{}, AppState> {
                   <Link href="/">FretLabs</Link>
                 </div>
                 <Navigation
+                  ref={this.navigationRef}
                   onLoginClick={this.toggleModal}
                   loggedInUser={loggedInUser}
                   onLogout={this.handleLogout}
@@ -377,7 +438,7 @@ class App extends Component<{}, AppState> {
               {showModal && (
                 <AuthModal
                   onSuccessfulLogin={this.handleSuccessfulLogin}
-                  onExit={this.toggleModal}
+                  onExit={this.closeModal} // Use closeModal instead of toggleModal
                 />
               )}
               <Footer />
