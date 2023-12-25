@@ -50,6 +50,11 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
     Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
   background-color: #f4f4f4; /* Match the footer background color */
+  display: flex;
+  position: relative; /* Needed for absolute positioning of children */
+  flex-direction: column;
+  min-height: 100vh;
+  margin: 0; /* Remove default margin */
 }
 
 .top-bar {
@@ -80,8 +85,20 @@ body {
   text-decoration: none;
 }
 
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Make sure the container takes up at least the height of the viewport */
+}
+
 .app-wrapper {
+  flex: 1;
   margin: 2rem 3rem 0 3rem; /* Remove bottom margin */
+  /* padding-bottom: 7rem; */
+  padding-bottom: 120px;
+  min-height: calc(
+    100vh - 120px
+  ); /* 120px is an example; replace it with the actual height of your top bar and footer */
 }
 
 .app-wrapper:after {

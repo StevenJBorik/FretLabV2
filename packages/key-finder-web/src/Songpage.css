@@ -4,6 +4,7 @@
   align-items: flex-start; /* To align items at the top */
   flex-wrap: wrap; /* Allow items to wrap if needed */
   border: 1px solid red;
+  padding-bottom: 45px; /* Adjust based on the actual height of your footer */
 }
 
 .youtube-container {

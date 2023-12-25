@@ -100,6 +100,8 @@ class App extends Component<{}, AppState> {
     }
   }
 
+  componentWillUnmount() {}
+
   closeModal = () => {
     this.setState({ showModal: false });
   };
@@ -387,6 +389,19 @@ class App extends Component<{}, AppState> {
     });
   };
 
+  // adjustBodyPadding = () => {
+  //   const footer = document.querySelector('.footer-container') as HTMLElement;
+  //   const fretboard = document.querySelector('.fretboard') as HTMLElement;
+  //   const footerHeight = footer?.offsetHeight || 0;
+  //   if (fretboard) {
+  //     const fretboardHeight = fretboard.offsetHeight;
+  //     document.body.style.paddingBottom = `${footerHeight + fretboardHeight}px`;
+  //   } else {
+  //     // Fallback if fretboard is not found
+  //     document.body.style.paddingBottom = `${footerHeight}px`;
+  //   }
+  // };
+
   render() {
     const { showModal, loggedInUser, userHistory, currentRoute, userSetLists } =
       this.state;
@@ -404,44 +419,46 @@ class App extends Component<{}, AppState> {
         <UserContext.Provider value={loggedInUser}>
           <SetlistContext.Provider value={this.state.setlistId}>
             <>
-              <div class="top-bar">
-                <div class="app-logo">
-                  <Link href="/">FretLabs</Link>
-                </div>
-                <Navigation
-                  ref={this.navigationRef}
-                  onLoginClick={this.toggleModal}
-                  loggedInUser={loggedInUser}
-                  onLogout={this.handleLogout}
-                  onNavLinkClick={this.handleNavLinkClick}
-                />
-              </div>
-              <div class="app-wrapper">
-                {userHistoryContent}
-                {userSetlistsContent}
-                <Router onChange={this.handleRoute}>
-                  <AudioFileKeyDetection path="/file" />
-                  <Settings path="/settings" />
-                  <About path="/about" />
-                  <Pricing path="/pricing" />
-                  <Profile path="/profile" />
-                  <FretLists path="/fretlists/:setlistId?" />
-                  <Notifications path="/notifications" />
-                  <TermsAndConditions path="/terms-and-conditions" />
-                  <About path="/about" />
-                  <SongPage
-                    path="/song/:songId"
-                    key={window.location.pathname}
+              <div class="app-container">
+                <div class="top-bar">
+                  <div class="app-logo">
+                    <Link href="/">FretLabs</Link>
+                  </div>
+                  <Navigation
+                    ref={this.navigationRef}
+                    onLoginClick={this.toggleModal}
+                    loggedInUser={loggedInUser}
+                    onLogout={this.handleLogout}
+                    onNavLinkClick={this.handleNavLinkClick}
                   />
-                </Router>
+                </div>
+                <div class="app-wrapper">
+                  {userHistoryContent}
+                  {userSetlistsContent}
+                  <Router onChange={this.handleRoute}>
+                    <AudioFileKeyDetection path="/file" />
+                    <Settings path="/settings" />
+                    <About path="/about" />
+                    <Pricing path="/pricing" />
+                    <Profile path="/profile" />
+                    <FretLists path="/fretlists/:setlistId?" />
+                    <Notifications path="/notifications" />
+                    <TermsAndConditions path="/terms-and-conditions" />
+                    <About path="/about" />
+                    <SongPage
+                      path="/song/:songId"
+                      key={window.location.pathname}
+                    />
+                  </Router>
+                </div>
+                {showModal && (
+                  <AuthModal
+                    onSuccessfulLogin={this.handleSuccessfulLogin}
+                    onExit={this.closeModal} // Use closeModal instead of toggleModal
+                  />
+                )}
+                <Footer />
               </div>
-              {showModal && (
-                <AuthModal
-                  onSuccessfulLogin={this.handleSuccessfulLogin}
-                  onExit={this.closeModal} // Use closeModal instead of toggleModal
-                />
-              )}
-              <Footer />
             </>
           </SetlistContext.Provider>
         </UserContext.Provider>
