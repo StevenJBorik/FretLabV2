@@ -1,0 +1,196 @@
+/* Catalog.css */
+.catalog-container {
+  font-family: 'Arial', sans-serif;
+  color: #333;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  padding-bottom: 80px; /* Make sure there's space for the footer */
+}
+
+.catalog-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.catalog-list {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+  flex-direction: column; /* List items in a column */
+}
+
+.catalog-item {
+  display: flex;
+  align-items: center;
+  justify-content: start; /* Align items to the start */
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #eaeaea;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+/* .catalog-item::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.5);
+    transition: all 0.5s ease;
+    z-index: 1;
+  } */
+
+.catalog-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.catalog-item:hover::after {
+  left: 100%;
+}
+.catalog-item img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  margin-right: 20px;
+  object-fit: cover;
+}
+
+/* .catalog-item:hover img {
+    transform: scale(1.1);
+  } */
+
+.catalog-item p {
+  margin-left: auto; /* Push the paragraph to the right */
+  background: #f4f4f4;
+  padding: 10px; /* Add padding around the text */
+  border-radius: 10px; /* Optional: add border-radius for the text background */
+  transition: color 0.3s ease;
+}
+
+.catalog-item:hover p {
+  color: #007bff;
+}
+
+.pagination {
+  display: flex;
+  list-style: none; /* Remove default list styles */
+  gap: 4px; /* Space between pagination items */
+  justify-content: center;
+  margin-top: 30px;
+  padding-bottom: 20px; /* Additional padding to lift above the footer */
+}
+
+.pagination li {
+  display: inline;
+}
+
+.pagination li a {
+  padding: 4px 8px;
+  text-decoration: none;
+  color: #333;
+  border: 1px solid #ddd;
+  background-color: #fff;
+}
+
+.pagination li a:hover,
+.pagination li a:focus,
+.pagination li a:active {
+  border-color: #999;
+  background-color: #f4f4f4;
+}
+
+.pagination span {
+  padding: 4px 8px;
+  margin: 0 2px;
+  user-select: none;
+}
+
+.pagination button,
+.pagination span {
+  min-width: 30px; /* Ensuring buttons and ellipses have a consistent width */
+  text-align: center;
+}
+
+.pagination .current-page {
+  font-weight: bold;
+  border-color: #007bff;
+  background-color: #0056b3; /* Different background for active page */
+  color: #fff;
+}
+
+.pagination .ellipsis {
+  cursor: default; /* No pointer cursor for ellipses */
+  background: none;
+  border: none;
+  line-height: 35px; /* Center the text vertically */
+}
+
+.pagination button {
+  padding: 0; /* Remove padding to allow width and height to control size */
+  margin: 0 5px;
+  border: none;
+  border-radius: 5px;
+  background-color: #007bff;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  /* Set fixed dimensions for square buttons, adjust as needed */
+  width: 65px;
+  height: 35px;
+  line-height: 35px; /* Center the text vertically */
+}
+
+.pagination button[disabled] {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.pagination button:not([disabled]):hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.pagination button:hover:not([disabled]),
+.pagination .current-page {
+  background-color: #0056b3;
+  color: #fff;
+}
+
+/* Loading and error states */
+.loading,
+.error {
+  text-align: center;
+  font-size: 20px;
+  margin-top: 50px;
+}
+
+/* Responsive design */
+/* Responsive design */
+@media (max-width: 768px) {
+  .catalog-item img {
+    width: 40px; /* Even smaller images on mobile */
+    height: 40px; /* Even smaller images on mobile */
+  }
+
+  .catalog-item p {
+    font-size: 16px; /* Smaller font size on mobile */
+  }
+
+  .pagination button {
+    padding: 10px 16px; /* Increase horizontal padding */
+    font-size: 1rem; /* Adjust font size as needed */
+  }
+
+  .pagination span {
+    display: none;
+  }
+}

@@ -7,6 +7,7 @@ import About from './About';
 import Profile from './Profile';
 import AuthModal from './AuthModal';
 import SongPage from './SongPage';
+import Catalog from './Catalog';
 import FretLists from './FretLists';
 import Settings from './settings';
 import Pricing from './Pricing';
@@ -441,6 +442,7 @@ class App extends Component<{}, AppState> {
                     <About path="/about" />
                     <Pricing path="/pricing" />
                     <Profile path="/profile" />
+                    <Catalog path="/catalog" />
                     <FretLists path="/fretlists/:setlistId?" />
                     <Notifications path="/notifications" />
                     <TermsAndConditions path="/terms-and-conditions" />

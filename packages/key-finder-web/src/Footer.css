@@ -1,14 +1,14 @@
 .footer-container {
-  background: #f4f4f4; /* Changed to off-white to match the app's main section */
-  color: #333; /* Text color changed to black */
-  padding: 20px 0;
-  font-family: 'Arial', sans-serif;
-  font-size: 14px; /* Adjusted font size for better readability */
-  position: fixed; /* Needed for the shadowed bar */
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  z-index: 1000;
+  background: #f4f4f4; /* Unchanged */
+  color: #333; /* Unchanged */
+  padding: 10px 0; /* Reduced vertical padding for a smaller height */
+  font-family: 'Arial', sans-serif; /* Unchanged */
+  font-size: 12px; /* Reduced font size for smaller container */
+  position: fixed; /* Unchanged */
+  left: 0; /* Unchanged */
+  bottom: 0; /* Unchanged */
+  width: 100%; /* Unchanged */
+  z-index: 1000; /* Unchanged */
 }
 
 .footer-container::before {
@@ -38,8 +38,8 @@
 
 .footer-section h2,
 .footer-section h3 {
-  margin-bottom: 10px;
-  font-size: 1.25rem; /* Adjusted heading sizes */
+  margin-bottom: 8px; /* Slightly reduced margin-bottom */
+  font-size: 1rem; /* Reduced heading sizes for smaller container */
 }
 
 .footer-section a {
@@ -62,9 +62,8 @@
   margin: 0 10px; /* Uniform margin for icons */
   display: inline-block;
 }
-
 .social-media-icons a i {
-  font-size: 24px; /* Adjust as needed */
+  font-size: 20px; /* Reduced icon size */
 }
 
 /* Social media icons using font-awesome classes */
@@ -80,16 +79,17 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .footer-content {
-    justify-content: center;
+  .footer-container {
+    padding: 8px 0; /* Even smaller padding on mobile */
+    font-size: 10px; /* Even smaller font size on mobile */
   }
 
-  .footer-section {
-    text-align: center;
-    margin: 20px 0; /* Add more space around sections on mobile */
+  .footer-section h2,
+  .footer-section h3 {
+    font-size: 0.9rem; /* Slightly smaller headings on mobile */
   }
 
-  .social-media-icons a {
-    font-size: 20px; /* Slightly smaller icons for mobile */
+  .social-media-icons a i {
+    font-size: 18px; /* Slightly smaller icons on mobile */
   }
 }
