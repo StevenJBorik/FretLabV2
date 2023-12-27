@@ -1,0 +1,62 @@
+.artist-detail-container {
+  font-family: 'Arial', sans-serif;
+  color: #333;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  padding-bottom: 80px; /* Make space for footer */
+}
+
+.artist-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.artist-thumbnail {
+  width: 120px; /* Adjust size as needed */
+  height: 120px; /* Adjust size as needed */
+  border-radius: 50%;
+  margin-right: 20px;
+  object-fit: cover;
+}
+
+.artist-name {
+  font-size: 24px; /* Adjust size as needed */
+  font-weight: bold;
+}
+
+.song-list {
+  list-style: none;
+  padding: 0;
+}
+
+.song-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #eaeaea;
+  border-radius: 10px;
+  background: #fff;
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+.song-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.song-thumbnail {
+  width: 40px; /* Adjust size as needed */
+  height: 40px; /* Adjust size as needed */
+  margin-right: 20px;
+  background: url('/path/to/note-image.png') center center no-repeat; /* Replace with actual path to note image */
+  background-size: contain;
+}
+
+.song-title {
+  margin-left: auto; /* Push the title to the right */
+}
+
+/* Add any additional responsive or state-specific styles as needed */

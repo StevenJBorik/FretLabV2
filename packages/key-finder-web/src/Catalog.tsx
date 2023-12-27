@@ -70,10 +70,6 @@ export class Catalog extends Component<CatalogProps, CatalogState> {
 
   renderPagination = () => {
     const { currentPage, totalPages } = this.state;
-    console.log(
-      `Rendering pagination: currentPage=${currentPage}, totalPages=${totalPages}`
-    );
-
     let paginationItems = [];
 
     // "Previous" button logic
@@ -87,28 +83,31 @@ export class Catalog extends Component<CatalogProps, CatalogState> {
     );
 
     // Pages logic
-    const startPage = currentPage > 1 ? currentPage : 1;
-    const endPage = startPage + 2 <= totalPages ? startPage + 2 : totalPages;
+    let startPage, endPage;
+    if (totalPages <= 5) {
+      // Less than 5 total pages so show all
+      startPage = 1;
+      endPage = totalPages;
+    } else {
+      // More than 5 total pages so calculate start and end pages
+      if (currentPage <= 3) {
+        startPage = 1;
+        endPage = 5;
+      } else if (currentPage + 1 >= totalPages) {
+        startPage = totalPages - 4;
+        endPage = totalPages;
+      } else {
+        startPage = currentPage - 2;
+        endPage = currentPage + 2;
+      }
+    }
 
-    console.log(
-      `Calculated page range: startPage=${startPage}, endPage=${endPage}`
-    );
-
-    // Display startPage to endPage inclusive
+    // loop through start and end page to create page number buttons
     for (let page = startPage; page <= endPage; page++) {
       paginationItems.push(this.renderPageNumber(page));
     }
 
-    // Ellipsis and "Next" button logic
-    if (endPage < totalPages) {
-      paginationItems.push(
-        <span key="ellipsis" className="ellipsis">
-          ...
-        </span>
-      );
-      paginationItems.push(this.renderPageNumber(totalPages));
-    }
-
+    // "Next" button logic
     paginationItems.push(
       <button
         onClick={() =>
@@ -118,11 +117,6 @@ export class Catalog extends Component<CatalogProps, CatalogState> {
       >
         Next
       </button>
-    );
-
-    console.log(
-      `Pagination items:`,
-      paginationItems.map((item) => item.key || item.props.children)
     );
 
     return <div className="pagination">{paginationItems}</div>;

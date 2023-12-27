@@ -12,6 +12,7 @@ import FretLists from './FretLists';
 import Settings from './settings';
 import Pricing from './Pricing';
 import Notifications from './Notifications';
+import ArtistDetail from './ArtistDetail';
 import TermsAndConditions from './TermsAndConditions';
 import Footer from './Footer';
 import { UserContext } from './context'; // import the context you created
@@ -444,6 +445,7 @@ class App extends Component<{}, AppState> {
                     <Profile path="/profile" />
                     <Catalog path="/catalog" />
                     <FretLists path="/fretlists/:setlistId?" />
+                    <ArtistDetail path="/artist/:artistId?" />
                     <Notifications path="/notifications" />
                     <TermsAndConditions path="/terms-and-conditions" />
                     <About path="/about" />
