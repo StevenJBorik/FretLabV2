@@ -307,11 +307,17 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   };
 
   useEffect(() => {
+    console.log('useEffect triggered in Fretboard');
+    console.log('highlightedNote:', highlightedNote);
+    console.log('highlightedFret:', highlightedFret);
     // Update rendering logic to include highlighting based on the detected note
     renderFretboardWithHighlight(highlightedNote, highlightedFret);
-  }, [highlightedNote]);
+  }, [highlightedNote, highlightedFret]);
 
   const renderFretboardWithHighlight = (detectedNote, detectedFret) => {
+    console.log('renderFretboardWithHighlight called');
+    console.log('detectedNote:', detectedNote);
+    console.log('detectedFret:', detectedFret);
     // Assuming you have a state to track if notes should be highlighted
     if (highlightNotes) {
       // Replace `this.state.highlightNotes` with your state variable
@@ -446,10 +452,10 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
 
     // Add the scale to the fretboard and render it.
     if (scaleToRender) {
-      console.log('[Fretboard] Rendering fretboard with', {
-        currentStartFret,
-        currentFrets,
-      });
+      // console.log('[Fretboard] Rendering fretboard with', {
+      //   currentStartFret,
+      //   currentFrets,
+      // });
       fretboard.add(scaleToRender).paint();
       fretboardRef.current = fretboard; // Store the fretboard instance for later use.
     } else {
@@ -464,7 +470,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     // Cleanup function
     return () => {
       const fretboardContainers = document.getElementsByClassName('fretboard');
-      console.log('fretboard container', fretboardContainers);
+      // console.log('fretboard container', fretboardContainers);
       for (let i = 0; i < fretboardContainers.length; i++) {
         fretboardContainers[i].innerHTML = '';
       }
@@ -499,7 +505,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   const handleGuitarTypeChange = (event: Event) => {
     const target = event.target as HTMLSelectElement;
     const newGuitarType = target.value;
-    console.log('Guitar type changed to:', newGuitarType);
+    // console.log('Guitar type changed to:', newGuitarType);
 
     const defaultTuningForType: { [key: string]: string } = {
       bass4: 'standard',
@@ -517,16 +523,16 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
 
   const handleFretsChange = (event: Event) => {
     const newFrets = Number((event.target as HTMLInputElement).value);
-    console.log(`[Fretboard] handleFretsChange: New frets value = ${newFrets}`);
+    // console.log(`[Fretboard] handleFretsChange: New frets value = ${newFrets}`);
     setCurrentFrets(newFrets);
     onFretUpdate?.(currentStartFret, newFrets); // Call handleFretUpdate in SongPage
   };
 
   const handleStartFretChange = (event: Event) => {
     const newStartFret = Number((event.target as HTMLInputElement).value);
-    console.log(
-      `[Fretboard] handleStartFretChange: New startFret value = ${newStartFret}`
-    );
+    // console.log(
+    //   `[Fretboard] handleStartFretChange: New startFret value = ${newStartFret}`
+    // );
     setCurrentStartFret(newStartFret);
     onFretUpdate?.(newStartFret, currentFrets); // Call handleFretUpdate in SongPage
   };
@@ -660,12 +666,12 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
 
   return (
     <div className="song-page-container">
-      {console.log('[Fretboard] Current state before rendering', {
+      {/* {console.log('[Fretboard] Current state before rendering', {
         currentStartFret,
         currentFrets,
         initialFrets,
         initialStartFret,
-      })}
+      })} */}
       <div className="youtube-container">
         <div id="youtube-player"></div>{' '}
         {/* YouTube player will be rendered here */}

@@ -19,12 +19,12 @@ declare global {
 const fetchSongData = async (songId) => {
   try {
     const response = await fetch(`${API_URL}/song/${songId}`);
-    console.log('Fetch response:', response);
+    // console.log('Fetch response:', response);
     if (!response.ok) {
       throw new Error('Song data could not be fetched');
     }
     const songData = await response.json();
-    console.log('Fetched Song Data:', songData);
+    // console.log('Fetched Song Data:', songData);
     return songData;
   } catch (error) {
     console.error('fetchSongData error:', error);
@@ -68,7 +68,7 @@ const addSongToSetlist = async (songId, setlistId) => {
 
     const result = await response.json();
     if (response.ok) {
-      console.log('Song added to setlist:', result);
+      // console.log('Song added to setlist:', result);
     } else {
       throw new Error(result.message);
     }
@@ -124,8 +124,10 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const [lastValidFret, setLastValidFret] = useState(null);
   const [lastValidString, setLastValidString] = useState(null);
   const [detectedFret, setDetectedFret] = useState(null);
+  const [isThresholdsSet, setIsThresholdsSet] = useState(false);
   const [isYouTubeApiLoaded, setIsYouTubeApiLoaded] = useState(false);
   const sectionsRef = useRef(sections);
+  const prevThresholdsRef = useRef<typeof thresholds>({}); // initial value as an empty object
   const loggedInUser = useContext(UserContext); // use the context
   const [userFretInputs, setUserFretInputs] = useState({
     startFret: 0,
@@ -148,7 +150,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const [historyRecorded, setHistoryRecorded] = useState(false);
   const setlistId = useContext(SetlistContext); // Use the context to get the setlistId
 
-  console.log('Song ID: ', songId);
+  // console.log('Song ID: ', songId);
 
   useEffect(() => {
     debouncedHandleNoteDetection.current = debounce(handleNoteDetection, 150);
@@ -361,7 +363,16 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
   useEffect(() => {
     computeThresholds();
-    startListeningForNotes();
+  }, []);
+
+  useEffect(() => {
+    if (isThresholdsSet) {
+      console.log(
+        'useEffect isThresholdSet actual threshold values..',
+        thresholds
+      );
+      startListeningForNotes();
+    }
 
     return () => {
       if (audioContextRef.current) {
@@ -379,9 +390,20 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         console.log('MediaStream tracks stopped');
       }
     };
-  }, []);
+  }, [isThresholdsSet]);
+
+  useEffect(() => {
+    const prevThresholds = prevThresholdsRef.current;
+    prevThresholdsRef.current = thresholds;
+
+    console.log('thresholds updated:', {
+      previous: prevThresholds,
+      current: thresholds,
+    });
+  }, [thresholds]);
 
   const computeThresholds = () => {
+    console.log('beginning computeThresholds..');
     let frequencies = [];
     for (let note in noteMappings) {
       for (let mapping of noteMappings[note]) {
@@ -413,10 +435,14 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         };
       }
     }
+    console.log('setting thresholds..');
     setThresholds(newThresholds);
+    setIsThresholdsSet(true); // Indicate that thresholds are set
+    console.log('newThresholds after computation:', newThresholds);
   };
 
   const startListeningForNotes = () => {
+    console.log('listening for notes..');
     const SILENCE_THRESHOLD = 0.09;
     let detector;
     let lastProcessedTime = 0;
@@ -503,44 +529,103 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
   const stopListeningForNotes = () => {};
 
-  const getNoteFromFrequency = (
-    frequency: number
-  ): Array<{ note: string; fret: number; string: number }> => {
+  // const getNoteFromFrequency = (
+  //   frequency: number
+  // ): Array<{ note: string; fret: number; string: number }> => {
+  //   const MIN_FREQUENCY = 80;
+  //   const MAX_FREQUENCY = 850;
+  //   const freq =
+  //     typeof frequency === 'string' ? parseFloat(frequency) : frequency;
+
+  //   // If the frequency is out of bounds, return an empty array
+  //   if (freq < MIN_FREQUENCY || freq > MAX_FREQUENCY) {
+  //     return [];
+  //   }
+
+  //   const potentialMatches: Array<{
+  //     note: string;
+  //     fret: number;
+  //     string: number;
+  //   }> = [];
+
+  //   for (const note in noteMappings) {
+  //     const noteData = noteMappings[note];
+  //     noteData.forEach((data) => {
+  //       const { min, max } = thresholds[data.frequency];
+  //       if (freq >= min && freq <= max) {
+  //         potentialMatches.push({
+  //           note: note,
+  //           fret: data.fret,
+  //           string: data.string,
+  //         });
+  //       }
+  //     });
+  //   }
+  //   return potentialMatches;
+  // };
+
+  const getNoteFromFrequency = (frequency, thresholds) => {
+    console.log(`getNoteFromFrequency called with: ${frequency}`);
+
     const MIN_FREQUENCY = 80;
     const MAX_FREQUENCY = 850;
     const freq =
       typeof frequency === 'string' ? parseFloat(frequency) : frequency;
 
+    console.log(`Processed frequency: ${freq}`);
+
     // If the frequency is out of bounds, return an empty array
     if (freq < MIN_FREQUENCY || freq > MAX_FREQUENCY) {
+      console.log(`Frequency out of bounds: ${freq}`);
       return [];
     }
 
-    const potentialMatches: Array<{
-      note: string;
-      fret: number;
-      string: number;
-    }> = [];
+    const roundedFreq = Math.round(freq * 100) / 100; // Adjust rounding as needed
+    console.log(`Rounded frequency: ${roundedFreq}`);
 
-    for (const note in noteMappings) {
-      const noteData = noteMappings[note];
-      noteData.forEach((data) => {
-        const { min, max } = thresholds[data.frequency];
-        if (freq >= min && freq <= max) {
-          potentialMatches.push({
-            note: note,
-            fret: data.fret,
-            string: data.string,
+    const potentialMatches = [];
+
+    console.log(`Thresholds:`, thresholds);
+
+    for (const key in thresholds) {
+      const threshold = thresholds[key];
+      console.log(`Checking threshold for ${key}:`, threshold);
+
+      if (roundedFreq >= threshold.min && roundedFreq <= threshold.max) {
+        console.log(
+          `Found matching threshold for frequency ${roundedFreq}:`,
+          threshold
+        );
+
+        // Find corresponding notes in noteMappings
+        for (const note in noteMappings) {
+          noteMappings[note].forEach((data) => {
+            if (data.frequency === parseFloat(key)) {
+              potentialMatches.push({
+                note: note,
+                fret: data.fret,
+                string: data.string,
+              });
+              console.log(`Matching note found:`, {
+                note,
+                fret: data.fret,
+                string: data.string,
+              });
+            }
           });
         }
-      });
+      }
     }
+
+    console.log(`Potential matches found:`, potentialMatches);
     return potentialMatches;
   };
 
-  const handleNoteDetection = (frequency) => {
+  const handleNoteDetection = (frequency, thresholds) => {
+    console.log(`handleNoteDetection called with frequency: ${frequency}`);
     if (frequency !== null) {
-      let potentialMatches = getNoteFromFrequency(frequency);
+      let potentialMatches = getNoteFromFrequency(frequency, thresholds);
+      console.log('Potential matches:', potentialMatches);
       // Special logic for B3 note on frets 0 and 4
       const b3Fret0Match = potentialMatches.find(
         (match) => match.note === 'B3' && match.fret === 0
@@ -557,6 +642,12 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         }
       }
 
+      console.log(
+        'currentFretboardSettings in handleNoteDetection: ',
+        currentFretboardSettings.startFret,
+        currentFretboardSettings.frets
+      );
+
       potentialMatches = potentialMatches.filter((match) => {
         return (
           match.fret >= currentFretboardSettings.startFret &&
@@ -565,11 +656,17 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         );
       });
 
+      console.log('Potential matches after filtering:', potentialMatches);
+
+      console.log('Current detected fret:', detectedFret);
+
       const distanceToLastFret = (match) => Math.abs(detectedFret - match.fret);
       potentialMatches.sort(
         (a, b) => distanceToLastFret(a) - distanceToLastFret(b)
       );
+
       let probableMatch = potentialMatches[0];
+      console.log('Probable match found:', probableMatch);
       if (probableMatch) {
         setDetectedNote({
           note: probableMatch.note,
@@ -607,7 +704,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       if (isMounted && songData) {
         setDisplayedScale(songData.key);
         setSections(songData.sections);
-        console.log('Updating state with new song data', songData.sections);
+        // console.log('Updating state with new song data', songData.sections);
         const urlParams = new URLSearchParams(
           new URL(songData.youtube_url).search
         );
@@ -674,7 +771,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
   useEffect(() => {
     if (isYouTubeApiLoaded && videoId && window.YT && window.YT.Player) {
-      console.log('Initializing YouTube player with videoId:', videoId);
+      // console.log('Initializing YouTube player with videoId:', videoId);
       initializeYouTubePlayer(videoId);
     }
   }, [isYouTubeApiLoaded, videoId]);
@@ -685,7 +782,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
   useEffect(() => {
     if (videoId) {
-      console.log('Initializing YouTube player with videoId:', videoId);
+      // console.log('Initializing YouTube player with videoId:', videoId);
       initializeYouTubePlayer(videoId);
     }
   }, [videoId]);
@@ -694,8 +791,8 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     // Check if the YT.Player constructor is available before trying to create a new player
     if (window.YT && window.YT.Player) {
       playerRef.current = new window.YT.Player('youtube-player', {
-        height: '390',
-        width: '640',
+        height: '50',
+        width: '100',
         videoId: videoId,
         events: {
           onReady: onPlayerReady,
@@ -708,7 +805,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     }
   };
 
-  console.log('Youtube Iframe API is ready');
+  // console.log('Youtube Iframe API is ready');
 
   const onPlayerReady = (event) => {
     console.log('Youtube Player is ready.');
@@ -729,12 +826,12 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
   const onPlayerStateChange = (event) => {
     if (event.data === window.YT.PlayerState.PLAYING) {
-      console.log('YouTube Player is playing.');
+      // console.log('YouTube Player is playing.');
       manageFretboardUpdateInterval(true);
       recordUserHistory(songId); // Adjusted call
       setHistoryRecorded(true); // Set a flag to indicate that the history has been recorded
     } else {
-      console.log('YouTube Player is not playing.');
+      // console.log('YouTube Player is not playing.');
       manageFretboardUpdateInterval(false);
     }
   };
@@ -766,7 +863,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       return currentTimeInSeconds === sectionTimeInSeconds;
     });
 
-    console.log('Matched Boundary:', matchedBoundary);
+    // console.log('Matched Boundary:', matchedBoundary);
 
     if (matchedBoundary) {
       console.log(
@@ -783,13 +880,13 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     let order = currentFretboardSettingsRef.current.order;
     let incrementFactor = currentFretboardSettingsRef.current.incrementFactor;
 
-    console.log('startFret: ', currentFretboardSettingsRef.current.startFret);
-    console.log('frets: ', currentFretboardSettingsRef.current.frets);
-    console.log('order: ', currentFretboardSettingsRef.current.order);
-    console.log(
-      'increment factor',
-      currentFretboardSettingsRef.current.incrementFactor
-    );
+    // console.log('startFret: ', currentFretboardSettingsRef.current.startFret);
+    // console.log('frets: ', currentFretboardSettingsRef.current.frets);
+    // console.log('order: ', currentFretboardSettingsRef.current.order);
+    // console.log(
+    //   'increment factor',
+    //   currentFretboardSettingsRef.current.incrementFactor
+    // );
 
     let fretDiff = frets - startFret;
     let nextStartFret = startFret;
@@ -827,7 +924,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       frets: nextFretSpan,
     });
 
-    console.log('Next Fretboard Settings:', { nextStartFret, nextFretSpan });
+    // console.log('Next Fretboard Settings:', { nextStartFret, nextFretSpan });
   };
 
   const handlePlayPause = () => {
@@ -854,7 +951,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   }, [currentFretboardSettings]);
 
   const handleFretUpdate = (startFret: number, frets: number) => {
-    console.log(`User updated frets: startFret=${startFret}, frets=${frets}`);
+    // console.log(`User updated frets: startFret=${startFret}, frets=${frets}`);
     setCurrentFretboardSettings({
       ...currentFretboardSettings, // current state
       startFret,
@@ -864,7 +961,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   };
 
   const handleOrderUpdate = (order: 'ascending' | 'descending' | 'random') => {
-    console.log(`User updated order: ${order}`);
+    // console.log(`User updated order: ${order}`);
     setCurrentFretboardSettings((prevSettings) => ({
       ...prevSettings,
       order,
@@ -872,7 +969,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   };
 
   const handleIncrementUpdate = (incrementFactor: number) => {
-    console.log(`User updated increment factor: ${incrementFactor}`);
+    // console.log(`User updated increment factor: ${incrementFactor}`);
     setCurrentFretboardSettings((prevSettings) => ({
       ...prevSettings,
       incrementFactor,
@@ -892,7 +989,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     // Also update the internal state that determines what's rendered
     handleFretUpdate(newStartFret, newFrets);
   };
-
+  console.log('Rendering Fretboard with props:', detectedNote);
   return (
     <div>
       <button
@@ -912,10 +1009,10 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         Add to Setlist
       </button>
 
-      {console.log(
+      {/* {console.log(
         '[SongPage] Rendering Fretboard with props',
         currentFretboardSettings
-      )}
+      )} */}
       <Fretboard
         songId={songId}
         key={songId}
