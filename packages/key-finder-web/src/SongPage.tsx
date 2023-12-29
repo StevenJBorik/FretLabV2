@@ -127,6 +127,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const [isThresholdsSet, setIsThresholdsSet] = useState(false);
   const [isYouTubeApiLoaded, setIsYouTubeApiLoaded] = useState(false);
   const sectionsRef = useRef(sections);
+  const thresholdsRef = useRef(thresholds);
   const prevThresholdsRef = useRef<typeof thresholds>({}); // initial value as an empty object
   const loggedInUser = useContext(UserContext); // use the context
   const [userFretInputs, setUserFretInputs] = useState({
@@ -402,6 +403,10 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     });
   }, [thresholds]);
 
+  useEffect(() => {
+    thresholdsRef.current = thresholds;
+  }, [thresholds]);
+
   const computeThresholds = () => {
     console.log('beginning computeThresholds..');
     let frequencies = [];
@@ -564,7 +569,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   //   return potentialMatches;
   // };
 
-  const getNoteFromFrequency = (frequency, thresholds) => {
+  const getNoteFromFrequency = (frequency) => {
     console.log(`getNoteFromFrequency called with: ${frequency}`);
 
     const MIN_FREQUENCY = 80;
@@ -584,11 +589,12 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     console.log(`Rounded frequency: ${roundedFreq}`);
 
     const potentialMatches = [];
+    const currentThresholds = thresholdsRef.current; // Using the current value of thresholdsRef
 
-    console.log(`Thresholds:`, thresholds);
+    console.log(`Thresholds:`, currentThresholds);
 
-    for (const key in thresholds) {
-      const threshold = thresholds[key];
+    for (const key in currentThresholds) {
+      const threshold = currentThresholds[key];
       console.log(`Checking threshold for ${key}:`, threshold);
 
       if (roundedFreq >= threshold.min && roundedFreq <= threshold.max) {
@@ -621,10 +627,10 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     return potentialMatches;
   };
 
-  const handleNoteDetection = (frequency, thresholds) => {
+  const handleNoteDetection = (frequency) => {
     console.log(`handleNoteDetection called with frequency: ${frequency}`);
     if (frequency !== null) {
-      let potentialMatches = getNoteFromFrequency(frequency, thresholds);
+      let potentialMatches = getNoteFromFrequency(frequency);
       console.log('Potential matches:', potentialMatches);
       // Special logic for B3 note on frets 0 and 4
       const b3Fret0Match = potentialMatches.find(
