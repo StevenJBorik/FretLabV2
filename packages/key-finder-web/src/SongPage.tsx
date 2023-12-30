@@ -124,6 +124,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const [lastValidFret, setLastValidFret] = useState(null);
   const [lastValidString, setLastValidString] = useState(null);
   const [detectedFret, setDetectedFret] = useState(null);
+  const [detectedString, setDetectedString] = useState(null);
   const [isThresholdsSet, setIsThresholdsSet] = useState(false);
   const [isYouTubeApiLoaded, setIsYouTubeApiLoaded] = useState(false);
   const sectionsRef = useRef(sections);
@@ -154,7 +155,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   // console.log('Song ID: ', songId);
 
   useEffect(() => {
-    debouncedHandleNoteDetection.current = debounce(handleNoteDetection, 35);
+    debouncedHandleNoteDetection.current = debounce(handleNoteDetection, 75);
   }, []);
 
   const noteMappings = {
@@ -437,17 +438,108 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     // console.log('newThresholds after computation:', newThresholds);
   };
 
+  // const startListeningForNotes = () => {
+  //   console.log('listening for notes..');
+  //   const SILENCE_THRESHOLD = 0.0759; // RD 1 .09
+  //   let detector;
+  //   let lastProcessedTime = 0;
+  //   const PROCESS_INTERVAL = 10; // 50 RD 1 // 25 RD 2 // 5 RD 3
+  //   const HOLD_TIME = 150; // 150 RD 1
+  //   let lastDetectedPitchTime = 0;
+  //   let lastDetectedPitch = null;
+  //   let previousPitches = [];
+  //   const MAX_PITCHES = 1;
+
+  //   const processAudioData = (input, sampleRate) => {
+  //     try {
+  //       let maxAmplitude = -Infinity;
+  //       for (let i = 0; i < input.length; i++) {
+  //         if (input[i] > maxAmplitude) {
+  //           maxAmplitude = input[i];
+  //         }
+  //       }
+
+  //       if (maxAmplitude > SILENCE_THRESHOLD) {
+  //         const [pitch] = detector.findPitch(input, sampleRate);
+
+  //         if (typeof pitch === 'number') {
+  //           previousPitches.push(pitch);
+  //           if (previousPitches.length > MAX_PITCHES) {
+  //             previousPitches.shift();
+  //           }
+  //           const averagePitch =
+  //             previousPitches.reduce((a, b) => a + b) / previousPitches.length;
+
+  //           const currentTime = Date.now();
+  //           if (
+  //             currentTime - lastDetectedPitchTime > HOLD_TIME ||
+  //             !lastDetectedPitch
+  //           ) {
+  //             debouncedHandleNoteDetection.current?.(averagePitch);
+  //             lastDetectedPitch = averagePitch;
+  //             lastDetectedPitchTime = currentTime;
+  //           }
+  //         } else {
+  //           debouncedHandleNoteDetection.current?.(null);
+  //         }
+  //       } else {
+  //         debouncedHandleNoteDetection.current?.(null);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error in processAudioData: ', error);
+  //     }
+  //   };
+
+  //   navigator.mediaDevices
+  //     .getUserMedia({ audio: true })
+  //     .then((stream) => {
+  //       // const audioContext = new AudioContext();
+  //       audioContextRef.current = new AudioContext({ sampleRate: 24000 });
+  //       const analyserNode = audioContextRef.current.createAnalyser();
+  //       analyserNode.fftSize = 1024;
+
+  //       audioContextRef.current
+  //         .createMediaStreamSource(stream)
+  //         .connect(analyserNode);
+  //       detector = PitchDetector.forFloat32Array(analyserNode.fftSize);
+
+  //       const fetchAndSendAudioData = () => {
+  //         const currentTime = Date.now();
+  //         if (currentTime - lastProcessedTime > PROCESS_INTERVAL) {
+  //           const fftSize = analyserNode.fftSize;
+  //           const audioData = new Float32Array(fftSize);
+  //           analyserNode.getFloatTimeDomainData(audioData);
+  //           processAudioData(audioData, audioContextRef.current.sampleRate);
+
+  //           lastProcessedTime = currentTime;
+  //         }
+
+  //         requestAnimationFrame(fetchAndSendAudioData);
+  //       };
+
+  //       fetchAndSendAudioData();
+  //     })
+  //     .catch((error) => {
+  //       console.error('Error accessing microphone:', error);
+  //     });
+  // };
   const startListeningForNotes = () => {
     console.log('listening for notes..');
-    const SILENCE_THRESHOLD = 0.0759; // RD 1 .09
+    const SILENCE_THRESHOLD = 0.0759;
     let detector;
     let lastProcessedTime = 0;
-    const PROCESS_INTERVAL = 10; // 50 RD 1 // 25 RD 2 // 5 RD 3
-    const HOLD_TIME = 150; // 150 RD 1
+    const PROCESS_INTERVAL = 10;
+    const HOLD_TIME = 150;
     let lastDetectedPitchTime = 0;
     let lastDetectedPitch = null;
-    let previousPitches = [];
-    const MAX_PITCHES = 1;
+    const windowSize = 2; // Moving Average window size
+    let pitchWindow = []; // Window for Moving Average
+
+    // Moving Average Filter Function
+    const movingAverageFilter = (data) => {
+      const total = data.reduce((sum, value) => sum + value, 0);
+      return total / data.length;
+    };
 
     const processAudioData = (input, sampleRate) => {
       try {
@@ -460,20 +552,18 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
         if (maxAmplitude > SILENCE_THRESHOLD) {
           const [pitch] = detector.findPitch(input, sampleRate);
-
           if (typeof pitch === 'number') {
-            previousPitches.push(pitch);
-            if (previousPitches.length > MAX_PITCHES) {
-              previousPitches.shift();
+            pitchWindow.push(pitch);
+            if (pitchWindow.length > windowSize) {
+              pitchWindow.shift();
             }
-            const averagePitch =
-              previousPitches.reduce((a, b) => a + b) / previousPitches.length;
 
             const currentTime = Date.now();
             if (
               currentTime - lastDetectedPitchTime > HOLD_TIME ||
               !lastDetectedPitch
             ) {
+              const averagePitch = movingAverageFilter(pitchWindow);
               debouncedHandleNoteDetection.current?.(averagePitch);
               lastDetectedPitch = averagePitch;
               lastDetectedPitchTime = currentTime;
@@ -492,7 +582,6 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
-        // const audioContext = new AudioContext();
         audioContextRef.current = new AudioContext({ sampleRate: 24000 });
         const analyserNode = audioContextRef.current.createAnalyser();
         analyserNode.fftSize = 1024;
@@ -618,30 +707,18 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     return potentialMatches;
   };
 
+  const NOTE_HISTORY_SIZE = 5; // Size of the note history
+  let noteHistory = []; // Array to store history of played notes
+
   const handleNoteDetection = (frequency) => {
     console.log(`handleNoteDetection called with frequency: ${frequency}`);
     if (frequency !== null) {
       let potentialMatches = getNoteFromFrequency(frequency);
       console.log('Potential matches:', potentialMatches);
-      // Special logic for B3 note on frets 0 and 4
-      const b3Fret0Match = potentialMatches.find(
-        (match) => match.note === 'B3' && match.fret === 0
-      );
-      const b3Fret4Match = potentialMatches.find(
-        (match) => match.note === 'B3' && match.fret === 4
-      );
-
-      if (b3Fret0Match && b3Fret4Match) {
-        if (frequency < 246.94) {
-          potentialMatches = [b3Fret0Match]; // Prioritize B3 on fret 0
-        } else {
-          potentialMatches = [b3Fret4Match]; // Prioritize B3 on fret 4
-        }
-      }
 
       const { startFret, frets } = currentFretboardSettingsRef.current;
       console.log(
-        'currentFretboardSettings in handleNoteDetection: ',
+        'currentFretboardSettings in handleNoteDetection:',
         startFret,
         frets
       );
@@ -652,12 +729,37 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
       console.log('Potential matches after filtering:', potentialMatches);
 
-      // console.log('Current detected fret:', detectedFret);
+      // Function to calculate score based on fret and string proximity
+      const calculateMatchScore = (match) => {
+        let score = 0;
+        console.log('detectedFret..', detectedFret);
+        console.log('detectedString..', detectedString);
 
-      const distanceToLastFret = (match) => Math.abs(detectedFret - match.fret);
-      potentialMatches.sort(
-        (a, b) => distanceToLastFret(a) - distanceToLastFret(b)
-      );
+        // Heavily weight the fret proximity.
+        score -= Math.abs(detectedFret - match.fret) * 3; // Increased weight for fret proximity
+
+        // Additional bonus for non-open string notes if there's a choice.
+        if (match.fret !== 0 && potentialMatches.some((m) => m.fret === 0)) {
+          score += 5; // Bonus for non-open string notes
+        }
+
+        // Debugging: Print scoring details
+        console.log(
+          `Scoring for match: note=${match.note}, fret=${match.fret}, string=${match.string}, score=${score}`
+        );
+
+        return score;
+      };
+
+      // Sort potential matches based on score
+      potentialMatches.sort((a, b) => {
+        const scoreA = calculateMatchScore(a);
+        const scoreB = calculateMatchScore(b);
+        console.log(
+          `Comparing scores: ${a.note} at fret ${a.fret} = ${scoreA}, ${b.note} at fret ${b.fret} = ${scoreB}`
+        );
+        return scoreB - scoreA;
+      });
 
       let probableMatch = potentialMatches[0];
       console.log('Probable match found:', probableMatch);
@@ -667,15 +769,22 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
           fret: probableMatch.fret,
           string: probableMatch.string,
         });
+        setDetectedFret(probableMatch.fret); // Correct way to update the detected fret
+        setDetectedString(probableMatch.string); // Correct way to update the detected strin
         setLastValidNote(probableMatch.note);
         setLastValidFret(probableMatch.fret);
         setLastValidString(probableMatch.string);
         setDetectedFret(probableMatch.fret); // Update the detected fret
-        // updateFretboardHighlights(probableMatch.note, probableMatch.fret);
+        setDetectedString(probableMatch.string); // Update the detected string
+
+        // Add the current match to the note history
+        noteHistory.push(probableMatch);
+        if (noteHistory.length > NOTE_HISTORY_SIZE) {
+          noteHistory.shift();
+        }
       } else if (detectedNote) {
         // Use last valid values
         setDetectedNote({
-          // Update the detected note
           note: lastValidNote,
           fret: lastValidFret,
           string: lastValidString,

@@ -624,16 +624,21 @@ class AudioFileKeyDetection extends Component<Props, State> {
   };
 
   startListeningForNotes = () => {
-    const SILENCE_THRESHOLD = 0.09;
+    const SILENCE_THRESHOLD = 0.0759;
     let detector;
     let lastProcessedTime = 0;
-    const PROCESS_INTERVAL = 50;
+    const PROCESS_INTERVAL = 10;
     const HOLD_TIME = 150;
     let lastDetectedPitchTime = 0;
     let lastDetectedPitch = null;
+    const windowSize = 2; // Moving Average window size
+    let pitchWindow = []; // Window for Moving Average
 
-    let previousPitches = [];
-    const MAX_PITCHES = 2;
+    // Moving Average Filter Function
+    const movingAverageFilter = (data) => {
+      const total = data.reduce((sum, value) => sum + value, 0);
+      return total / data.length;
+    };
 
     const processAudioData = (input, sampleRate) => {
       try {
@@ -646,20 +651,18 @@ class AudioFileKeyDetection extends Component<Props, State> {
 
         if (maxAmplitude > SILENCE_THRESHOLD) {
           const [pitch] = detector.findPitch(input, sampleRate);
-
           if (typeof pitch === 'number') {
-            previousPitches.push(pitch);
-            if (previousPitches.length > MAX_PITCHES) {
-              previousPitches.shift();
+            pitchWindow.push(pitch);
+            if (pitchWindow.length > windowSize) {
+              pitchWindow.shift();
             }
-            const averagePitch =
-              previousPitches.reduce((a, b) => a + b) / previousPitches.length;
 
             const currentTime = Date.now();
             if (
               currentTime - lastDetectedPitchTime > HOLD_TIME ||
               !lastDetectedPitch
             ) {
+              const averagePitch = movingAverageFilter(pitchWindow);
               this.handleNoteDetection(averagePitch);
               lastDetectedPitch = averagePitch;
               lastDetectedPitchTime = currentTime;
@@ -678,7 +681,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
-        const audioContext = new AudioContext();
+        const audioContext = new AudioContext({ sampleRate: 24000 });
         const analyserNode = audioContext.createAnalyser();
         analyserNode.fftSize = 1024;
 
