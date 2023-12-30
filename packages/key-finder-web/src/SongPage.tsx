@@ -154,7 +154,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   // console.log('Song ID: ', songId);
 
   useEffect(() => {
-    debouncedHandleNoteDetection.current = debounce(handleNoteDetection, 150);
+    debouncedHandleNoteDetection.current = debounce(handleNoteDetection, 35);
   }, []);
 
   const noteMappings = {
@@ -368,10 +368,6 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
   useEffect(() => {
     if (isThresholdsSet) {
-      console.log(
-        'useEffect isThresholdSet actual threshold values..',
-        thresholds
-      );
       startListeningForNotes();
     }
 
@@ -393,22 +389,17 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     };
   }, [isThresholdsSet]);
 
-  useEffect(() => {
-    const prevThresholds = prevThresholdsRef.current;
-    prevThresholdsRef.current = thresholds;
-
-    console.log('thresholds updated:', {
-      previous: prevThresholds,
-      current: thresholds,
-    });
-  }, [thresholds]);
+  // useEffect(() => {
+  //   const prevThresholds = prevThresholdsRef.current;
+  //   prevThresholdsRef.current = thresholds;
+  // }, [thresholds]);
 
   useEffect(() => {
     thresholdsRef.current = thresholds;
   }, [thresholds]);
 
   const computeThresholds = () => {
-    console.log('beginning computeThresholds..');
+    // console.log('beginning computeThresholds..');
     let frequencies = [];
     for (let note in noteMappings) {
       for (let mapping of noteMappings[note]) {
@@ -440,23 +431,23 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         };
       }
     }
-    console.log('setting thresholds..');
+    // console.log('setting thresholds..');
     setThresholds(newThresholds);
     setIsThresholdsSet(true); // Indicate that thresholds are set
-    console.log('newThresholds after computation:', newThresholds);
+    // console.log('newThresholds after computation:', newThresholds);
   };
 
   const startListeningForNotes = () => {
     console.log('listening for notes..');
-    const SILENCE_THRESHOLD = 0.09;
+    const SILENCE_THRESHOLD = 0.0759; // RD 1 .09
     let detector;
     let lastProcessedTime = 0;
-    const PROCESS_INTERVAL = 50;
-    const HOLD_TIME = 150;
+    const PROCESS_INTERVAL = 10; // 50 RD 1 // 25 RD 2 // 5 RD 3
+    const HOLD_TIME = 150; // 150 RD 1
     let lastDetectedPitchTime = 0;
     let lastDetectedPitch = null;
     let previousPitches = [];
-    const MAX_PITCHES = 2;
+    const MAX_PITCHES = 1;
 
     const processAudioData = (input, sampleRate) => {
       try {
@@ -502,7 +493,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       .getUserMedia({ audio: true })
       .then((stream) => {
         // const audioContext = new AudioContext();
-        audioContextRef.current = new AudioContext();
+        audioContextRef.current = new AudioContext({ sampleRate: 24000 });
         const analyserNode = audioContextRef.current.createAnalyser();
         analyserNode.fftSize = 1024;
 
@@ -591,17 +582,17 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     const potentialMatches = [];
     const currentThresholds = thresholdsRef.current; // Using the current value of thresholdsRef
 
-    console.log(`Thresholds:`, currentThresholds);
+    // console.log(`Thresholds:`, currentThresholds);
 
     for (const key in currentThresholds) {
       const threshold = currentThresholds[key];
-      console.log(`Checking threshold for ${key}:`, threshold);
+      // console.log(`Checking threshold for ${key}:`, threshold);
 
       if (roundedFreq >= threshold.min && roundedFreq <= threshold.max) {
-        console.log(
-          `Found matching threshold for frequency ${roundedFreq}:`,
-          threshold
-        );
+        // console.log(
+        //   `Found matching threshold for frequency ${roundedFreq}:`,
+        //   threshold
+        // );
 
         // Find corresponding notes in noteMappings
         for (const note in noteMappings) {
@@ -648,23 +639,20 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         }
       }
 
+      const { startFret, frets } = currentFretboardSettingsRef.current;
       console.log(
         'currentFretboardSettings in handleNoteDetection: ',
-        currentFretboardSettings.startFret,
-        currentFretboardSettings.frets
+        startFret,
+        frets
       );
 
       potentialMatches = potentialMatches.filter((match) => {
-        return (
-          match.fret >= currentFretboardSettings.startFret &&
-          match.fret <=
-            currentFretboardSettings.startFret + currentFretboardSettings.frets
-        );
+        return match.fret >= startFret && match.fret <= startFret + frets;
       });
 
       console.log('Potential matches after filtering:', potentialMatches);
 
-      console.log('Current detected fret:', detectedFret);
+      // console.log('Current detected fret:', detectedFret);
 
       const distanceToLastFret = (match) => Math.abs(detectedFret - match.fret);
       potentialMatches.sort(
