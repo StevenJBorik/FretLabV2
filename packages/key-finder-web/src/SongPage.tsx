@@ -144,6 +144,8 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   });
   const currentFretboardSettingsRef = useRef(currentFretboardSettings);
   const playerRef = useRef(null); // Reference for the YouTube player
+  const detectedFretRef = useRef(null);
+  const detectedStringRef = useRef(null);
   const debouncedHandleNoteDetection = useRef<
     ((frequency: number | null) => void) | null
   >(null);
@@ -732,11 +734,10 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       // Function to calculate score based on fret and string proximity
       const calculateMatchScore = (match) => {
         let score = 0;
-        console.log('detectedFret..', detectedFret);
-        console.log('detectedString..', detectedString);
+        const detectedFret = detectedFretRef.current;
 
         // Heavily weight the fret proximity.
-        score -= Math.abs(detectedFret - match.fret) * 3; // Increased weight for fret proximity
+        score -= Math.abs(detectedFret - match.fret) * 10; // Increased weight for fret proximity
 
         // Additional bonus for non-open string notes if there's a choice.
         if (match.fret !== 0 && potentialMatches.some((m) => m.fret === 0)) {
@@ -769,6 +770,8 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
           fret: probableMatch.fret,
           string: probableMatch.string,
         });
+        detectedFretRef.current = probableMatch.fret; // Update ref
+        detectedStringRef.current = probableMatch.string; // Update ref
         setDetectedFret(probableMatch.fret); // Correct way to update the detected fret
         setDetectedString(probableMatch.string); // Correct way to update the detected strin
         setLastValidNote(probableMatch.note);
