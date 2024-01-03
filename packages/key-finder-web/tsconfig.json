@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "lib": ["ESNext", "DOM"],
+    "target": "es2015", // or "es6"
+    "lib": ["es2015", "dom"],
     "module": "ESNext",
     "moduleResolution": "node",
     "resolveJsonModule": true,

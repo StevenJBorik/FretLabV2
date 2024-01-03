@@ -463,32 +463,34 @@ const scalePositions = {
   dMajor: {
     position1: {
       eString: [
-        { fret: 10, finger: 1 },
-        { fret: 12, finger: 4 },
-      ],
+        { fret: 0, finger: 0 },
+        { fret: 2, finger: 2 },
+        { fret: 3, finger: 4 },
+      ], // E, F#, G
       aString: [
-        { fret: 9, finger: 1 },
-        { fret: 10, finger: 2 },
-        { fret: 12, finger: 4 },
-      ],
+        { fret: 0, finger: 0 },
+        { fret: 2, finger: 2 },
+        { fret: 3, finger: 4 },
+      ], // A, B, C#
       dString: [
-        { fret: 9, finger: 1 },
-        { fret: 11, finger: 3 },
-        { fret: 12, finger: 4 },
-      ],
+        { fret: 0, finger: 0 },
+        { fret: 2, finger: 2 },
+        { fret: 3, finger: 4 },
+      ], // D, E, F#
       gString: [
-        { fret: 9, finger: 1 },
-        { fret: 11, finger: 3 },
-        { fret: 12, finger: 4 },
-      ],
+        { fret: 0, finger: 0 },
+        { fret: 2, finger: 3 },
+      ], // G, A
       bString: [
-        { fret: 10, finger: 2 },
-        { fret: 12, finger: 4 },
-      ],
+        { fret: 0, finger: 0 },
+        { fret: 2, finger: 3 },
+        { fret: 3, finger: 4 },
+      ], // B, C#, D
       eStringHigh: [
-        { fret: 10, finger: 1 },
-        { fret: 12, finger: 4 },
-      ],
+        { fret: 0, finger: 0 },
+        { fret: 2, finger: 2 },
+        { fret: 3, finger: 4 },
+      ], // E, F#, G
     },
     position2: {
       eString: [
@@ -521,6 +523,36 @@ const scalePositions = {
     },
     position3: {
       eString: [
+        { fret: 10, finger: 1 },
+        { fret: 12, finger: 4 },
+      ],
+      aString: [
+        { fret: 9, finger: 1 },
+        { fret: 10, finger: 2 },
+        { fret: 12, finger: 4 },
+      ],
+      dString: [
+        { fret: 9, finger: 1 },
+        { fret: 11, finger: 3 },
+        { fret: 12, finger: 4 },
+      ],
+      gString: [
+        { fret: 9, finger: 1 },
+        { fret: 11, finger: 3 },
+        { fret: 12, finger: 4 },
+      ],
+      bString: [
+        { fret: 10, finger: 2 },
+        { fret: 12, finger: 4 },
+      ],
+      eStringHigh: [
+        { fret: 10, finger: 1 },
+        { fret: 12, finger: 4 },
+      ],
+    },
+
+    position4: {
+      eString: [
         { fret: 12, finger: 1 },
         { fret: 14, finger: 3 },
       ],
@@ -546,7 +578,7 @@ const scalePositions = {
         { fret: 14, finger: 3 },
       ],
     },
-    position4: {
+    position5: {
       eString: [
         { fret: 14, finger: 1 },
         { fret: 17, finger: 4 },
@@ -574,7 +606,7 @@ const scalePositions = {
         { fret: 17, finger: 4 },
       ],
     },
-    position5: {
+    position6: {
       eString: [
         { fret: 22, finger: 1 },
         { fret: 24, finger: 4 },
@@ -603,7 +635,7 @@ const scalePositions = {
         { fret: 24, finger: 4 },
       ],
     },
-    position6: {
+    position7: {
       eString: [
         { fret: 17, finger: 1 },
         { fret: 19, finger: 4 },
@@ -632,7 +664,7 @@ const scalePositions = {
         { fret: 19, finger: 4 },
       ],
     },
-    position7: {
+    position8: {
       eString: [
         { fret: 18, finger: 1 },
         { fret: 20, finger: 4 },
@@ -659,7 +691,7 @@ const scalePositions = {
         { fret: 20, finger: 4 },
       ],
     },
-    position8: {
+    position9: {
       eString: [
         { fret: 20, finger: 1 },
         { fret: 23, finger: 4 },
@@ -21658,3 +21690,5 @@ const scalePositions = {
     },
   },
 };
+
+export default scalePositions;

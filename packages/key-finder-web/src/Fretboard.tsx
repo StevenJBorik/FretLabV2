@@ -20,6 +20,7 @@ interface FretboardProps {
   userStartFret: number;
   userFrets: number;
   onUserFretInputChange: (newStartFret: number, newFrets: number) => void;
+  onUserSelectedScaleChange?: (newScale: string) => void;
 }
 
 const Fretboard: FunctionalComponent<FretboardProps> = ({
@@ -39,6 +40,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   userStartFret,
   userFrets,
   onUserFretInputChange,
+  onUserSelectedScaleChange,
 }) => {
   console.log('[Fretboard] Initial props', {
     displayedScale,
@@ -632,6 +634,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
       const newScale = `${rootNote} ${selectedScaleType}`;
       setCurrentScale(newScale); // Update the current scale
       setUserSelectedScale(newScale); // Set the user-selected scale
+      onUserSelectedScaleChange(newScale); // This will invoke the parent's handler
       // No need to call renderFretboard here as the useEffect hook will handle it
     } else {
       console.error('currentScale is null or not a string:', currentScale);

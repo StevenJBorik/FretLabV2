@@ -6,6 +6,7 @@ import { PitchDetector } from 'pitchy';
 import './SongPage.css';
 import { UserContext } from './context';
 import { SetlistContext } from './setListContext'; // Import the context
+import scalePositions from './scaleFingerMappings';
 
 const API_URL = 'http://localhost:8080'; // Define API_URL
 
@@ -153,6 +154,10 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const mediaStreamRef = useRef(null);
   const [historyRecorded, setHistoryRecorded] = useState(false);
   const setlistId = useContext(SetlistContext); // Use the context to get the setlistId
+  const [currentScaleAndMode, setCurrentScaleAndMode] = useState({
+    scale: '',
+    mode: '',
+  });
 
   // console.log('Song ID: ', songId);
 
@@ -709,10 +714,144 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     return potentialMatches;
   };
 
-  const NOTE_HISTORY_SIZE = 5; // Size of the note history
+  // const handleNoteDetection = (frequency, key, mode) => {
+  //   console.log(`handleNoteDetection called with frequency: ${frequency}`);
+  //   if (frequency !== null) {
+  //     let potentialMatches = getNoteFromFrequency(frequency);
+  //     console.log('Potential matches:', potentialMatches);
+
+  //     const { startFret, frets } = currentFretboardSettingsRef.current;
+  //     console.log(
+  //       'currentFretboardSettings in handleNoteDetection:',
+  //       startFret,
+  //       frets
+  //     );
+
+  //     potentialMatches = potentialMatches.filter((match) => {
+  //       return match.fret >= startFret && match.fret <= startFret + frets;
+  //     });
+
+  //     console.log('Potential matches after filtering:', potentialMatches);
+
+  //     // Function to calculate score based on fret and string proximity
+  //     const calculateMatchScore = (match) => {
+  //       let score = 0;
+  //       const detectedFret = detectedFretRef.current;
+
+  //       // Heavily weight the fret proximity.
+  //       score -= Math.abs(detectedFret - match.fret) * 10; // Increased weight for fret proximity
+
+  //       // Additional bonus for non-open string notes if there's a choice.
+  //       if (match.fret !== 0 && potentialMatches.some((m) => m.fret === 0)) {
+  //         score += 5; // Bonus for non-open string notes
+  //       }
+
+  //       // Debugging: Print scoring details
+  //       console.log(`Scoring for match: note=${match.note}, fret=${match.fret}, string=${match.string}, score=${score}`);
+
+  //       return score;
+  //     };
+
+  //     // Sort potential matches based on score
+  //     potentialMatches.sort((a, b) => {
+  //       const scoreA = calculateMatchScore(a);
+  //       const scoreB = calculateMatchScore(b);
+  //       console.log(
+  //         `Comparing scores: ${a.note} at fret ${a.fret} = ${scoreA}, ${b.note} at fret ${b.fret} = ${scoreB}`
+  //       );
+  //       return scoreB - scoreA;
+  //     });
+
+  //     let probableMatch = potentialMatches[0];
+  //     console.log('Probable match found:', probableMatch);
+  //     if (probableMatch) {
+  //       setDetectedNote({
+  //         note: probableMatch.note,
+  //         fret: probableMatch.fret,
+  //         string: probableMatch.string,
+  //       });
+  //       detectedFretRef.current = probableMatch.fret; // Update ref
+  //       detectedStringRef.current = probableMatch.string; // Update ref
+  //       setDetectedFret(probableMatch.fret); // Correct way to update the detected fret
+  //       setDetectedString(probableMatch.string); // Correct way to update the detected strin
+  //       setLastValidNote(probableMatch.note);
+  //       setLastValidFret(probableMatch.fret);
+  //       setLastValidString(probableMatch.string);
+  //       setDetectedFret(probableMatch.fret); // Update the detected fret
+  //       setDetectedString(probableMatch.string); // Update the detected string
+
+  //       // Add the current match to the note history
+  //       noteHistory.push(probableMatch);
+  //       if (noteHistory.length > NOTE_HISTORY_SIZE) {
+  //         noteHistory.shift();
+  //       }
+  //     } else if (detectedNote) {
+  //       // Use last valid values
+  //       setDetectedNote({
+  //         note: lastValidNote,
+  //         fret: lastValidFret,
+  //         string: lastValidString,
+  //       });
+  //     }
+  //   }
+  // };
+
+  const normalizeKey = (key) => {
+    const flatSharpMap = {
+      'a#': 'aSharpBFlat',
+      bb: 'aSharpBFlat',
+      'c#': 'cSharpDFlat',
+      db: 'cSharpDFlat',
+      'd#': 'dSharpEFlat',
+      eb: 'dSharpEFlat',
+      'e#': 'eSharpFFlat', // This is a theoretical key, rarely used
+      fb: 'eSharpFFlat',
+      'f#': 'fSharpGFlat',
+      gb: 'fSharpGFlat',
+      'g#': 'gSharpAFlat',
+      ab: 'gSharpAFlat',
+    };
+    return flatSharpMap[key.toLowerCase()] || key;
+  };
+
+  const convertMode = (mode) => {
+    const modeMap = {
+      aeolian: 'minor',
+      'harmonic-minor': 'HarmonicMinor',
+      'melodic-minor': 'MelodicMinor',
+      // Other modes are used as-is
+    };
+    return modeMap[mode.toLowerCase()] || mode;
+  };
+
+  const getScalePositions = (key, mode) => {
+    const normalizedKey = normalizeKey(key);
+    const convertedMode = convertMode(mode);
+
+    // Format the key for access in the mappings
+    const scaleKey = `${normalizedKey}${
+      convertedMode.charAt(0).toUpperCase() + convertedMode.slice(1)
+    }`;
+
+    return scalePositions[scaleKey] || {}; // Return the positions or an empty object if not found
+  };
+
+  const getPlayingDirection = (noteHistory) => {
+    // Check the direction of the last few played notes
+    if (noteHistory.length < 3) return null; // Not enough data to determine direction
+
+    const direction =
+      noteHistory[noteHistory.length - 1].fret -
+      noteHistory[noteHistory.length - 4].fret;
+    if (direction > 0) return 'ascending';
+    if (direction < 0) return 'descending';
+    return 'stationary'; // or 'repeated' if the same fret is being played
+  };
+
+  const NOTE_HISTORY_SIZE = 10; // Size of the note history
   let noteHistory = []; // Array to store history of played notes
 
-  const handleNoteDetection = (frequency) => {
+  const handleNoteDetection = (frequency, key, mode) => {
     console.log(`handleNoteDetection called with frequency: ${frequency}`);
     if (frequency !== null) {
       let potentialMatches = getNoteFromFrequency(frequency);
@@ -731,67 +870,135 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
 
       console.log('Potential matches after filtering:', potentialMatches);
 
-      // Function to calculate score based on fret and string proximity
-      const calculateMatchScore = (match) => {
-        let score = 0;
-        const detectedFret = detectedFretRef.current;
+      let ambiguousMatches = [];
+      // ... logic to determine if there is ambiguity ...
+      if (potentialMatches.length > 1) {
+        const distanceMap = new Map<
+          string,
+          Array<{
+            note: string;
+            fret: number;
+            string: number;
+            distance: number;
+          }>
+        >();
 
-        // Heavily weight the fret proximity.
-        score -= Math.abs(detectedFret - match.fret) * 10; // Increased weight for fret proximity
-
-        // Additional bonus for non-open string notes if there's a choice.
-        if (match.fret !== 0 && potentialMatches.some((m) => m.fret === 0)) {
-          score += 5; // Bonus for non-open string notes
-        }
-
-        // Debugging: Print scoring details
-        console.log(
-          `Scoring for match: note=${match.note}, fret=${match.fret}, string=${match.string}, score=${score}`
-        );
-
-        return score;
-      };
-
-      // Sort potential matches based on score
-      potentialMatches.sort((a, b) => {
-        const scoreA = calculateMatchScore(a);
-        const scoreB = calculateMatchScore(b);
-        console.log(
-          `Comparing scores: ${a.note} at fret ${a.fret} = ${scoreA}, ${b.note} at fret ${b.fret} = ${scoreB}`
-        );
-        return scoreB - scoreA;
-      });
-
-      let probableMatch = potentialMatches[0];
-      console.log('Probable match found:', probableMatch);
-      if (probableMatch) {
-        setDetectedNote({
-          note: probableMatch.note,
-          fret: probableMatch.fret,
-          string: probableMatch.string,
+        potentialMatches.forEach((match) => {
+          const distance = Math.abs(lastValidFret - match.fret);
+          if (!distanceMap.has(match.note)) {
+            distanceMap.set(match.note, []);
+          }
+          distanceMap.get(match.note)?.push({ ...match, distance });
         });
-        detectedFretRef.current = probableMatch.fret; // Update ref
-        detectedStringRef.current = probableMatch.string; // Update ref
-        setDetectedFret(probableMatch.fret); // Correct way to update the detected fret
-        setDetectedString(probableMatch.string); // Correct way to update the detected strin
-        setLastValidNote(probableMatch.note);
-        setLastValidFret(probableMatch.fret);
-        setLastValidString(probableMatch.string);
-        setDetectedFret(probableMatch.fret); // Update the detected fret
-        setDetectedString(probableMatch.string); // Update the detected string
 
-        // Add the current match to the note history
-        noteHistory.push(probableMatch);
-        if (noteHistory.length > NOTE_HISTORY_SIZE) {
-          noteHistory.shift();
-        }
-      } else if (detectedNote) {
-        // Use last valid values
-        setDetectedNote({
-          note: lastValidNote,
-          fret: lastValidFret,
-          string: lastValidString,
+        // Iterate over the entries of the Map
+        distanceMap.forEach((matches, note) => {
+          if (matches.length > 1) {
+            const distances = matches.map((match) => match.distance);
+            const uniqueDistances = new Set(distances);
+            if (uniqueDistances.size === 1 && [...uniqueDistances][0] !== 0) {
+              ambiguousMatches.push(...matches);
+            }
+          }
         });
+      }
+      if (ambiguousMatches.length > 0) {
+        const scalePositions = getScalePositions(key, mode);
+        const playingDirection = getPlayingDirection(noteHistory);
+
+        let bestMatch = null;
+        let bestMatchScore = -Infinity;
+
+        ambiguousMatches.forEach((match) => {
+          const matchPosition = scalePositions[match.string]?.find(
+            (p) => p.fret === match.fret
+          );
+
+          if (matchPosition) {
+            let matchScore = 0;
+
+            // Example scoring logic - you can tailor this as needed
+            if (
+              playingDirection === 'ascending' &&
+              match.fret > lastValidFret
+            ) {
+              matchScore += 10;
+            }
+            if (
+              playingDirection === 'descending' &&
+              match.fret < lastValidFret
+            ) {
+              matchScore += 10;
+            }
+
+            if (matchScore > bestMatchScore) {
+              bestMatch = match;
+              bestMatchScore = matchScore;
+            }
+          }
+        });
+      } else {
+        // Calculate match score for non-ambiguous cases
+        const calculateMatchScore = (match) => {
+          let score = 0;
+          const detectedFret = detectedFretRef.current;
+
+          // Heavily weight the fret proximity.
+          score -= Math.abs(detectedFret - match.fret) * 10; // Increased weight for fret proximity
+
+          // Additional bonus for non-open string notes if there's a choice.
+          if (match.fret !== 0 && potentialMatches.some((m) => m.fret === 0)) {
+            score += 5; // Bonus for non-open string notes
+          }
+
+          console.log(
+            `Scoring for match: note=${match.note}, fret=${match.fret}, string=${match.string}, score=${score}`
+          );
+
+          return score;
+        };
+
+        // Sort potential matches based on score
+        potentialMatches.sort((a, b) => {
+          const scoreA = calculateMatchScore(a);
+          const scoreB = calculateMatchScore(b);
+          console.log(
+            `Comparing scores: ${a.note} at fret ${a.fret} = ${scoreA}, ${b.note} at fret ${b.fret} = ${scoreB}`
+          );
+          return scoreB - scoreA;
+        });
+
+        let probableMatch = potentialMatches[0];
+        console.log('Probable match found:', probableMatch);
+        if (probableMatch) {
+          setDetectedNote({
+            note: probableMatch.note,
+            fret: probableMatch.fret,
+            string: probableMatch.string,
+          });
+          detectedFretRef.current = probableMatch.fret; // Update ref
+          detectedStringRef.current = probableMatch.string; // Update ref
+          setDetectedFret(probableMatch.fret); // Correct way to update the detected fret
+          setDetectedString(probableMatch.string); // Correct way to update the detected strin
+          setLastValidNote(probableMatch.note);
+          setLastValidFret(probableMatch.fret);
+          setLastValidString(probableMatch.string);
+          setDetectedFret(probableMatch.fret); // Update the detected fret
+          setDetectedString(probableMatch.string); // Update the detected string
+
+          // Add the current match to the note history
+          noteHistory.push(probableMatch);
+          if (noteHistory.length > NOTE_HISTORY_SIZE) {
+            noteHistory.shift();
+          }
+        } else if (detectedNote) {
+          // Use last valid values
+          setDetectedNote({
+            note: lastValidNote,
+            fret: lastValidFret,
+            string: lastValidString,
+          });
+        }
       }
     }
   };
@@ -1096,6 +1303,16 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     handleFretUpdate(newStartFret, newFrets);
   };
   console.log('Rendering Fretboard with props:', detectedNote);
+
+  const handleUserSelectedScaleChange = (selectedScale) => {
+    // Update both the full scale name for display purposes
+    // setDisplayedScale(selectedScale);
+
+    // And the separate scale and mode for logic purposes
+    const [scale, mode] = selectedScale.split(' ');
+    setCurrentScaleAndMode({ scale, mode }); // Assuming you have a state to keep track of this
+  };
+
   return (
     <div>
       <button
@@ -1136,6 +1353,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         onFretUpdate={handleFretUpdate}
         onOrderUpdate={handleOrderUpdate}
         onIncrementUpdate={handleIncrementUpdate}
+        onUserSelectedScaleChange={handleUserSelectedScaleChange}
       />
       {/* Boundary management UI */}
       <input
