@@ -9,12 +9,19 @@ import './AudioFileKeyDetection.css';
 import Essentia from 'essentia.js/dist/essentia.js-core.es.js';
 import { EssentiaWASM } from 'essentia.js/dist/essentia-wasm.es.js';
 import { PitchDetector } from 'pitchy';
+import scalePositions from '../scaleFingerMappings';
 
 declare var cv: any;
 
 interface Props {
   frets?: number; // Add frets property to store user-defined frets value
   startFret?: number; // Add startFret property to store user-defined startFret value
+}
+interface NoteHistoryItem {
+  note: string;
+  fret: number;
+  string: number;
+  distance?: number; // Optional if you only use it in certain contexts
 }
 
 interface State {
@@ -47,6 +54,10 @@ interface State {
   selectedTuning: string;
   selectedGuitarType: string;
   highlightNotes: boolean | true;
+  noteHistory: NoteHistoryItem[];
+  noteHistorySize: number;
+  currentKey: string;
+  currentMode: string;
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -61,7 +72,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
   debugCanvasRef = createRef<HTMLCanvasElement>();
   cachedCircles: SVGCircleElement[] = [];
   currentHighlightedCircle: SVGCircleElement | null = null; // Add this line
-  debouncedHandleNoteDetection = this.debounce(this.handleNoteDetection, 150);
+  debouncedHandleNoteDetection = this.debounce(this.handleNoteDetection, 75);
   thresholds: { [key: number]: { min: number; max: number } } = {};
 
   state: State = {
@@ -94,6 +105,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
     selectedGuitarType: 'guitar6',
     selectedTuning: 'standard',
     highlightNotes: true,
+    noteHistory: [],
+    noteHistorySize: 10,
+    currentKey: '',
+    currentMode: '',
   };
 
   componentDidMount() {
@@ -414,63 +429,268 @@ class AudioFileKeyDetection extends Component<Props, State> {
     this.setState({ sectionBoundaries: newUserBoundaries });
   };
 
-  handleNoteDetection(frequency: number | null): void {
+  // handleNoteDetection(frequency: number | null): void {
+  //   if (frequency !== null) {
+  //     let potentialMatches = this.getNoteFromFrequency(frequency);
+  //     console.log('Detected Frequency: ', frequency);
+  //     console.log('Potential Matches before filtering: ', potentialMatches);
+
+  //     // Special logic for B3 note on frets 0 and 4
+  //     const b3Fret0Match = potentialMatches.find(
+  //       (match) => match.note === 'B3' && match.fret === 0
+  //     );
+  //     const b3Fret4Match = potentialMatches.find(
+  //       (match) => match.note === 'B3' && match.fret === 4
+  //     );
+
+  //     if (b3Fret0Match && b3Fret4Match) {
+  //       if (frequency < 246.94) {
+  //         potentialMatches = [b3Fret0Match]; // Prioritize B3 on fret 0
+  //       } else {
+  //         potentialMatches = [b3Fret4Match]; // Prioritize B3 on fret 4
+  //       }
+  //     }
+
+  //     potentialMatches = potentialMatches.filter((match) => {
+  //       return (
+  //         match.fret >= this.state.startFret &&
+  //         match.fret <= this.state.startFret + this.state.frets
+  //       );
+  //     });
+
+  //     const distanceToLastFret = (match) =>
+  //       Math.abs(this.state.detectedFret - match.fret);
+  //     potentialMatches.sort(
+  //       (a, b) => distanceToLastFret(a) - distanceToLastFret(b)
+  //     );
+
+  //     let probableMatch = potentialMatches[0];
+
+  //     console.log('Probable Match:', probableMatch);
+
+  //     if (probableMatch) {
+  //       this.setState({
+  //         detectedNote: probableMatch.note,
+  //         detectedFret: probableMatch.fret,
+  //         detectedString: probableMatch.string,
+  //         lastValidNote: probableMatch.note, // Update the last valid values here
+  //         lastValidFret: probableMatch.fret,
+  //         lastValidString: probableMatch.string,
+  //       });
+  //       this.updateFretboardHighlights(probableMatch.note, probableMatch.fret);
+  //     } else if (this.state.detectedNote) {
+  //       this.setState({
+  //         detectedNote: this.state.lastValidNote,
+  //         detectedFret: this.state.lastValidFret,
+  //         detectedString: this.state.lastValidString,
+  //       });
+  //     }
+  //   }
+  // }
+
+  updateKeyAndMode = (newKey, newMode) => {
+    this.setState({ currentKey: newKey, currentMode: newMode });
+  };
+
+  normalizeKey(key) {
+    const flatSharpMap = {
+      'a#': 'aSharpBFlat',
+      bb: 'aSharpBFlat',
+      'c#': 'cSharpDFlat',
+      db: 'cSharpDFlat',
+      'd#': 'dSharpEFlat',
+      eb: 'dSharpEFlat',
+      'e#': 'eSharpFFlat', // This is a theoretical key, rarely used
+      fb: 'eSharpFFlat',
+      'f#': 'fSharpGFlat',
+      gb: 'fSharpGFlat',
+      'g#': 'gSharpAFlat',
+      ab: 'gSharpAFlat',
+    };
+    return flatSharpMap[key.toLowerCase()] || key;
+  }
+
+  convertMode(mode) {
+    const modeMap = {
+      aeolian: 'minor',
+      'harmonic-minor': 'HarmonicMinor',
+      'melodic-minor': 'MelodicMinor',
+      // Other modes are used as-is
+    };
+    return modeMap[mode.toLowerCase()] || mode;
+  }
+  getScalePositions(key, mode) {
+    const normalizedKey = this.normalizeKey(key);
+    const convertedMode = this.convertMode(mode);
+
+    // Format the key for access in the mappings
+    const scaleKey = `${normalizedKey}${
+      convertedMode.charAt(0).toUpperCase() + convertedMode.slice(1)
+    }`;
+
+    return scalePositions[scaleKey] || {}; // Assuming scalePositions is passed as a prop
+  }
+
+  getPlayingDirection(noteHistory) {
+    // Check the direction of the last few played notes
+    if (noteHistory.length < 3) return null; // Not enough data to determine direction
+
+    const direction =
+      noteHistory[noteHistory.length - 1].fret -
+      noteHistory[noteHistory.length - 4].fret;
+    if (direction > 0) return 'ascending';
+    if (direction < 0) return 'descending';
+    return 'stationary'; // or 'repeated' if the same fret is being played
+  }
+
+  NOTE_HISTORY_SIZE = 10; // Size of the note history
+  noteHistory = []; // Array to store history of played notes
+
+  handleNoteDetection(frequency: number | null) {
+    const key = this.state.currentKey;
+    const mode = this.state.currentMode;
+    console.log(`handleNoteDetection called with frequency: ${frequency}`);
     if (frequency !== null) {
       let potentialMatches = this.getNoteFromFrequency(frequency);
-      console.log('Detected Frequency: ', frequency);
-      console.log('Potential Matches before filtering: ', potentialMatches);
+      console.log('Potential matches:', potentialMatches);
 
-      // Special logic for B3 note on frets 0 and 4
-      const b3Fret0Match = potentialMatches.find(
-        (match) => match.note === 'B3' && match.fret === 0
-      );
-      const b3Fret4Match = potentialMatches.find(
-        (match) => match.note === 'B3' && match.fret === 4
-      );
-
-      if (b3Fret0Match && b3Fret4Match) {
-        if (frequency < 246.94) {
-          potentialMatches = [b3Fret0Match]; // Prioritize B3 on fret 0
-        } else {
-          potentialMatches = [b3Fret4Match]; // Prioritize B3 on fret 4
-        }
-      }
+      const startFret = this.state.startFret;
+      const frets = this.state.frets;
+      console.log('startfret/frets in handleNoteDetection:', startFret, frets);
 
       potentialMatches = potentialMatches.filter((match) => {
-        return (
-          match.fret >= this.state.startFret &&
-          match.fret <= this.state.startFret + this.state.frets
-        );
+        return match.fret >= startFret && match.fret <= startFret + frets;
       });
 
-      const distanceToLastFret = (match) =>
-        Math.abs(this.state.detectedFret - match.fret);
-      potentialMatches.sort(
-        (a, b) => distanceToLastFret(a) - distanceToLastFret(b)
-      );
+      console.log('Potential matches after filtering:', potentialMatches);
 
-      let probableMatch = potentialMatches[0];
+      let ambiguousMatches = [];
+      // ... logic to determine if there is ambiguity ...
+      if (potentialMatches.length > 1) {
+        const distanceMap = new Map();
 
-      console.log('Probable Match:', probableMatch);
-
-      if (probableMatch) {
-        this.setState({
-          detectedNote: probableMatch.note,
-          detectedFret: probableMatch.fret,
-          detectedString: probableMatch.string,
-          lastValidNote: probableMatch.note, // Update the last valid values here
-          lastValidFret: probableMatch.fret,
-          lastValidString: probableMatch.string,
+        potentialMatches.forEach((match) => {
+          const distance = Math.abs(this.state.lastValidFret - match.fret);
+          if (!distanceMap.has(match.note)) {
+            distanceMap.set(match.note, []);
+          }
+          distanceMap.get(match.note).push({ ...match, distance });
         });
-        this.updateFretboardHighlights(probableMatch.note, probableMatch.fret);
-      } else if (this.state.detectedNote) {
-        this.setState({
-          detectedNote: this.state.lastValidNote,
-          detectedFret: this.state.lastValidFret,
-          detectedString: this.state.lastValidString,
+
+        // Iterate over the entries of the Map
+        distanceMap.forEach((matches, note) => {
+          if (matches.length > 1) {
+            const distances = matches.map((match) => match.distance);
+            const uniqueDistances = new Set(distances);
+            if (uniqueDistances.size === 1 && [...uniqueDistances][0] !== 0) {
+              ambiguousMatches.push(...matches);
+            }
+          }
         });
       }
+      if (ambiguousMatches.length > 0) {
+        const scalePositions = this.getScalePositions(key, mode);
+        const playingDirection = this.getPlayingDirection(
+          this.state.noteHistory
+        );
+
+        let bestMatch = null;
+        let bestMatchScore = -Infinity;
+
+        ambiguousMatches.forEach((match) => {
+          const matchPosition = scalePositions[match.string]?.find(
+            (p) => p.fret === match.fret
+          );
+
+          if (matchPosition) {
+            let matchScore = 0;
+
+            if (
+              playingDirection === 'ascending' &&
+              match.fret > this.state.lastValidFret
+            ) {
+              matchScore += 10;
+            }
+            if (
+              playingDirection === 'descending' &&
+              match.fret < this.state.lastValidFret
+            ) {
+              matchScore += 10;
+            }
+
+            if (matchScore > bestMatchScore) {
+              bestMatch = match;
+              bestMatchScore = matchScore;
+            }
+          }
+        });
+
+        if (bestMatch) {
+          this.setState({
+            detectedNote: bestMatch.note,
+            detectedFret: bestMatch.fret,
+            detectedString: bestMatch.string,
+            lastValidNote: bestMatch.note,
+            lastValidFret: bestMatch.fret,
+            lastValidString: bestMatch.string,
+          });
+          this.updateNoteHistory(bestMatch);
+        }
+      } else {
+        const calculateMatchScore = (match) => {
+          let score = 0;
+          const detectedFret = this.state.detectedFret;
+
+          score -= Math.abs(detectedFret - match.fret) * 10;
+
+          if (match.fret !== 0 && potentialMatches.some((m) => m.fret === 0)) {
+            score += 5;
+          }
+
+          return score;
+        };
+
+        potentialMatches.sort((a, b) => {
+          const scoreA = calculateMatchScore(a);
+          const scoreB = calculateMatchScore(b);
+          return scoreB - scoreA;
+        });
+
+        let probableMatch = potentialMatches[0];
+        console.log('probable match..', probableMatch);
+        if (probableMatch) {
+          this.setState({
+            detectedNote: probableMatch.note,
+            detectedFret: probableMatch.fret,
+            detectedString: probableMatch.string,
+            lastValidNote: probableMatch.note,
+            lastValidFret: probableMatch.fret,
+            lastValidString: probableMatch.string,
+          });
+          this.updateNoteHistory(probableMatch);
+          this.updateFretboardHighlights(
+            probableMatch.note,
+            probableMatch.fret
+          );
+        } else if (this.state.detectedNote) {
+          this.setState({
+            detectedNote: this.state.lastValidNote,
+            detectedFret: this.state.lastValidFret,
+            detectedString: this.state.lastValidString,
+          });
+        }
+      }
     }
+  }
+
+  updateNoteHistory(newNote: NoteHistoryItem) {
+    this.setState((prevState) => {
+      const updatedHistory = [...prevState.noteHistory, newNote];
+      while (updatedHistory.length > prevState.noteHistorySize) {
+        updatedHistory.shift(); // Remove the oldest note to maintain the history size
+      }
+      return { noteHistory: updatedHistory };
+    });
   }
 
   fretPositions = {
@@ -502,6 +722,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
   };
 
   updateFretboardHighlights = (detectedNote, detectedFret) => {
+    console.log('updating fretboard highlights..', detectedFret, detectedNote);
     if (this.state.highlightNotes) {
       const fretboardContainer = document.querySelector('.fretboard');
 
@@ -1151,6 +1372,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
             detectedNote={this.state.detectedNote} // Pass the detected note to the child component
             selectedGuitarType={this.state.selectedGuitarType}
             selectedTuning={this.state.selectedTuning}
+            updateKeyAndMode={this.updateKeyAndMode}
           />
         ))}
       </>

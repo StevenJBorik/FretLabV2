@@ -39,6 +39,7 @@ interface Props {
   onUpdateSectionBoundaries: (newBoundaries: string[]) => void;
   selectedGuitarType: string;
   selectedTuning: string;
+  updateKeyAndMode: (newKey: string, newMode: string) => void;
 }
 
 interface State {
@@ -483,6 +484,7 @@ class AudioFileItem extends Component<Props, State> {
 
     this.setState({ displayedScale: newScale }, () => {
       console.log('New scale for rendering:', newScale);
+      this.props.updateKeyAndMode(rootNote, selectedScaleType);
       this.renderFretboardScale(); // re-render fretboard with the new full scale name
     });
   };
