@@ -114,3 +114,58 @@
   border: 1px solid #ccc;
   border-radius: 20px; /* Rounded edges */
 }
+
+.silence-threshold-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.silence-threshold-container label {
+  margin-right: 10px;
+  font-weight: bold;
+}
+
+.silence-threshold-container input[type='range'] {
+  flex-grow: 1;
+  margin-right: 10px;
+  width: 100%; /* Full width */
+  height: 10px; /* Specified height */
+  background: #ddd; /* Grey background */
+  outline: none; /* Remove outline */
+  opacity: 0.7; /* Set the opacity */
+  -webkit-transition: 0.2s; /* Transition for smooth effect */
+  transition: opacity 0.2s;
+}
+
+.silence-threshold-container input[type='range']:hover {
+  opacity: 1; /* Full opacity on hover */
+}
+
+.silence-threshold-container input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default appearance */
+  appearance: none;
+  width: 20px; /* Width of the thumb */
+  height: 20px; /* Height of the thumb */
+  background: #4caf50; /* Green background */
+  cursor: pointer; /* Pointer cursor */
+  border-radius: 50%; /* Circular thumb */
+  border: 1px solid #fff; /* White border */
+}
+
+.silence-threshold-container input[type='range']::-moz-range-thumb {
+  width: 20px; /* Width of the thumb */
+  height: 20px; /* Height of the thumb */
+  background: #4caf50; /* Green background */
+  cursor: pointer; /* Pointer cursor */
+  border-radius: 50%; /* Circular thumb */
+  border: 1px solid #fff; /* White border */
+}
+
+.silence-threshold-value {
+  min-width: 50px;
+  text-align: center;
+  font-size: 1em;
+  font-weight: bold;
+  color: #333;
+}

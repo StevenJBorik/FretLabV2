@@ -158,6 +158,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     scale: '',
     mode: '',
   });
+  const [silenceThreshold, setSilenceThreshold] = useState(0.0759);
 
   // console.log('Song ID: ', songId);
 
@@ -532,7 +533,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   // };
   const startListeningForNotes = () => {
     console.log('listening for notes..');
-    const SILENCE_THRESHOLD = 0.0759;
+    const SILENCE_THRESHOLD = silenceThreshold;
     let detector;
     let lastProcessedTime = 0;
     const PROCESS_INTERVAL = 10;
@@ -1365,6 +1366,23 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         </div>
       ))}
       <button onClick={handleSaveBoundaries}>Save Boundaries</button>
+      <div>
+        <div className="silence-threshold-container">
+          <label htmlFor="silence-threshold">Silence Threshold:</label>
+          <input
+            type="range"
+            id="silence-threshold"
+            min="0.05"
+            max="0.1"
+            step="0.01"
+            value={silenceThreshold}
+            onChange={(e) =>
+              setSilenceThreshold(Number((e.target as HTMLInputElement).value))
+            }
+          />
+          <span className="silence-threshold-value">{silenceThreshold}</span>
+        </div>
+      </div>
     </div>
   );
 };

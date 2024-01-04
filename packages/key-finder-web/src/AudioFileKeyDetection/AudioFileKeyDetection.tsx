@@ -58,6 +58,7 @@ interface State {
   noteHistorySize: number;
   currentKey: string;
   currentMode: string;
+  silenceThreshold: number;
 }
 
 class AudioFileKeyDetection extends Component<Props, State> {
@@ -109,6 +110,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
     noteHistorySize: 10,
     currentKey: '',
     currentMode: '',
+    silenceThreshold: 0.0759,
   };
 
   componentDidMount() {
@@ -1227,6 +1229,11 @@ class AudioFileKeyDetection extends Component<Props, State> {
     );
   };
 
+  handleSilenceThresholdChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    this.setState({ silenceThreshold: Number(target.value) });
+  };
+
   toggleHighlight = () => {
     this.setState((prevState) => ({
       highlightNotes: !prevState.highlightNotes,
@@ -1345,6 +1352,21 @@ class AudioFileKeyDetection extends Component<Props, State> {
               <button onClick={this.toggleHighlight}>
                 Toggle Note Highlighting
               </button>
+              <div className="silence-threshold-container">
+                <label htmlFor="silence-threshold">Silence Threshold:</label>
+                <input
+                  type="range"
+                  id="silence-threshold"
+                  min="0.05"
+                  max="0.1"
+                  step="0.01"
+                  value={this.state.silenceThreshold}
+                  onChange={this.handleSilenceThresholdChange}
+                />
+                <span className="silence-threshold-value">
+                  {this.state.silenceThreshold}
+                </span>
+              </div>
               <div className="webcam-container">
                 <video
                   ref={this.videoRef}
