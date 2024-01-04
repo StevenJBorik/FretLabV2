@@ -871,37 +871,29 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       console.log('Potential matches after filtering:', potentialMatches);
 
       let ambiguousMatches = [];
-      // ... logic to determine if there is ambiguity ...
       if (potentialMatches.length > 1) {
-        const distanceMap = new Map<
-          string,
-          Array<{
-            note: string;
-            fret: number;
-            string: number;
-            distance: number;
-          }>
-        >();
+        const distanceMap = new Map();
 
         potentialMatches.forEach((match) => {
           const distance = Math.abs(lastValidFret - match.fret);
           if (!distanceMap.has(match.note)) {
             distanceMap.set(match.note, []);
           }
-          distanceMap.get(match.note)?.push({ ...match, distance });
+          distanceMap.get(match.note).push({ ...match, distance });
         });
 
-        // Iterate over the entries of the Map
         distanceMap.forEach((matches, note) => {
           if (matches.length > 1) {
             const distances = matches.map((match) => match.distance);
             const uniqueDistances = new Set(distances);
+            // Corrected conditional check
             if (uniqueDistances.size === 1 && [...uniqueDistances][0] !== 0) {
               ambiguousMatches.push(...matches);
             }
           }
         });
       }
+
       if (ambiguousMatches.length > 0) {
         const scalePositions = getScalePositions(key, mode);
         const playingDirection = getPlayingDirection(noteHistory);
@@ -913,58 +905,66 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
           const matchPosition = scalePositions[match.string]?.find(
             (p) => p.fret === match.fret
           );
+          let matchScore = 0;
+
+          if (playingDirection === 'ascending' && match.fret > lastValidFret) {
+            matchScore += 10;
+          }
+          if (playingDirection === 'descending' && match.fret < lastValidFret) {
+            matchScore += 10;
+          }
+
+          const fretDistancePenalty = Math.abs(lastValidFret - match.fret) * 5;
+          matchScore -= fretDistancePenalty;
 
           if (matchPosition) {
-            let matchScore = 0;
+            matchScore += 15;
+          }
 
-            // Example scoring logic - you can tailor this as needed
-            if (
-              playingDirection === 'ascending' &&
-              match.fret > lastValidFret
-            ) {
-              matchScore += 10;
-            }
-            if (
-              playingDirection === 'descending' &&
-              match.fret < lastValidFret
-            ) {
-              matchScore += 10;
-            }
-
-            if (matchScore > bestMatchScore) {
-              bestMatch = match;
-              bestMatchScore = matchScore;
-            }
+          if (matchScore > bestMatchScore) {
+            bestMatch = match;
+            bestMatchScore = matchScore;
           }
         });
+
+        if (bestMatch) {
+          setDetectedNote({
+            note: bestMatch.note,
+            fret: bestMatch.fret,
+            string: bestMatch.string,
+          });
+          detectedFretRef.current = bestMatch.fret;
+          detectedStringRef.current = bestMatch.string;
+          setDetectedFret(bestMatch.fret);
+          setDetectedString(bestMatch.string);
+          setLastValidNote(bestMatch.note);
+          setLastValidFret(bestMatch.fret);
+          setLastValidString(bestMatch.string);
+          noteHistory.push(bestMatch);
+          if (noteHistory.length > NOTE_HISTORY_SIZE) {
+            noteHistory.shift();
+          }
+        }
       } else {
-        // Calculate match score for non-ambiguous cases
         const calculateMatchScore = (match) => {
           let score = 0;
           const detectedFret = detectedFretRef.current;
 
-          // Heavily weight the fret proximity.
-          score -= Math.abs(detectedFret - match.fret) * 10; // Increased weight for fret proximity
+          score -= Math.abs(detectedFret - match.fret) * 10;
 
-          // Additional bonus for non-open string notes if there's a choice.
           if (match.fret !== 0 && potentialMatches.some((m) => m.fret === 0)) {
-            score += 5; // Bonus for non-open string notes
+            score += 5;
           }
 
           console.log(
             `Scoring for match: note=${match.note}, fret=${match.fret}, string=${match.string}, score=${score}`
           );
-
           return score;
         };
 
-        // Sort potential matches based on score
         potentialMatches.sort((a, b) => {
           const scoreA = calculateMatchScore(a);
           const scoreB = calculateMatchScore(b);
-          console.log(
-            `Comparing scores: ${a.note} at fret ${a.fret} = ${scoreA}, ${b.note} at fret ${b.fret} = ${scoreB}`
-          );
           return scoreB - scoreA;
         });
 
@@ -976,23 +976,18 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
             fret: probableMatch.fret,
             string: probableMatch.string,
           });
-          detectedFretRef.current = probableMatch.fret; // Update ref
-          detectedStringRef.current = probableMatch.string; // Update ref
-          setDetectedFret(probableMatch.fret); // Correct way to update the detected fret
-          setDetectedString(probableMatch.string); // Correct way to update the detected strin
+          detectedFretRef.current = probableMatch.fret;
+          detectedStringRef.current = probableMatch.string;
+          setDetectedFret(probableMatch.fret);
+          setDetectedString(probableMatch.string);
           setLastValidNote(probableMatch.note);
           setLastValidFret(probableMatch.fret);
           setLastValidString(probableMatch.string);
-          setDetectedFret(probableMatch.fret); // Update the detected fret
-          setDetectedString(probableMatch.string); // Update the detected string
-
-          // Add the current match to the note history
           noteHistory.push(probableMatch);
           if (noteHistory.length > NOTE_HISTORY_SIZE) {
             noteHistory.shift();
           }
         } else if (detectedNote) {
-          // Use last valid values
           setDetectedNote({
             note: lastValidNote,
             fret: lastValidFret,

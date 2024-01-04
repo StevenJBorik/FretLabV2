@@ -622,6 +622,15 @@ class AudioFileKeyDetection extends Component<Props, State> {
               bestMatch = match;
               bestMatchScore = matchScore;
             }
+
+            const fretDistancePenalty =
+              Math.abs(this.state.lastValidFret - match.fret) * 5;
+            matchScore -= fretDistancePenalty;
+
+            if (matchScore > bestMatchScore) {
+              bestMatch = match;
+              bestMatchScore = matchScore;
+            }
           }
         });
 
