@@ -68,6 +68,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   const [userSelectedScale, setUserSelectedScale] = useState<string | null>(
     null
   );
+  const [userKeyInput, setUserKeyInput] = useState('');
 
   const tuningsMap = {
     bass4: ['standard'],
@@ -667,6 +668,32 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     }
   };
 
+  const normalizeKeyInput = (input) => {
+    let [key, mode] = input.toLowerCase().split(' ');
+
+    // Convert sharp keys to flat keys
+    const sharpToFlat = {
+      'c#': 'db',
+      'd#': 'eb',
+      'f#': 'gb',
+      'g#': 'ab',
+      'a#': 'bb',
+    };
+    key = sharpToFlat[key] || key;
+
+    // Convert 'minor' to 'aeolian'
+    if (mode === 'minor') mode = 'aeolian';
+
+    return [key, mode].join(' ');
+  };
+
+  const handleKeyChange = (userInput) => {
+    const normalizedKey = normalizeKeyInput(userInput);
+    setCurrentScale(normalizedKey); // Update the current scale
+    setUserSelectedScale(normalizedKey); // Set the user-selected scale
+    onUserSelectedScaleChange?.(normalizedKey); // Invoke parent handler
+  };
+
   return (
     <div className="song-page-container">
       {/* {console.log('[Fretboard] Current state before rendering', {
@@ -721,7 +748,19 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
             </div>
           )}
         </div>
-
+        <div className="controls-row">
+          <label htmlFor="key-input">Manual Key Signature:</label>
+          <input
+            id="key-input"
+            type="text"
+            value={userKeyInput}
+            onChange={(e) =>
+              setUserKeyInput((e.target as HTMLInputElement).value)
+            }
+            placeholder="e.g., e minor, db major"
+          />
+          <button onClick={() => handleKeyChange(userKeyInput)}>Set Key</button>
+        </div>
         <div className="controls-row">
           <label htmlFor="frets">End Fret:</label>
           <input

@@ -71,6 +71,7 @@ interface State {
   tempBoundaries: string[] | null;
   newUserBoundary: string | null;
   isLeftHanded: boolean; // Add this property
+  userKeyInput: string;
 }
 
 class AudioFileItem extends Component<Props, State> {
@@ -106,6 +107,7 @@ class AudioFileItem extends Component<Props, State> {
     tempBoundaries: [],
     newUserBoundary: '',
     isLeftHanded: false,
+    userKeyInput: '',
   };
 
   audioRef = createRef<HTMLAudioElement>();
@@ -805,6 +807,33 @@ class AudioFileItem extends Component<Props, State> {
     this.renderFretboardScale();
   };
 
+  handleUserKeyInputChange = (event) => {
+    this.setState({ userKeyInput: event.target.value });
+  };
+  normalizeKeyInput = (input) => {
+    let [key, mode] = input.toLowerCase().split(' ');
+
+    const sharpToFlat = {
+      'c#': 'db',
+      'd#': 'eb',
+      'f#': 'gb',
+      'g#': 'ab',
+      'a#': 'bb',
+    };
+    key = sharpToFlat[key] || key;
+
+    if (mode === 'minor') mode = 'aeolian';
+
+    return [key, mode].join(' ');
+  };
+
+  handleKeyChange = () => {
+    const normalizedKey = this.normalizeKeyInput(this.state.userKeyInput);
+    // Update state and/or call any method to apply the new key
+    this.setState({ normalizedResult: normalizedKey });
+    // Additionally, invoke any parent or child methods as needed
+  };
+
   render() {
     console.log('Render method invoked with state:', this.state);
     const { fileItem } = this.props;
@@ -866,10 +895,23 @@ class AudioFileItem extends Component<Props, State> {
               </div>
             </div>
           )}
-
+          <div className="file-item__key-input-row">
+            <label htmlFor="key-input">Manual Key Signature:</label>
+            <input
+              id="key-input"
+              type="text"
+              value={this.state.userKeyInput}
+              onChange={this.handleUserKeyInputChange}
+              placeholder="e.g., e minor, db major"
+            />
+            <button
+              className="file-item__set-key-button"
+              onClick={this.handleKeyChange}
+            >
+              Set Key
+            </button>
+          </div>
           <div id="fretboard-container" ref={this.fretboardContainerRef} />
-
-          {/* Audio Player */}
           <div>
             {fileItem.file && (
               <audio

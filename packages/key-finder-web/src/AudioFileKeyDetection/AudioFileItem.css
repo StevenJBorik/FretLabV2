@@ -123,3 +123,32 @@ progress::-moz-progress-bar {
 .file-item__container button:hover {
   background-color: #003366; /* A darker shade when hovered */
 }
+
+.file-item__key-input-row {
+  z-index: 100; /* Higher z-index to ensure it's above other elements */
+  position: relative; /* Position relative for z-index to take effect */
+  margin-bottom: 1rem; /* Add some margin for spacing */
+}
+
+/* Styles for the key input field */
+#key-input {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100%; /* Full width of its container */
+}
+
+/* Style for the set key button */
+.file-item__set-key-button {
+  padding: 0.5rem 1rem;
+  margin-left: 0.5rem; /* Space between the input and the button */
+  background-color: #007bff; /* Example button color */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.file-item__set-key-button:hover {
+  background-color: #0056b3; /* Darker color on hover */
+}
