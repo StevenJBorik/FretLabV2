@@ -72,6 +72,7 @@ interface State {
   newUserBoundary: string | null;
   isLeftHanded: boolean; // Add this property
   userKeyInput: string;
+  autoPlay: boolean;
 }
 
 class AudioFileItem extends Component<Props, State> {
@@ -108,6 +109,7 @@ class AudioFileItem extends Component<Props, State> {
     newUserBoundary: '',
     isLeftHanded: false,
     userKeyInput: '',
+    autoPlay: false,
   };
 
   audioRef = createRef<HTMLAudioElement>();
@@ -591,11 +593,9 @@ class AudioFileItem extends Component<Props, State> {
   handleAudioCanPlay = () => {
     console.log('AudioFileItem - handleAudioCanPlay');
     this.setState({ analyzing: false });
-    console.log('this.props.isReadyToPlay: ', this.props.isReadyToPlay);
-    if (this.props.isReadyToPlay) {
+    if (this.props.isReadyToPlay && this.state.autoPlay) {
       const audioElement = this.audioRef.current;
       if (audioElement) {
-        // Only set currentTime if lastPlayedPosition has been initialized properly
         if (
           this.state.lastPlayedPosition !== undefined &&
           this.state.lastPlayedPosition !== null
