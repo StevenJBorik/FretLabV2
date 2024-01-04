@@ -144,6 +144,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
       this.state.selectedGuitarType !== nextState.selectedGuitarType;
     const tuningChanged =
       this.state.selectedTuning !== nextState.selectedTuning;
+    const fretsChanged = this.state.frets !== nextState.frets;
+    const startFretChanged = this.state.startFret !== nextState.startFret;
 
     if (
       filesChanged ||
@@ -151,7 +153,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
       incrementFactorChanged ||
       sectionBoundariesChanged ||
       guitarTypeChanged ||
-      tuningChanged
+      tuningChanged ||
+      fretsChanged ||
+      startFretChanged // Include these checks
     ) {
       console.log(
         'parent component AudioFileKeyDetection returned true -- rerendering'
@@ -388,12 +392,14 @@ class AudioFileKeyDetection extends Component<Props, State> {
   // Event handler for updating the frets value
   handleFretsChange = (event: Event): void => {
     const frets = Number((event.target as HTMLInputElement).value);
+    console.log('setting state in fretschange..');
     this.setState({ frets });
   };
 
   // Event handler for updating the startFret value
   handleStartFretChange = (event: Event): void => {
     const startFret = Number((event.target as HTMLInputElement).value);
+    console.log('setting state in startfretchange.. ');
     this.setState({ startFret });
   };
 

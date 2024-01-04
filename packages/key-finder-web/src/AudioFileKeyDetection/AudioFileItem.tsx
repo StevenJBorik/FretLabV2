@@ -142,6 +142,8 @@ class AudioFileItem extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
+    console.log('Previous props:', prevProps);
+    console.log('Current props:', this.props);
     console.log('AudioFileItem - componentDidUpdate started');
     console.log('prevState', prevState);
     console.log('current state', this.state);
@@ -193,6 +195,11 @@ class AudioFileItem extends Component<Props, State> {
       );
     }
 
+    if (prevState.normalizedResult !== this.state.normalizedResult) {
+      console.log('normalizedResult changed, rerendering fretboard');
+      this.renderFretboardScale();
+    }
+
     if (
       prevProps.selectedGuitarType !== this.props.selectedGuitarType ||
       prevProps.selectedTuning !== this.props.selectedTuning
@@ -231,8 +238,19 @@ class AudioFileItem extends Component<Props, State> {
     console.log('tuningChanged - ', tuningChanged);
     console.log('guitarTypeChanged - ', guitarTypeChanged);
 
+    const fretsChanged = this.props.frets !== nextProps.frets;
+    const startFretChanged = this.props.startFret !== nextProps.startFret;
+
+    console.log('fretsChanged - ', fretsChanged);
+    console.log('startFretChanged - ', startFretChanged);
+
     return (
-      stateChanged || boundariesChanged || tuningChanged || guitarTypeChanged
+      stateChanged ||
+      boundariesChanged ||
+      tuningChanged ||
+      guitarTypeChanged ||
+      fretsChanged ||
+      startFretChanged // Add these conditions
     );
   }
 
@@ -499,6 +517,7 @@ class AudioFileItem extends Component<Props, State> {
   }
 
   renderFretboardScale() {
+    console.log('rerendering fretboard with fretprops..', this.state.startFret);
     const { displayedScale } = this.state;
     const {
       frets,
@@ -556,8 +575,8 @@ class AudioFileItem extends Component<Props, State> {
     const fb = fretboards.Fretboard({
       tuning: currentTuning,
       strings: stringCount,
-      frets: this.state.frets,
-      startFret: this.state.startFret,
+      frets: frets,
+      startFret: startFret,
       showTitle: true,
       leftHanded: this.state.isLeftHanded,
     });
@@ -800,11 +819,16 @@ class AudioFileItem extends Component<Props, State> {
       }
     );
   };
-
   toggleLeftHanded = () => {
-    this.setState((prevState) => ({ isLeftHanded: !prevState.isLeftHanded }));
-    // Call the method to re-render the fretboard here if needed
-    this.renderFretboardScale();
+    this.setState(
+      (prevState) => ({
+        isLeftHanded: !prevState.isLeftHanded,
+      }),
+      () => {
+        // This callback ensures that renderFretboardScale is called only after the state has been updated
+        this.renderFretboardScale();
+      }
+    );
   };
 
   handleUserKeyInputChange = (event) => {
@@ -823,15 +847,18 @@ class AudioFileItem extends Component<Props, State> {
     key = sharpToFlat[key] || key;
 
     if (mode === 'minor') mode = 'aeolian';
+    console.log('joined key/mode to pass to fretboard)', [key, mode].join(' '));
 
     return [key, mode].join(' ');
   };
 
   handleKeyChange = () => {
+    console.log('handleKeyChange called', this.state.userKeyInput);
     const normalizedKey = this.normalizeKeyInput(this.state.userKeyInput);
-    // Update state and/or call any method to apply the new key
-    this.setState({ normalizedResult: normalizedKey });
-    // Additionally, invoke any parent or child methods as needed
+    this.setState({ displayedScale: normalizedKey }, () => {
+      console.log('New normalizedResult:', this.state.normalizedResult);
+      this.renderFretboardScale(); // Call renderFretboardScale here
+    });
   };
 
   render() {
