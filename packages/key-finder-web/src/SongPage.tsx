@@ -159,217 +159,364 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     mode: '',
   });
   const [silenceThreshold, setSilenceThreshold] = useState(0.0759);
+  //   const noteMappings = {
+  //     A2: [
+  //       { fret: 0, string: 5, frequency: 110.0 },
+  //       { fret: 5, string: 6, frequency: 110.0 },
+  //     ],
+  //     A3: [
+  //       { fret: 2, string: 3, frequency: 220.0 },
+  //       { fret: 7, string: 4, frequency: 220.0 },
+  //       { fret: 12, string: 5, frequency: 220.0 },
+  //       { fret: 17, string: 6, frequency: 220.0 },
+  //     ],
+  //     A4: [
+  //       { fret: 5, string: 1, frequency: 440.0 },
+  //       { fret: 10, string: 2, frequency: 440.0 },
+  //       { fret: 14, string: 3, frequency: 440.0 },
+  //       { fret: 19, string: 4, frequency: 440.0 },
+  //     ],
+  //     B2: [
+  //       { fret: 2, string: 5, frequency: 123.47 },
+  //       { fret: 7, string: 6, frequency: 123.47 },
+  //     ],
+  //     B3: [
+  //       { fret: 0, string: 2, frequency: 246.94 },
+  //       { fret: 4, string: 3, frequency: 246.94 },
+  //       { fret: 9, string: 4, frequency: 246.94 },
+  //       { fret: 14, string: 5, frequency: 246.94 },
+  //       { fret: 19, string: 6, frequency: 246.94 },
+  //     ],
+  //     B4: [
+  //       { fret: 7, string: 1, frequency: 493.88 },
+  //       { fret: 12, string: 2, frequency: 493.88 },
+  //       { fret: 16, string: 3, frequency: 493.88 },
+  //       { fret: 21, string: 4, frequency: 493.88 },
+  //     ],
+  //     C3: [
+  //       { fret: 3, string: 5, frequency: 130.81 },
+  //       { fret: 8, string: 6, frequency: 130.81 },
+  //     ],
+  //     C4: [
+  //       { fret: 1, string: 2, frequency: 261.63 },
+  //       { fret: 5, string: 3, frequency: 261.63 },
+  //       { fret: 10, string: 4, frequency: 261.63 },
+  //       { fret: 17, string: 3, frequency: 261.63 },
+  //       { fret: 20, string: 6, frequency: 261.63 },
+  //     ],
+  //     C5: [
+  //       { fret: 8, string: 1, frequency: 523.25 },
+  //       { fret: 13, string: 2, frequency: 523.25 },
+  //       { fret: 20, string: 1, frequency: 523.25 },
+  //     ],
+  //     D3: [
+  //       { fret: 0, string: 4, frequency: 146.83 },
+  //       { fret: 5, string: 5, frequency: 146.83 },
+  //       { fret: 10, string: 6, frequency: 146.83 },
+  //     ],
+  //     D4: [
+  //       { fret: 3, string: 2, frequency: 293.66 },
+  //       { fret: 7, string: 3, frequency: 293.66 },
+  //       { fret: 12, string: 4, frequency: 293.66 },
+  //       { fret: 17, string: 5, frequency: 293.66 },
+  //       { fret: 22, string: 6, frequency: 293.66 },
+  //     ],
+  //     D5: [
+  //       { fret: 10, string: 1, frequency: 587.33 },
+  //       { fret: 15, string: 2, frequency: 587.33 },
+  //       { fret: 19, string: 3, frequency: 587.33 },
+  //     ],
+  //     E2: [{ fret: 0, string: 6, frequency: 82.41 }],
+  //     E3: [
+  //       { fret: 2, string: 4, frequency: 164.81 },
+  //       { fret: 7, string: 5, frequency: 164.81 },
+  //       { fret: 12, string: 6, frequency: 164.81 },
+  //     ],
+  //     E4: [
+  //       { fret: 0, string: 1, frequency: 329.63 },
+  //       { fret: 5, string: 2, frequency: 329.63 },
+  //       { fret: 9, string: 3, frequency: 329.63 },
+  //       { fret: 14, string: 4, frequency: 329.63 },
+  //       { fret: 19, string: 5, frequency: 329.63 },
+  //     ],
+  //     E5: [
+  //       { fret: 12, string: 1, frequency: 659.25 },
+  //       { fret: 17, string: 2, frequency: 659.25 },
+  //     ],
+  //     F2: [{ fret: 1, string: 6, frequency: 87.31 }],
+  //     F3: [
+  //       { fret: 3, string: 4, frequency: 174.61 },
+  //       { fret: 8, string: 5, frequency: 174.61 },
+  //       { fret: 13, string: 6, frequency: 174.61 },
+  //     ],
+  //     F4: [
+  //       { fret: 1, string: 1, frequency: 349.23 },
+  //       { fret: 6, string: 2, frequency: 349.23 },
+  //       { fret: 10, string: 3, frequency: 349.23 },
+  //       { fret: 15, string: 4, frequency: 349.23 },
+  //       { fret: 20, string: 5, frequency: 349.23 },
+  //     ],
+  //     F5: [
+  //       { fret: 13, string: 1, frequency: 698.46 },
+  //       { fret: 18, string: 2, frequency: 698.46 },
+  //       { fret: 22, string: 3, frequency: 698.46 },
+  //     ],
+  //     G2: [{ fret: 3, string: 1, frequency: 98.0 }],
+  //     G3: [
+  //       { fret: 0, string: 3, frequency: 196.0 },
+  //       { fret: 5, string: 4, frequency: 196.0 },
+  //       { fret: 10, string: 5, frequency: 196.0 },
+  //       { fret: 15, string: 6, frequency: 196.0 },
+  //     ],
+  //     G4: [
+  //       { fret: 3, string: 1, frequency: 392.0 },
+  //       { fret: 8, string: 2, frequency: 392.0 },
+  //       { fret: 12, string: 3, frequency: 392.0 },
+  //       { fret: 17, string: 4, frequency: 392.0 },
+  //       { fret: 23, string: 5, frequency: 392.0 },
+  //     ],
+  //     'G#2': [{ fret: 4, string: 6, frequency: 103.83 }],
+  //     'G#3': [
+  //       { fret: 1, string: 3, frequency: 207.65 },
+  //       { fret: 6, string: 4, frequency: 207.65 },
+  //       { fret: 11, string: 5, frequency: 207.65 },
+  //       { fret: 16, string: 6, frequency: 207.65 },
+  //     ],
+  //     'G#4': [
+  //       { fret: 4, string: 1, frequency: 415.3 },
+  //       { fret: 9, string: 2, frequency: 415.3 },
+  //       { fret: 13, string: 3, frequency: 415.3 },
+  //       { fret: 18, string: 4, frequency: 415.3 },
+  //     ],
+  //     'G#5': [
+  //       { fret: 16, string: 1, frequency: 830.61 },
+  //       { fret: 21, string: 2, frequency: 830.61 },
+  //     ],
+  //     'A#2': [
+  //       { fret: 1, string: 5, frequency: 116.54 },
+  //       { fret: 6, string: 6, frequency: 116.54 },
+  //     ],
+  //     'A#3': [
+  //       { fret: 3, string: 3, frequency: 233.08 },
+  //       { fret: 8, string: 4, frequency: 233.08 },
+  //       { fret: 13, string: 5, frequency: 233.08 },
+  //       { fret: 17, string: 6, frequency: 233.08 },
+  //     ],
+  //     'A#4': [
+  //       { fret: 6, string: 1, frequency: 466.16 },
+  //       { fret: 15, string: 3, frequency: 466.166 },
+  //       { fret: 20, string: 4, frequency: 466.16 },
+  //     ],
+  //     'A#5': [
+  //       { fret: 11, string: 2, frequency: 932.33 },
+  //       { fret: 18, string: 3, frequency: 932.33 },
+  //       { fret: 23, string: 2, frequency: 932.33 },
+  //     ],
+  //     'C#3': [
+  //       { fret: 4, string: 5, frequency: 138.59 },
+  //       { fret: 9, string: 6, frequency: 138.59 },
+  //     ],
+  //     'C#4': [
+  //       { fret: 2, string: 2, frequency: 277.18 },
+  //       { fret: 6, string: 3, frequency: 277.18 },
+  //       { fret: 11, string: 4, frequency: 277.18 },
+  //       { fret: 16, string: 5, frequency: 277.18 },
+  //       { fret: 21, string: 6, frequency: 277.18 },
+  //     ],
+  //     'C#5': [
+  //       { fret: 9, string: 1, frequency: 554.37 },
+  //       { fret: 14, string: 2, frequency: 554.37 },
+  //       { fret: 18, string: 3, frequency: 554.37 },
+  //     ],
+  //     'D#3': [
+  //       { fret: 1, string: 4, frequency: 155.56 },
+  //       { fret: 6, string: 5, frequency: 155.56 },
+  //       { fret: 11, string: 6, frequency: 155.56 },
+  //     ],
+  //     'D#4': [
+  //       { fret: 4, string: 2, frequency: 311.13 },
+  //       { fret: 8, string: 3, frequency: 311.13 },
+  //       { fret: 13, string: 4, frequency: 311.13 },
+  //       { fret: 18, string: 5, frequency: 311.13 },
+  //     ],
+  //     'D#5': [
+  //       { fret: 11, string: 1, frequency: 622.25 },
+  //       { fret: 16, string: 2, frequency: 622.25 },
+  //       { fret: 20, string: 3, frequency: 622.25 },
+  //     ],
+  //     'F#2': [{ fret: 2, string: 6, frequency: 92.5 }],
+  //     'F#3': [
+  //       { fret: 4, string: 4, frequency: 185.0 },
+  //       { fret: 9, string: 5, frequency: 185.0 },
+  //       { fret: 14, string: 6, frequency: 185.0 },
+  //     ],
+  //     'F#4': [
+  //       { fret: 2, string: 1, frequency: 369.99 },
+  //       { fret: 7, string: 2, frequency: 369.99 },
+  //       { fret: 11, string: 3, frequency: 369.99 },
+  //       { fret: 16, string: 4, frequency: 369.99 },
+  //       { fret: 21, string: 5, frequency: 369.99 },
+  //     ],
+  //     'F#5': [
+  //       { fret: 14, string: 1, frequency: 739.99 },
+  //       { fret: 19, string: 2, frequency: 739.99 },
+  //       { fret: 23, string: 3, frequency: 739.99 },
+  //     ],
+  //   };
+
+  //   const bassNoteMappings= {
+  //     D2: [
+  //       { fret: 5, string: 3, frequency: 72.08 },
+  //       { fret: 10, string: 2, frequency: 72.08 },
+  //       { fret: 15, string: 1, frequency: 72.08 }
+  //     ],
+  //     'D#2': [
+  //       { fret: 6, string: 3, frequency: 76.37 },
+  //       { fret: 11, string: 2, frequency: 76.37 },
+  //       { fret: 16, string: 1, frequency: 76.37 }
+  //     ],
+  //     E2: [
+  //       { fret: 7, string: 3, frequency: 80.91 },
+  //       { fret: 12, string: 2, frequency: 80.91 },
+  //       { fret: 17, string: 1, frequency: 80.91 }
+  //     ],
+  //     F2: [
+  //       { fret: 8, string: 3, frequency: 85.72 },
+  //       { fret: 13, string: 2, frequency: 85.72 },
+  //       { fret: 18, string: 1, frequency: 85.72 }
+  //     ],
+  //     'F#2': [
+  //       { fret: 9, string: 3, frequency: 90.82 },
+  //       { fret: 14, string: 2, frequency: 90.82 },
+  //       { fret: 19, string: 1, frequency: 90.82 }
+  //     ],
+  //     G2: [
+  //       { fret: 10, string: 3, frequency: 96.22 },
+  //       { fret: 15, string: 2, frequency: 96.22 },
+  //       { fret: 20, string: 1, frequency: 96.22 }
+  //     ],
+  //     'G#2': [
+  //       { fret: 11, string: 3, frequency: 101.94 },
+  //       { fret: 16, string: 2, frequency: 101.94 },
+  //       { fret: 21, string: 1, frequency: 101.94 }
+  //     ],
+  //     A2: [
+  //       { fret: 12, string: 3, frequency: 108.00 },
+  //       { fret: 17, string: 2, frequency: 108.00 },
+  //       { fret: 22, string: 1, frequency: 108.00 }
+  //     ],
+  //     'A#2': [
+  //       { fret: 13, string: 3, frequency: 114.42 },
+  //       { fret: 18, string: 2, frequency: 114.42 },
+  //       { fret: 23, string: 1, frequency: 114.42 }
+  //     ],
+  //     B2: [
+  //       { fret: 14, string: 3, frequency: 121.23 },
+  //       { fret: 19, string: 2, frequency: 121.23 },
+  //       { fret: 24, string: 1, frequency: 121.23 }
+  //     ],
+  //     C3: [
+  //       { fret: 5, string: 4, frequency: 128.43 },
+  //       { fret: 10, string: 3, frequency: 128.43 },
+  //       { fret: 15, string: 2, frequency: 128.43 },
+  //       { fret: 20, string: 1, frequency: 128.43 }
+  //     ],
+  //     'C#3': [
+  //       { fret: 6, string: 4, frequency: 136.07 },
+  //       { fret: 11, string: 3, frequency: 136.07 },
+  //       { fret: 16, string: 2, frequency: 136.07 },
+  //       { fret: 21, string: 1, frequency: 136.07 }
+  //     ],
+  //     D3: [
+  //       { fret: 7, string: 4, frequency: 144.16 },
+  //       { fret: 12, string: 3, frequency: 144.16 },
+  //       { fret: 17, string: 2, frequency: 144.16 },
+  //       { fret: 22, string: 1, frequency: 144.16 }
+  //     ],
+  //     'D#3': [
+  //       { fret: 8, string: 4, frequency: 152.74 },
+  //       { fret: 13, string: 3, frequency: 152.74 },
+  //       { fret: 18, string: 2, frequency: 152.74 },
+  //       { fret: 23, string: 1, frequency: 152.74 }
+  //     ],
+  //     E3: [
+  //       { fret: 9, string: 4, frequency: 161.82 },
+  //       { fret: 14, string: 3, frequency: 161.82 },
+  //       { fret: 19, string: 2, frequency: 161.82 },
+  //       { fret: 24, string: 1, frequency: 161.82 }
+  //     ],
+  //     F3: [
+  //       { fret: 10, string: 4, frequency: 171.44 },
+  //       { fret: 15, string: 3, frequency: 171.44 },
+  //       { fret: 20, string: 2, frequency: 171.44 }
+  //     ],
+  //     'F#3': [
+  //       { fret: 11, string: 4, frequency: 181.63 },
+  //       { fret: 16, string: 3, frequency: 181.63 },
+  //       { fret: 21, string: 2, frequency: 181.63 }
+  //     ],
+  //     G3: [
+  //       { fret: 12, string: 4, frequency: 192.43 },
+  //       { fret: 17, string: 3, frequency: 192.43 },
+  //       { fret: 22, string: 2, frequency: 192.43 }
+  //     ],
+  //     'G#3': [
+  //       { fret: 13, string: 4, frequency: 203.88 },
+  //       { fret: 18, string: 3, frequency: 203.88 },
+  //       { fret: 23, string: 2, frequency: 203.88 }
+  //     ],
+  //     A3: [
+  //       { fret: 14, string: 4, frequency: 216.00 },
+  //       { fret: 19, string: 3, frequency: 216.00 },
+  //       { fret: 24, string: 2, frequency: 216.00 }
+  //     ],
+  //     'A#3': [
+  //       { fret: 15, string: 4, frequency: 228.84 },
+  //       { fret: 20, string: 3, frequency: 228.84 }
+  //     ],
+  //     B3: [
+  //       { fret: 16, string: 4, frequency: 242.45 },
+  //       { fret: 21, string: 3, frequency: 242.45 }
+  //     ],
+  //     C4: [
+  //       { fret: 17, string: 4, frequency: 256.87 },
+  //       { fret: 22, string: 3, frequency: 256.87 }
+  //     ],
+  //     'C#4': [
+  //       { fret: 18, string: 4, frequency: 272.14 },
+  //       { fret: 23, string: 3, frequency: 272.14 }
+  //     ],
+  //     D4: [
+  //       { fret: 19, string: 4, frequency: 288.33 },
+  //       { fret: 24, string: 3, frequency: 288.33 }
+  //     ],
+  //     'D#4': [
+  //       { fret: 20, string: 4, frequency: 305.47 }
+  //     ],
+  //     E4: [
+  //       { fret: 21, string: 4, frequency: 323.63 }
+  //     ],
+  //     F4: [
+  //       { fret: 22, string: 4, frequency: 342.88 }
+  //     ],
+  //     'F#4': [
+  //       { fret: 23, string: 4, frequency: 363.27 }
+  //     ],
+  //     G4: [
+  //       { fret: 24, string: 4, frequency: 384.87 }
+  //     ],
+  //     'G#5': [
+  //       { fret: 24, string: 4, frequency: 407.75 }
+  //     ]
+  // };
+
+  const [currentNoteMappings, setCurrentNoteMappings] = useState(null); // Default to the standard note mappings
 
   // console.log('Song ID: ', songId);
 
   useEffect(() => {
     debouncedHandleNoteDetection.current = debounce(handleNoteDetection, 75);
   }, []);
-
-  const noteMappings = {
-    A2: [
-      { fret: 0, string: 5, frequency: 110.0 },
-      { fret: 5, string: 6, frequency: 110.0 },
-    ],
-    A3: [
-      { fret: 2, string: 3, frequency: 220.0 },
-      { fret: 7, string: 4, frequency: 220.0 },
-      { fret: 12, string: 5, frequency: 220.0 },
-      { fret: 17, string: 6, frequency: 220.0 },
-    ],
-    A4: [
-      { fret: 5, string: 1, frequency: 440.0 },
-      { fret: 10, string: 2, frequency: 440.0 },
-      { fret: 14, string: 3, frequency: 440.0 },
-      { fret: 19, string: 4, frequency: 440.0 },
-    ],
-    B2: [
-      { fret: 2, string: 5, frequency: 123.47 },
-      { fret: 7, string: 6, frequency: 123.47 },
-    ],
-    B3: [
-      { fret: 0, string: 2, frequency: 246.94 },
-      { fret: 4, string: 3, frequency: 246.94 },
-      { fret: 9, string: 4, frequency: 246.94 },
-      { fret: 14, string: 5, frequency: 246.94 },
-      { fret: 19, string: 6, frequency: 246.94 },
-    ],
-    B4: [
-      { fret: 7, string: 1, frequency: 493.88 },
-      { fret: 12, string: 2, frequency: 493.88 },
-      { fret: 16, string: 3, frequency: 493.88 },
-      { fret: 21, string: 4, frequency: 493.88 },
-    ],
-    C3: [
-      { fret: 3, string: 5, frequency: 130.81 },
-      { fret: 8, string: 6, frequency: 130.81 },
-    ],
-    C4: [
-      { fret: 1, string: 2, frequency: 261.63 },
-      { fret: 5, string: 3, frequency: 261.63 },
-      { fret: 10, string: 4, frequency: 261.63 },
-      { fret: 17, string: 3, frequency: 261.63 },
-      { fret: 20, string: 6, frequency: 261.63 },
-    ],
-    C5: [
-      { fret: 8, string: 1, frequency: 523.25 },
-      { fret: 13, string: 2, frequency: 523.25 },
-      { fret: 20, string: 1, frequency: 523.25 },
-    ],
-    D3: [
-      { fret: 0, string: 4, frequency: 146.83 },
-      { fret: 5, string: 5, frequency: 146.83 },
-      { fret: 10, string: 6, frequency: 146.83 },
-    ],
-    D4: [
-      { fret: 3, string: 2, frequency: 293.66 },
-      { fret: 7, string: 3, frequency: 293.66 },
-      { fret: 12, string: 4, frequency: 293.66 },
-      { fret: 17, string: 5, frequency: 293.66 },
-      { fret: 22, string: 6, frequency: 293.66 },
-    ],
-    D5: [
-      { fret: 10, string: 1, frequency: 587.33 },
-      { fret: 15, string: 2, frequency: 587.33 },
-      { fret: 19, string: 3, frequency: 587.33 },
-    ],
-    E2: [{ fret: 0, string: 6, frequency: 82.41 }],
-    E3: [
-      { fret: 2, string: 4, frequency: 164.81 },
-      { fret: 7, string: 5, frequency: 164.81 },
-      { fret: 12, string: 6, frequency: 164.81 },
-    ],
-    E4: [
-      { fret: 0, string: 1, frequency: 329.63 },
-      { fret: 5, string: 2, frequency: 329.63 },
-      { fret: 9, string: 3, frequency: 329.63 },
-      { fret: 14, string: 4, frequency: 329.63 },
-      { fret: 19, string: 5, frequency: 329.63 },
-    ],
-    E5: [
-      { fret: 12, string: 1, frequency: 659.25 },
-      { fret: 17, string: 2, frequency: 659.25 },
-    ],
-    F2: [{ fret: 1, string: 6, frequency: 87.31 }],
-    F3: [
-      { fret: 3, string: 4, frequency: 174.61 },
-      { fret: 8, string: 5, frequency: 174.61 },
-      { fret: 13, string: 6, frequency: 174.61 },
-    ],
-    F4: [
-      { fret: 1, string: 1, frequency: 349.23 },
-      { fret: 6, string: 2, frequency: 349.23 },
-      { fret: 10, string: 3, frequency: 349.23 },
-      { fret: 15, string: 4, frequency: 349.23 },
-      { fret: 20, string: 5, frequency: 349.23 },
-    ],
-    F5: [
-      { fret: 13, string: 1, frequency: 698.46 },
-      { fret: 18, string: 2, frequency: 698.46 },
-      { fret: 22, string: 3, frequency: 698.46 },
-    ],
-    G2: [{ fret: 3, string: 1, frequency: 98.0 }],
-    G3: [
-      { fret: 0, string: 3, frequency: 196.0 },
-      { fret: 5, string: 4, frequency: 196.0 },
-      { fret: 10, string: 5, frequency: 196.0 },
-      { fret: 15, string: 6, frequency: 196.0 },
-    ],
-    G4: [
-      { fret: 3, string: 1, frequency: 392.0 },
-      { fret: 8, string: 2, frequency: 392.0 },
-      { fret: 12, string: 3, frequency: 392.0 },
-      { fret: 17, string: 4, frequency: 392.0 },
-      { fret: 23, string: 5, frequency: 392.0 },
-    ],
-    'G#2': [{ fret: 4, string: 6, frequency: 103.83 }],
-    'G#3': [
-      { fret: 1, string: 3, frequency: 207.65 },
-      { fret: 6, string: 4, frequency: 207.65 },
-      { fret: 11, string: 5, frequency: 207.65 },
-      { fret: 16, string: 6, frequency: 207.65 },
-    ],
-    'G#4': [
-      { fret: 4, string: 1, frequency: 415.3 },
-      { fret: 9, string: 2, frequency: 415.3 },
-      { fret: 13, string: 3, frequency: 415.3 },
-      { fret: 18, string: 4, frequency: 415.3 },
-    ],
-    'G#5': [
-      { fret: 16, string: 1, frequency: 830.61 },
-      { fret: 21, string: 2, frequency: 830.61 },
-    ],
-    'A#2': [
-      { fret: 1, string: 5, frequency: 116.54 },
-      { fret: 6, string: 6, frequency: 116.54 },
-    ],
-    'A#3': [
-      { fret: 3, string: 3, frequency: 233.08 },
-      { fret: 8, string: 4, frequency: 233.08 },
-      { fret: 13, string: 5, frequency: 233.08 },
-      { fret: 17, string: 6, frequency: 233.08 },
-    ],
-    'A#4': [
-      { fret: 6, string: 1, frequency: 466.16 },
-      { fret: 15, string: 3, frequency: 466.166 },
-      { fret: 20, string: 4, frequency: 466.16 },
-    ],
-    'A#5': [
-      { fret: 11, string: 2, frequency: 932.33 },
-      { fret: 18, string: 3, frequency: 932.33 },
-      { fret: 23, string: 2, frequency: 932.33 },
-    ],
-    'C#3': [
-      { fret: 4, string: 5, frequency: 138.59 },
-      { fret: 9, string: 6, frequency: 138.59 },
-    ],
-    'C#4': [
-      { fret: 2, string: 2, frequency: 277.18 },
-      { fret: 6, string: 3, frequency: 277.18 },
-      { fret: 11, string: 4, frequency: 277.18 },
-      { fret: 16, string: 5, frequency: 277.18 },
-      { fret: 21, string: 6, frequency: 277.18 },
-    ],
-    'C#5': [
-      { fret: 9, string: 1, frequency: 554.37 },
-      { fret: 14, string: 2, frequency: 554.37 },
-      { fret: 18, string: 3, frequency: 554.37 },
-    ],
-    'D#3': [
-      { fret: 1, string: 4, frequency: 155.56 },
-      { fret: 6, string: 5, frequency: 155.56 },
-      { fret: 11, string: 6, frequency: 155.56 },
-    ],
-    'D#4': [
-      { fret: 4, string: 2, frequency: 311.13 },
-      { fret: 8, string: 3, frequency: 311.13 },
-      { fret: 13, string: 4, frequency: 311.13 },
-      { fret: 18, string: 5, frequency: 311.13 },
-    ],
-    'D#5': [
-      { fret: 11, string: 1, frequency: 622.25 },
-      { fret: 16, string: 2, frequency: 622.25 },
-      { fret: 20, string: 3, frequency: 622.25 },
-    ],
-    'F#2': [{ fret: 2, string: 6, frequency: 92.5 }],
-    'F#3': [
-      { fret: 4, string: 4, frequency: 185.0 },
-      { fret: 9, string: 5, frequency: 185.0 },
-      { fret: 14, string: 6, frequency: 185.0 },
-    ],
-    'F#4': [
-      { fret: 2, string: 1, frequency: 369.99 },
-      { fret: 7, string: 2, frequency: 369.99 },
-      { fret: 11, string: 3, frequency: 369.99 },
-      { fret: 16, string: 4, frequency: 369.99 },
-      { fret: 21, string: 5, frequency: 369.99 },
-    ],
-    'F#5': [
-      { fret: 14, string: 1, frequency: 739.99 },
-      { fret: 19, string: 2, frequency: 739.99 },
-      { fret: 23, string: 3, frequency: 739.99 },
-    ],
-  };
 
   useEffect(() => {
     computeThresholds();
@@ -410,8 +557,8 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const computeThresholds = () => {
     // console.log('beginning computeThresholds..');
     let frequencies = [];
-    for (let note in noteMappings) {
-      for (let mapping of noteMappings[note]) {
+    for (let note in currentNoteMappings) {
+      for (let mapping of currentNoteMappings[note]) {
         if (!frequencies.includes(mapping.frequency)) {
           frequencies.push(mapping.frequency);
         }
@@ -692,8 +839,8 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         // );
 
         // Find corresponding notes in noteMappings
-        for (const note in noteMappings) {
-          noteMappings[note].forEach((data) => {
+        for (const note in currentNoteMappings) {
+          currentNoteMappings[note].forEach((data) => {
             if (data.frequency === parseFloat(key)) {
               potentialMatches.push({
                 note: note,
@@ -1309,21 +1456,26 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     setCurrentScaleAndMode({ scale, mode }); // Assuming you have a state to keep track of this
   };
 
+  const handleGuitarTypeChange = (guitarType, noteMappings) => {
+    console.log(`Guitar type changed in parent: ${guitarType}`, noteMappings);
+    setCurrentNoteMappings(noteMappings); // Update the current note mappings
+  };
+
   return (
     <div>
       <button
         onClick={() => addSongToSetlist(songId, setlistId)}
-        className="add-song-button"
+        className="add-song-button "
       >
         <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          fill="currentColor"
-          className="bi bi-plus"
-          viewBox="0 0 16 16"
+          xmlns="http://www.w3.org/2000/svg "
+          width="16 "
+          height="16 "
+          fill="currentColor "
+          className="bi bi-plus "
+          viewBox="0 0 16 16 "
         >
-          <path d="M8 0a.5.5 0 0 1 .5.5v7h7a.5.5 0 0 1 0 1h-7v7a.5.5 0 0 1-.5.5H7a.5.5 0 0 1-.5-.5v-7H0a.5.5 0 0 1 0-1h7V.5A.5.5 0 0 1 8 0z" />
+          <path d="M8 0a.5.5 0 0 1 .5.5v7h7a.5.5 0 0 1 0 1h-7v7a.5.5 0 0 1-.5.5H7a.5.5 0 0 1-.5-.5v-7H0a.5.5 0 0 1 0-1h7V.5A.5.5 0 0 1 8 0z " />
         </svg>
         Add to Setlist
       </button>
@@ -1350,13 +1502,14 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
         onOrderUpdate={handleOrderUpdate}
         onIncrementUpdate={handleIncrementUpdate}
         onUserSelectedScaleChange={handleUserSelectedScaleChange}
+        onGuitarTypeChange={handleGuitarTypeChange}
       />
       {/* Boundary management UI */}
       <input
-        type="text"
+        type="text "
         value={tempBoundary}
         onChange={(e) => setTempBoundary((e.target as HTMLInputElement).value)}
-        placeholder="Add new boundary (e.g., 1:23)"
+        placeholder="Add new boundary (e.g., 1:23) "
       />
       <button onClick={handleAddBoundary}>Add Boundary</button>
       {userBoundaries.map((boundary, index) => (
@@ -1367,20 +1520,20 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
       ))}
       <button onClick={handleSaveBoundaries}>Save Boundaries</button>
       <div>
-        <div className="silence-threshold-container">
-          <label htmlFor="silence-threshold">Silence Threshold:</label>
+        <div className="silence-threshold-container ">
+          <label htmlFor="silence-threshold ">Silence Threshold:</label>
           <input
-            type="range"
-            id="silence-threshold"
-            min="0.05"
-            max="0.1"
-            step="0.01"
+            type="range "
+            id="silence-threshold "
+            min="0.05 "
+            max="0.1 "
+            step="0.01 "
             value={silenceThreshold}
             onChange={(e) =>
               setSilenceThreshold(Number((e.target as HTMLInputElement).value))
             }
           />
-          <span className="silence-threshold-value">{silenceThreshold}</span>
+          <span className="silence-threshold-value ">{silenceThreshold}</span>
         </div>
       </div>
     </div>

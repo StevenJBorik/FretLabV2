@@ -21,6 +21,7 @@ interface FretboardProps {
   userFrets: number;
   onUserFretInputChange: (newStartFret: number, newFrets: number) => void;
   onUserSelectedScaleChange?: (newScale: string) => void;
+  onGuitarTypeChange?: (guitarType: string, noteMappings: any) => void;
 }
 
 const Fretboard: FunctionalComponent<FretboardProps> = ({
@@ -41,6 +42,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
   userFrets,
   onUserFretInputChange,
   onUserSelectedScaleChange,
+  onGuitarTypeChange,
 }) => {
   console.log('[Fretboard] Initial props', {
     displayedScale,
@@ -74,6 +76,140 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     bass4: ['standard'],
     guitar6: ['standard', 'E_4ths', 'Drop_D', 'G_open', 'DADGAD'],
     guitar7: ['standard', 'E_4ths'],
+  };
+
+  const bassNoteMappings = {
+    D2: [
+      { fret: 5, string: 3, frequency: 72.08 },
+      { fret: 10, string: 2, frequency: 72.08 },
+      { fret: 15, string: 1, frequency: 72.08 },
+    ],
+    'D#2': [
+      { fret: 6, string: 3, frequency: 76.37 },
+      { fret: 11, string: 2, frequency: 76.37 },
+      { fret: 16, string: 1, frequency: 76.37 },
+    ],
+    E2: [
+      { fret: 7, string: 3, frequency: 80.91 },
+      { fret: 12, string: 2, frequency: 80.91 },
+      { fret: 17, string: 1, frequency: 80.91 },
+    ],
+    F2: [
+      { fret: 8, string: 3, frequency: 85.72 },
+      { fret: 13, string: 2, frequency: 85.72 },
+      { fret: 18, string: 1, frequency: 85.72 },
+    ],
+    'F#2': [
+      { fret: 9, string: 3, frequency: 90.82 },
+      { fret: 14, string: 2, frequency: 90.82 },
+      { fret: 19, string: 1, frequency: 90.82 },
+    ],
+    G2: [
+      { fret: 10, string: 3, frequency: 96.22 },
+      { fret: 15, string: 2, frequency: 96.22 },
+      { fret: 20, string: 1, frequency: 96.22 },
+    ],
+    'G#2': [
+      { fret: 11, string: 3, frequency: 101.94 },
+      { fret: 16, string: 2, frequency: 101.94 },
+      { fret: 21, string: 1, frequency: 101.94 },
+    ],
+    A2: [
+      { fret: 12, string: 3, frequency: 108.0 },
+      { fret: 17, string: 2, frequency: 108.0 },
+      { fret: 22, string: 1, frequency: 108.0 },
+    ],
+    'A#2': [
+      { fret: 13, string: 3, frequency: 114.42 },
+      { fret: 18, string: 2, frequency: 114.42 },
+      { fret: 23, string: 1, frequency: 114.42 },
+    ],
+    B2: [
+      { fret: 14, string: 3, frequency: 121.23 },
+      { fret: 19, string: 2, frequency: 121.23 },
+      { fret: 24, string: 1, frequency: 121.23 },
+    ],
+    C3: [
+      { fret: 5, string: 4, frequency: 128.43 },
+      { fret: 10, string: 3, frequency: 128.43 },
+      { fret: 15, string: 2, frequency: 128.43 },
+      { fret: 20, string: 1, frequency: 128.43 },
+    ],
+    'C#3': [
+      { fret: 6, string: 4, frequency: 136.07 },
+      { fret: 11, string: 3, frequency: 136.07 },
+      { fret: 16, string: 2, frequency: 136.07 },
+      { fret: 21, string: 1, frequency: 136.07 },
+    ],
+    D3: [
+      { fret: 7, string: 4, frequency: 144.16 },
+      { fret: 12, string: 3, frequency: 144.16 },
+      { fret: 17, string: 2, frequency: 144.16 },
+      { fret: 22, string: 1, frequency: 144.16 },
+    ],
+    'D#3': [
+      { fret: 8, string: 4, frequency: 152.74 },
+      { fret: 13, string: 3, frequency: 152.74 },
+      { fret: 18, string: 2, frequency: 152.74 },
+      { fret: 23, string: 1, frequency: 152.74 },
+    ],
+    E3: [
+      { fret: 9, string: 4, frequency: 161.82 },
+      { fret: 14, string: 3, frequency: 161.82 },
+      { fret: 19, string: 2, frequency: 161.82 },
+      { fret: 24, string: 1, frequency: 161.82 },
+    ],
+    F3: [
+      { fret: 10, string: 4, frequency: 171.44 },
+      { fret: 15, string: 3, frequency: 171.44 },
+      { fret: 20, string: 2, frequency: 171.44 },
+    ],
+    'F#3': [
+      { fret: 11, string: 4, frequency: 181.63 },
+      { fret: 16, string: 3, frequency: 181.63 },
+      { fret: 21, string: 2, frequency: 181.63 },
+    ],
+    G3: [
+      { fret: 12, string: 4, frequency: 192.43 },
+      { fret: 17, string: 3, frequency: 192.43 },
+      { fret: 22, string: 2, frequency: 192.43 },
+    ],
+    'G#3': [
+      { fret: 13, string: 4, frequency: 203.88 },
+      { fret: 18, string: 3, frequency: 203.88 },
+      { fret: 23, string: 2, frequency: 203.88 },
+    ],
+    A3: [
+      { fret: 14, string: 4, frequency: 216.0 },
+      { fret: 19, string: 3, frequency: 216.0 },
+      { fret: 24, string: 2, frequency: 216.0 },
+    ],
+    'A#3': [
+      { fret: 15, string: 4, frequency: 228.84 },
+      { fret: 20, string: 3, frequency: 228.84 },
+    ],
+    B3: [
+      { fret: 16, string: 4, frequency: 242.45 },
+      { fret: 21, string: 3, frequency: 242.45 },
+    ],
+    C4: [
+      { fret: 17, string: 4, frequency: 256.87 },
+      { fret: 22, string: 3, frequency: 256.87 },
+    ],
+    'C#4': [
+      { fret: 18, string: 4, frequency: 272.14 },
+      { fret: 23, string: 3, frequency: 272.14 },
+    ],
+    D4: [
+      { fret: 19, string: 4, frequency: 288.33 },
+      { fret: 24, string: 3, frequency: 288.33 },
+    ],
+    'D#4': [{ fret: 20, string: 4, frequency: 305.47 }],
+    E4: [{ fret: 21, string: 4, frequency: 323.63 }],
+    F4: [{ fret: 22, string: 4, frequency: 342.88 }],
+    'F#4': [{ fret: 23, string: 4, frequency: 363.27 }],
+    G4: [{ fret: 24, string: 4, frequency: 384.87 }],
+    'G#5': [{ fret: 24, string: 4, frequency: 407.75 }],
   };
 
   const noteMappings = {
@@ -321,11 +457,13 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     console.log('renderFretboardWithHighlight called');
     console.log('detectedNote:', detectedNote);
     console.log('detectedFret:', detectedFret);
-    // Assuming you have a state to track if notes should be highlighted
-    if (highlightNotes) {
-      // Replace `this.state.highlightNotes` with your state variable
-      const fretboardContainer = document.querySelector('.fretboard');
 
+    // Determine which note mapping to use based on the selected guitar type
+    const currentNoteMappings =
+      selectedGuitarType === 'bass4' ? bassNoteMappings : noteMappings;
+
+    if (highlightNotes) {
+      const fretboardContainer = document.querySelector('.fretboard');
       if (!fretboardContainer) {
         console.error('Fretboard container not found');
         return;
@@ -333,7 +471,6 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
 
       const allCircleElements =
         fretboardContainer.querySelectorAll('circle.note');
-
       allCircleElements.forEach((circleElement) => {
         if (circleElement instanceof SVGElement) {
           circleElement.classList.remove('highlight');
@@ -342,13 +479,13 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
       });
 
       if (detectedNote && detectedFret !== undefined) {
-        const noteData = noteMappings[detectedNote]; // Ensure `noteMappings` is accessible here
+        const noteData = currentNoteMappings[detectedNote];
 
         if (noteData) {
           noteData.forEach((data) => {
             if (data.fret === detectedFret) {
-              const relativeFret = detectedFret - initialStartFret; // Use state
-              const fretPosition = fretPositions[relativeFret]; // Ensure `fretPositions` is accessible
+              const relativeFret = detectedFret - initialStartFret;
+              const fretPosition = fretPositions[relativeFret];
 
               let matchingCircle = Array.from(allCircleElements).find(
                 (circleElement) =>
@@ -372,7 +509,6 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
       const fretboardContainer = document.querySelector('.fretboard');
       const allCircleElements =
         fretboardContainer.querySelectorAll('circle.note');
-
       allCircleElements.forEach((circleElement) => {
         if (circleElement instanceof SVGElement) {
           circleElement.classList.remove('highlight');
@@ -509,6 +645,7 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     const target = event.target as HTMLSelectElement;
     const newGuitarType = target.value;
     // console.log('Guitar type changed to:', newGuitarType);
+    setSelectedGuitarType(newGuitarType);
 
     const defaultTuningForType: { [key: string]: string } = {
       bass4: 'standard',
@@ -518,6 +655,11 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
 
     setSelectedGuitarType(newGuitarType);
     setSelectedTuning(defaultTuningForType[newGuitarType] || 'standard');
+    if (newGuitarType === 'bass4') {
+      onGuitarTypeChange('bass4', bassNoteMappings); // This is the callback passed from the parent
+    } else {
+      onGuitarTypeChange(newGuitarType, noteMappings); // For other guitar types
+    }
   };
 
   const handleTuningChange = (event) => {
