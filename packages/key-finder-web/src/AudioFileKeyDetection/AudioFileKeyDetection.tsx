@@ -10,6 +10,7 @@ import Essentia from 'essentia.js/dist/essentia.js-core.es.js';
 import { EssentiaWASM } from 'essentia.js/dist/essentia-wasm.es.js';
 import { PitchDetector } from 'pitchy';
 import scalePositions from '../scaleFingerMappings';
+import bassScalePositions from '../scaleBassFingerMappings';
 
 declare var cv: any;
 
@@ -169,9 +170,13 @@ class AudioFileKeyDetection extends Component<Props, State> {
   }
 
   computeThresholds() {
+    let currentNoteMappings =
+      this.state.selectedGuitarType === 'bass4'
+        ? this.bassNoteMappings
+        : this.noteMappings;
     let frequencies = [];
-    for (let note in this.noteMappings) {
-      for (let mapping of this.noteMappings[note]) {
+    for (let note in currentNoteMappings) {
+      for (let mapping of currentNoteMappings[note]) {
         if (!frequencies.includes(mapping.frequency)) {
           frequencies.push(mapping.frequency);
         }
@@ -536,7 +541,9 @@ class AudioFileKeyDetection extends Component<Props, State> {
       convertedMode.charAt(0).toUpperCase() + convertedMode.slice(1)
     }`;
 
-    return scalePositions[scaleKey] || {}; // Assuming scalePositions is passed as a prop
+    return this.state.selectedGuitarType === 'bass4'
+      ? bassScalePositions[scaleKey]
+      : scalePositions[scaleKey] || {};
   }
 
   getPlayingDirection(noteHistory) {
@@ -739,6 +746,10 @@ class AudioFileKeyDetection extends Component<Props, State> {
   };
 
   updateFretboardHighlights = (detectedNote, detectedFret) => {
+    let currentNoteMappings =
+      this.state.selectedGuitarType === 'bass4'
+        ? this.bassNoteMappings
+        : this.noteMappings;
     console.log('updating fretboard highlights..', detectedFret, detectedNote);
     if (this.state.highlightNotes) {
       const fretboardContainer = document.querySelector('.fretboard');
@@ -767,7 +778,7 @@ class AudioFileKeyDetection extends Component<Props, State> {
       );
 
       if (detectedNote && detectedFret !== undefined) {
-        const noteData = this.noteMappings[detectedNote];
+        const noteData = currentNoteMappings[detectedNote];
         if (noteData) {
           noteData.forEach((data) => {
             if (data.fret === detectedFret) {
@@ -1168,9 +1179,147 @@ class AudioFileKeyDetection extends Component<Props, State> {
     ],
   };
 
+  bassNoteMappings = {
+    D2: [
+      { fret: 5, string: 3, frequency: 72.08 },
+      { fret: 10, string: 2, frequency: 72.08 },
+      { fret: 15, string: 1, frequency: 72.08 },
+    ],
+    'D#2': [
+      { fret: 6, string: 3, frequency: 76.37 },
+      { fret: 11, string: 2, frequency: 76.37 },
+      { fret: 16, string: 1, frequency: 76.37 },
+    ],
+    E2: [
+      { fret: 7, string: 3, frequency: 80.91 },
+      { fret: 12, string: 2, frequency: 80.91 },
+      { fret: 17, string: 1, frequency: 80.91 },
+    ],
+    F2: [
+      { fret: 8, string: 3, frequency: 85.72 },
+      { fret: 13, string: 2, frequency: 85.72 },
+      { fret: 18, string: 1, frequency: 85.72 },
+    ],
+    'F#2': [
+      { fret: 9, string: 3, frequency: 90.82 },
+      { fret: 14, string: 2, frequency: 90.82 },
+      { fret: 19, string: 1, frequency: 90.82 },
+    ],
+    G2: [
+      { fret: 10, string: 3, frequency: 96.22 },
+      { fret: 15, string: 2, frequency: 96.22 },
+      { fret: 20, string: 1, frequency: 96.22 },
+    ],
+    'G#2': [
+      { fret: 11, string: 3, frequency: 101.94 },
+      { fret: 16, string: 2, frequency: 101.94 },
+      { fret: 21, string: 1, frequency: 101.94 },
+    ],
+    A2: [
+      { fret: 12, string: 3, frequency: 108.0 },
+      { fret: 17, string: 2, frequency: 108.0 },
+      { fret: 22, string: 1, frequency: 108.0 },
+    ],
+    'A#2': [
+      { fret: 13, string: 3, frequency: 114.42 },
+      { fret: 18, string: 2, frequency: 114.42 },
+      { fret: 23, string: 1, frequency: 114.42 },
+    ],
+    B2: [
+      { fret: 14, string: 3, frequency: 121.23 },
+      { fret: 19, string: 2, frequency: 121.23 },
+      { fret: 24, string: 1, frequency: 121.23 },
+    ],
+    C3: [
+      { fret: 5, string: 4, frequency: 128.43 },
+      { fret: 10, string: 3, frequency: 128.43 },
+      { fret: 15, string: 2, frequency: 128.43 },
+      { fret: 20, string: 1, frequency: 128.43 },
+    ],
+    'C#3': [
+      { fret: 6, string: 4, frequency: 136.07 },
+      { fret: 11, string: 3, frequency: 136.07 },
+      { fret: 16, string: 2, frequency: 136.07 },
+      { fret: 21, string: 1, frequency: 136.07 },
+    ],
+    D3: [
+      { fret: 7, string: 4, frequency: 144.16 },
+      { fret: 12, string: 3, frequency: 144.16 },
+      { fret: 17, string: 2, frequency: 144.16 },
+      { fret: 22, string: 1, frequency: 144.16 },
+    ],
+    'D#3': [
+      { fret: 8, string: 4, frequency: 152.74 },
+      { fret: 13, string: 3, frequency: 152.74 },
+      { fret: 18, string: 2, frequency: 152.74 },
+      { fret: 23, string: 1, frequency: 152.74 },
+    ],
+    E3: [
+      { fret: 9, string: 4, frequency: 161.82 },
+      { fret: 14, string: 3, frequency: 161.82 },
+      { fret: 19, string: 2, frequency: 161.82 },
+      { fret: 24, string: 1, frequency: 161.82 },
+    ],
+    F3: [
+      { fret: 10, string: 4, frequency: 171.44 },
+      { fret: 15, string: 3, frequency: 171.44 },
+      { fret: 20, string: 2, frequency: 171.44 },
+    ],
+    'F#3': [
+      { fret: 11, string: 4, frequency: 181.63 },
+      { fret: 16, string: 3, frequency: 181.63 },
+      { fret: 21, string: 2, frequency: 181.63 },
+    ],
+    G3: [
+      { fret: 12, string: 4, frequency: 192.43 },
+      { fret: 17, string: 3, frequency: 192.43 },
+      { fret: 22, string: 2, frequency: 192.43 },
+    ],
+    'G#3': [
+      { fret: 13, string: 4, frequency: 203.88 },
+      { fret: 18, string: 3, frequency: 203.88 },
+      { fret: 23, string: 2, frequency: 203.88 },
+    ],
+    A3: [
+      { fret: 14, string: 4, frequency: 216.0 },
+      { fret: 19, string: 3, frequency: 216.0 },
+      { fret: 24, string: 2, frequency: 216.0 },
+    ],
+    'A#3': [
+      { fret: 15, string: 4, frequency: 228.84 },
+      { fret: 20, string: 3, frequency: 228.84 },
+    ],
+    B3: [
+      { fret: 16, string: 4, frequency: 242.45 },
+      { fret: 21, string: 3, frequency: 242.45 },
+    ],
+    C4: [
+      { fret: 17, string: 4, frequency: 256.87 },
+      { fret: 22, string: 3, frequency: 256.87 },
+    ],
+    'C#4': [
+      { fret: 18, string: 4, frequency: 272.14 },
+      { fret: 23, string: 3, frequency: 272.14 },
+    ],
+    D4: [
+      { fret: 19, string: 4, frequency: 288.33 },
+      { fret: 24, string: 3, frequency: 288.33 },
+    ],
+    'D#4': [{ fret: 20, string: 4, frequency: 305.47 }],
+    E4: [{ fret: 21, string: 4, frequency: 323.63 }],
+    F4: [{ fret: 22, string: 4, frequency: 342.88 }],
+    'F#4': [{ fret: 23, string: 4, frequency: 363.27 }],
+    G4: [{ fret: 24, string: 4, frequency: 384.87 }],
+    'G#5': [{ fret: 24, string: 4, frequency: 407.75 }],
+  };
+
   getNoteFromFrequency = (
     frequency: number
   ): Array<{ note: string; fret: number; string: number }> => {
+    let currentNoteMappings =
+      this.state.selectedGuitarType === 'bass4'
+        ? this.bassNoteMappings
+        : this.noteMappings;
     const MIN_FREQUENCY = 80;
     const MAX_FREQUENCY = 850;
     const freq =
@@ -1187,8 +1336,8 @@ class AudioFileKeyDetection extends Component<Props, State> {
       string: number;
     }> = [];
 
-    for (const note in this.noteMappings) {
-      const noteData = this.noteMappings[note];
+    for (const note in currentNoteMappings) {
+      const noteData = currentNoteMappings[note];
       noteData.forEach((data) => {
         const { min, max } = this.thresholds[data.frequency];
         if (freq >= min && freq <= max) {

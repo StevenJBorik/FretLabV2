@@ -160,7 +160,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     mode: '',
   });
   const [silenceThreshold, setSilenceThreshold] = useState(0.0759);
-  const [guitarType, setGuitarType] = useState('guitar'); // default to 'guitar'
+  const [guitarType, setGuitarType] = useState('guitar6');
 
   //   const noteMappings = {
   //     A2: [
@@ -983,7 +983,7 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     }`;
 
     // Choose the correct scale positions based on the guitar type
-    return guitarType === 'bass'
+    return guitarType === 'bass4'
       ? bassScalePositions[scaleKey]
       : scalePositions[scaleKey] || {};
   };
