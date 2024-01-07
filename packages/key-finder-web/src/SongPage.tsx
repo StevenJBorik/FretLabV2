@@ -7,6 +7,7 @@ import './SongPage.css';
 import { UserContext } from './context';
 import { SetlistContext } from './setListContext'; // Import the context
 import scalePositions from './scaleFingerMappings';
+import bassScalePositions from './scaleBassFingerMappings';
 
 const API_URL = 'http://localhost:8080'; // Define API_URL
 
