@@ -645,7 +645,10 @@ const Fretboard: FunctionalComponent<FretboardProps> = ({
     const target = event.target as HTMLSelectElement;
     const newGuitarType = target.value;
     // console.log('Guitar type changed to:', newGuitarType);
-    setSelectedGuitarType(newGuitarType);
+    const noteMappingsToPass =
+      newGuitarType === 'bass4' ? bassNoteMappings : noteMappings;
+
+    onGuitarTypeChange(newGuitarType, noteMappingsToPass);
 
     const defaultTuningForType: { [key: string]: string } = {
       bass4: 'standard',

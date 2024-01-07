@@ -160,6 +160,8 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     mode: '',
   });
   const [silenceThreshold, setSilenceThreshold] = useState(0.0759);
+  const [guitarType, setGuitarType] = useState('guitar'); // default to 'guitar'
+
   //   const noteMappings = {
   //     A2: [
   //       { fret: 0, string: 5, frequency: 110.0 },
@@ -976,13 +978,14 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
   const getScalePositions = (key, mode) => {
     const normalizedKey = normalizeKey(key);
     const convertedMode = convertMode(mode);
-
-    // Format the key for access in the mappings
     const scaleKey = `${normalizedKey}${
       convertedMode.charAt(0).toUpperCase() + convertedMode.slice(1)
     }`;
 
-    return scalePositions[scaleKey] || {}; // Return the positions or an empty object if not found
+    // Choose the correct scale positions based on the guitar type
+    return guitarType === 'bass'
+      ? bassScalePositions[scaleKey]
+      : scalePositions[scaleKey] || {};
   };
 
   const getPlayingDirection = (noteHistory) => {
@@ -1457,8 +1460,9 @@ const SongPage: FunctionalComponent<SongPageProps> = ({ matches }) => {
     setCurrentScaleAndMode({ scale, mode }); // Assuming you have a state to keep track of this
   };
 
-  const handleGuitarTypeChange = (guitarType, noteMappings) => {
+  const handleGuitarTypeChange = (newGuitarType, noteMappings) => {
     console.log(`Guitar type changed in parent: ${guitarType}`, noteMappings);
+    setGuitarType(newGuitarType); // Update the guitar type state
     setCurrentNoteMappings(noteMappings); // Update the current note mappings
   };
 
