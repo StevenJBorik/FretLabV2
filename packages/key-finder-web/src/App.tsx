@@ -424,6 +424,7 @@ class App extends Component<{}, AppState> {
               <div class="app-container">
                 <div class="top-bar">
                   <div class="app-logo">
+                    <img src="./FretLabsNavbarLogo.png" alt="" />
                     <Link href="/">FretLabs</Link>
                   </div>
                   <Navigation

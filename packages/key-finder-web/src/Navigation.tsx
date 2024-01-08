@@ -4,6 +4,8 @@ import debounce from 'lodash.debounce'; // You may need to install this with npm
 import { route } from 'preact-router';
 import DropdownContext from './context';
 import { useContext } from 'preact/hooks';
+import Logo from './FretLabsNavbarLogo.png'; // Adjust the path to where your logo is stored
+
 import './Navigation.css';
 
 const API_URL = 'http://localhost:8080'; // Define API_URL
